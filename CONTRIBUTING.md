@@ -1,4 +1,4 @@
-# Contributing to MJ Tonnerre
+# Contributing to MyGameMaster
 
 Thank you for your interest in contributing. This document explains how to set up a development
 environment, the coding conventions we follow, and the legal terms that govern contributions.

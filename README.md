@@ -1,4 +1,4 @@
-# MJ Tonnerre — AI Game Master for Discord
+# MyGameMaster — an AI Game Master for Discord
 
 **A production-ready, LLM-powered tabletop RPG Game Master that runs on Discord,
 isolated per campaign, deployed in minutes with a single declarative table.**
@@ -10,7 +10,7 @@ isolated per campaign, deployed in minutes with a single declarative table.**
 
 ## What is this?
 
-**MJ Tonnerre** is an AI Game Master built on the [Hermes](https://hermes-agent.nousresearch.com/docs/) agent framework.
+**MyGameMaster** is an AI Game Master built on the [Hermes](https://hermes-agent.nousresearch.com/docs/) agent framework.
 It runs live sessions on Discord, narrates in **the players' language** (configurable per game),
 rolls dice, tracks inventory and character sheets, animates persistent NPCs and factions,
 and keeps the world coherent across sessions — even when nobody is playing.
@@ -18,7 +18,8 @@ and keeps the world coherent across sessions — even when nobody is playing.
 Each game runs as its own **rootless Podman container**, deployed and managed by **Ansible**.
 The stack is intentionally minimal: one declarative table, one vault, one command.
 
-> "MJ Tonnerre" is a proper name and is not translated.
+The default GM persona that ships out of the box is **MJ Tonnerre** — a proper noun kept as-is.
+Your own instance's personality is fully configurable per game via `soul_extra` in `games.yml`.
 
 ---
 
@@ -277,7 +278,7 @@ enable/disable the judge, or adjust feature flags.
 
 ## Cost Disclaimer
 
-MJ Tonnerre calls **commercial LLM and TTS APIs** at runtime. You are responsible for the costs
+MyGameMaster calls **commercial LLM and TTS APIs** at runtime. You are responsible for the costs
 incurred on your OpenRouter and MiniMax accounts.
 
 - The GM makes one LLM call per player message.
@@ -308,9 +309,18 @@ The [scoreboard script](modules/gaming/mj-tonnerre/hooks/scoreboard.py) helps yo
 
 ---
 
+## Naming
+
+**MyGameMaster** is the name of this project and its repository.
+**MJ Tonnerre** is the default GM persona that comes bundled with it — a proper noun, not translated.
+Internal code identifiers (`mj-tonnerre*` module paths, data directories) reflect that persona name
+and are intentionally unchanged.
+
+---
+
 ## License
 
-MJ Tonnerre is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+MyGameMaster is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
 See [LICENSE](LICENSE).
 
 The copyright is held by a single author. The maintainer reserves the right to offer the project
