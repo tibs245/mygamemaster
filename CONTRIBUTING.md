@@ -84,24 +84,51 @@ See `harness/README.md` for configuration options.
 
 ### Running tests
 
-The test suite covers the core engine and runtime hooks:
+Three test suites cover the core engine, runtime hooks, and TTS module.
+Run them from the repo root:
 
 ```bash
-# From the repo root
-python -m pytest modules/
+# Core engine (unittest discover)
+cd modules/gaming/mj-tonnerre/scripts && python3 -m unittest discover -s tests
+
+# Runtime hooks
+cd modules/gaming/mj-tonnerre/hooks && python3 test_hooks.py
+
+# TTS module
+cd modules/gaming/mj-tonnerre-tts/tests && python3 test_tts.py
 ```
 
-Hook-specific tests:
+JSON schema validation (requires a local campaign directory):
 ```bash
-python modules/gaming/mj-tonnerre/hooks/test_hooks.py
-```
-
-JSON schema validation:
-```bash
-python modules/gaming/mj-tonnerre/scripts/validate_schema.py <campaign-dir>
+python3 modules/gaming/mj-tonnerre/scripts/validate_schema.py <campaign-dir>
 ```
 
 All tests must pass before opening a pull request.
+
+### Linting
+
+```bash
+pip install ruff yamllint
+
+ruff check .     # Python lint (configured in ruff.toml)
+yamllint .       # YAML lint (configured in .yamllint)
+```
+
+### pre-commit
+
+Install the pre-commit hooks to catch issues before they reach CI:
+
+```bash
+pip install pre-commit
+pre-commit install          # installs commit-time hooks
+pre-commit install --hook-type pre-push   # installs the push-time test guard
+```
+
+Or run all hooks at once against the full tree:
+
+```bash
+pre-commit run --all-files
+```
 
 ---
 
