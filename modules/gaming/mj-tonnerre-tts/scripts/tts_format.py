@@ -67,7 +67,7 @@ RÈGLES IMPÉRATIVES :
    tournures de la conteuse (« voyez-vous », « ah… », interjections, répétitions stylistiques).
    Ne paraphrase pas, ne résume pas, ne censure pas le récit.
 2. RETIRE tout ce qui n'est PAS de la narration parlée : notations de dés (1d20, +3, DD15),
-   chiffres de stats entre crochets, mentions techniques (« Update pnj.json »), libellés de
+   chiffres de stats entre crochets, mentions techniques (« Update npcs.json »), libellés de
    commandes (!jet), marqueurs d'admin, émojis décoratifs. Garde les nombres prononçables en
    toutes lettres si naturel.
 3. La voix RESPIRE DÉJÀ NATURELLEMENT sur la ponctuation (« . », « , », « … », « ? »,

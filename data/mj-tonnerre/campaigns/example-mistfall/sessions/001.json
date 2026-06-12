@@ -44,31 +44,31 @@
   ],
   "lieux_visites": [
     {
-      "nom": "The Amber Toll",
+      "name": "The Amber Toll",
       "type": "Inn",
       "note": "Base of operations for now. Petra is an ally. Chalk circle now surrounds the building."
     },
     {
-      "nom": "The drover's road east of Ashveil",
+      "name": "The drover's road east of Ashveil",
       "type": "Road",
       "note": "Players arrived this way. The road vanishes into the Veil about half a mile east."
     },
     {
-      "nom": "Ashveil smithy (briefly)",
+      "name": "Ashveil smithy (briefly)",
       "type": "Workshop",
       "note": "Oryn borrowed iron filings from the ash-heap. Smithy is closed but unlocked."
     }
   ],
   "pnj_rencontres": [
     {
-      "nom": "Petra Dawnhollow",
+      "name": "Petra Dawnhollow",
       "role": "Innkeeper, The Amber Toll",
       "attitude": "Cautious ally",
       "relation_niveau": "Friendly — helped draw the circle; trusts the players are competent",
       "note": "Mentioned her father (a collected soul, unknown to her). The verse she half-remembers may be a ritual ward — to follow up."
     },
     {
-      "nom": "Wren",
+      "name": "Wren",
       "role": "Mosswick's runner",
       "attitude": "Frightened but cooperative",
       "relation_niveau": "Neutral — delivered the note, answered questions, has nothing more to give",

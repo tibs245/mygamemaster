@@ -1,13 +1,13 @@
 {
   "_description": "Player character file — Mistfall campaign. Player: Sam (discord 100000000000000002). Character: Sable Morrow.",
   "meta": {
-    "nom_joueur": "Sam",
+    "player_name": "Sam",
     "discord_id": "100000000000000002",
-    "nom_perso": "Sable Morrow",
+    "character_name": "Sable Morrow",
     "race": "Half-fae (appears fully human; fae heritage is not common knowledge)",
-    "classe": "Wayfinder (Dexterity/Charisma — reads the land and the deal)",
-    "niveau": 1,
-    "historique": "Sable never met their fae parent. Their mother was a travelling healer who made a bargain she did not finish reading — and died before she could pay it. Sable has been living in the spaces between debts ever since: not pursued, but aware that the Pale Court has a file on their family. They have a talent for finding things and people, a tendency to hear what mist-wraiths say when they think no one is listening, and a strong preference for not staying in one place long enough to accrue new debts.",
+    "class_": "Wayfinder (Dexterity/Charisma — reads the land and the deal)",
+    "level": 1,
+    "history": "Sable never met their fae parent. Their mother was a travelling healer who made a bargain she did not finish reading — and died before she could pay it. Sable has been living in the spaces between debts ever since: not pursued, but aware that the Pale Court has a file on their family. They have a talent for finding things and people, a tendency to hear what mist-wraiths say when they think no one is listening, and a strong preference for not staying in one place long enough to accrue new debts.",
     "portrait_url": ""
   },
   "stats": {
@@ -26,45 +26,45 @@
     "wisdom": 2,
     "charisma": 2
   },
-  "competences": [
-    { "nom": "Survival (tracking, pathfinding)", "stat": "Wisdom", "bonus": 5, "maitrise": true },
-    { "nom": "Perception", "stat": "Wisdom", "bonus": 5, "maitrise": true },
-    { "nom": "Stealth", "stat": "Dexterity", "bonus": 6, "maitrise": true },
-    { "nom": "Deception (social survival)", "stat": "Charisma", "bonus": 5, "maitrise": true },
-    { "nom": "Arcana (fae nature, Veil behaviour)", "stat": "Intelligence", "bonus": 4, "maitrise": true }
+  "skills": [
+    { "name": "Survival (tracking, pathfinding)", "stat": "Wisdom", "bonus": 5, "maitrise": true },
+    { "name": "Perception", "stat": "Wisdom", "bonus": 5, "maitrise": true },
+    { "name": "Stealth", "stat": "Dexterity", "bonus": 6, "maitrise": true },
+    { "name": "Deception (social survival)", "stat": "Charisma", "bonus": 5, "maitrise": true },
+    { "name": "Arcana (fae nature, Veil behaviour)", "stat": "Intelligence", "bonus": 4, "maitrise": true }
   ],
-  "sorts": [
+  "spells": [
     {
-      "nom": "Veil-sense (passive)",
+      "name": "Veil-sense (passive)",
       "description": "Sable can sense the presence and approximate direction of active fae bargains within 30 metres. The sense is a low hum behind the ears — stronger when a bargain is recent or under strain. This is a passive racial trait, not a spell; no action required.",
-      "niveau": 0,
+      "level": 0,
       "utilisations": "Always active"
     },
     {
-      "nom": "Whisper-step",
+      "name": "Whisper-step",
       "description": "Once per short rest, Sable may move through fog or mist (including Veil-fog) without leaving any trace — no sound, no footprints, no scent. The effect lasts until Sable stops moving or speaks.",
-      "niveau": 1,
+      "level": 1,
       "utilisations": "1/short rest"
     }
   ],
-  "sante": {
-    "pv_max": 13,
-    "pv_actuels": 13,
-    "blessures": [],
-    "etats": [
+  "health": {
+    "hp_max": 13,
+    "hp_current": 13,
+    "wounds": [],
+    "conditions": [
       {
-        "nom": "Fae-touched (heritage)",
+        "name": "Fae-touched (heritage)",
         "description": "Cold iron is mildly uncomfortable to handle (not harmful, but Sable avoids prolonged contact). Fog-wraiths can sense Sable's fae heritage and may react with wariness rather than immediate hostility."
       }
     ]
   },
-  "equipement": [
-    { "nom": "Short sword (iron, not cold iron)", "description": "Plain and practical. The handle is wrapped in cord." },
-    { "nom": "Traveller's bow + 20 arrows", "description": "Light hunting bow." },
-    { "nom": "Leather armour (worn)", "description": "Well-maintained, quietly expensive. AC 12 + Dex mod." },
-    { "nom": "Hooded cloak (dark green)", "description": "Helps with both weather and disappearing into treelines." }
+  "equipment": [
+    { "name": "Short sword (iron, not cold iron)", "description": "Plain and practical. The handle is wrapped in cord." },
+    { "name": "Traveller's bow + 20 arrows", "description": "Light hunting bow." },
+    { "name": "Leather armour (worn)", "description": "Well-maintained, quietly expensive. AC 12 + Dex mod." },
+    { "name": "Hooded cloak (dark green)", "description": "Helps with both weather and disappearing into treelines." }
   ],
-  "inventaire": [
+  "inventory": [
     "5 days of rations",
     "Purse with 8 silver, 3 copper",
     "A small mirror (polished steel — useful for checking corners in Veil-fog)",
@@ -72,8 +72,8 @@
     "A ribbon of grey silk — a keepsake from their mother, smells faintly of lavender and iron",
     "A folded letter from Oryn that reads: 'I think we should go the same direction. The Veil is not coincidence.'"
   ],
-  "notes_perso": {
-    "objectifs": [
+  "personal_notes": {
+    "goals": [
       "Find out if the Pale Court has an active file on the Morrow family — and whether the debt transferred to Sable when their mother died",
       "Stay alive and free of new bargains — existing debt is enough",
       "Help Oryn read the charter if it is found. Sable cannot read well but understands fae legal phrasing instinctively."
@@ -91,6 +91,6 @@
   },
   "progression": {
     "xp": 0,
-    "niveau_suivant": 300
+    "next_level": 300
   }
 }

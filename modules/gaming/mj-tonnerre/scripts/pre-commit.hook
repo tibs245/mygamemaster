@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit.hook — Garde-fou de commit pour les campagnes MJ Tonnerre.
+# pre-commit.hook — Garde-fou de commit pour les campaigns MJ Tonnerre.
 #
 # REFUSE le commit si un JSON de campagne est syntaxiquement invalide.
 # Avertit (sans bloquer) si le validateur de distances signale une incohérence.
@@ -69,10 +69,10 @@ if [ "$STATUS" -ne 0 ]; then
     exit 1
 fi
 
-# 2. Validateur de distances sur chaque monde.json staged. NON BLOQUANT (warn).
+# 2. Validateur de distances sur chaque world.json staged. NON BLOQUANT (warn).
 for f in $STAGED_JSON; do
     case "$f" in
-        */monde.json|monde.json)
+        */world.json|world.json)
             abs="$REPO_ROOT/$f"
             [ -f "$abs" ] || continue
             echo "pre-commit MJ Tonnerre : vérification des distances ($f)…"

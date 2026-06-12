@@ -9,7 +9,7 @@ Checks the 4 rules of travel governance:
 4. No inverted hierarchy (near < far)
 
 Usage:
-  python3 validator-distances.py <path/monde.json>
+  python3 validator-distances.py <path/world.json>
   python3 validator-distances.py                  # cherche dans *.json du dossier courant
 
 Returns 0 if all OK, 1 if warnings, 2 if errors.
@@ -61,8 +61,8 @@ def charger_donnees(chemin: Path) -> dict:
 
 
 def collecter_trajets(monde: dict) -> list[dict]:
-    """Extract all travel routes from regles.temps.deplacements."""
-    deps = monde.get("regles", {}).get("temps", {}).get("deplacements", {})
+    """Extract all travel routes from rules.temps.movements."""
+    deps = monde.get("rules", {}).get("time", {}).get("movements", {})
     trajets = []
 
     for section_key, section_val in deps.items():
@@ -128,12 +128,12 @@ def verifier_coherence(trajets: list[dict]) -> list[str]:
             trajets_dict[(t["destination"], t["source"])] = t["duree_min"]
 
     # Build a graph for indirect paths
-    lieux = set()
+    locations = set()
     for t in trajets:
         if t["source"]:
-            lieux.add(t["source"])
+            locations.add(t["source"])
         if t["destination"]:
-            lieux.add(t["destination"])
+            locations.add(t["destination"])
 
     # Rule 1: Indirect >= Direct (naive pairwise check)
     for t in trajets:
@@ -177,7 +177,7 @@ def verifier_coherence(trajets: list[dict]) -> list[str]:
                     pass
 
     # Rule 3: Maximum 12h day
-    for source in lieux:
+    for source in locations:
         total = 0
         trajets_depuis = [t for t in trajets if t["source"] == source and t["duree_min"] > 0]
         for t in sorted(trajets_depuis, key=lambda x: x["duree_min"], reverse=True)[:3]:
@@ -220,12 +220,12 @@ def main():
 
     if len(sys.argv) > 1:
         arg = Path(sys.argv[1])
-        chemins = [arg / "monde.json"] if arg.is_dir() else [arg]
+        chemins = [arg / "world.json"] if arg.is_dir() else [arg]
     else:
-        chemins = list(Path.cwd().glob("monde.json"))
+        chemins = list(Path.cwd().glob("world.json"))
 
     if not chemins:
-        print("❌ No monde.json file found. Usage: validator-distances.py <path/monde.json>")
+        print("❌ No world.json file found. Usage: validator-distances.py <path/world.json>")
         sys.exit(2)
 
     global_status = 0

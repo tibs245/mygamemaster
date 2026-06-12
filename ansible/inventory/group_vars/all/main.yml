@@ -12,7 +12,7 @@ hermes_base_image: docker.io/nikolaik/python-nodejs:python3.11-nodejs20
 # Paths INSIDE the container
 container_home: /opt/hermes-home
 container_modules: /opt/modules
-container_data_root: /opt/data/mj-tonnerre/campagnes
+container_data_root: /opt/data/mj-tonnerre/campaigns
 container_base_items: /opt/data/mj-tonnerre/base_items.yaml
 
 # Paths ON the host
@@ -73,7 +73,7 @@ hermes_version: "latest"
 
 # ─── LLM Judge (rule checker: flexible Steward + strict conduct) ──────────────
 # Injected into the container via MJ_JUDGE_ACTIF / MJ_JUDGE_MODEL (see quadlet).
-# monde.json > meta.hooks.judge takes precedence over these values (per-campaign live override).
+# world.json > meta.hooks.judge takes precedence over these values (per-campaign live override).
 # ⚠️ Choose a DIFFERENT model from the GM (avoids correlated blind spots) and
 #    VERIFY the exact ID on your OpenRouter dashboard before enabling.
 # See docs/09-hooks-runtime.md and specs/hooks-runtime.md §10.
@@ -81,15 +81,15 @@ mj_judge_actif: true
 mj_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM — correlated blind spots possible; alt: google/gemma-4-31b-it
 
 # ─── Feature flags — INSTANCE defaults (six game engine axes) ─────────────────
-# Cascade: monde.json > meta.features.<axis>  >  MJ_FEATURE_<AXIS> (these vars)  >  True.
+# Cascade: world.json > meta.features.<axis>  >  MJ_FEATURE_<AXIS> (these vars)  >  True.
 # ALL ON by default, and fail-open: leaving everything ON is safe (an axis with missing
 # data is a simple no-op). These vars are only defined to HARDEN an instance default
-# (e.g. disable images everywhere); a campaign can always re-enable an axis via monde.json
+# (e.g. disable images everywhere); a campaign can always re-enable an axis via world.json
 # (the world has the final say).
 # NOT DEFINED below → no Environment= injected → runtime defaults to True.
 # See docs/monde-vivant/10-features.md.
 #   mj_feature_tracabilite: true         # CSV journal + auto git-commit + session snapshots
-#   mj_feature_verbosite: true           # Steward "Persisted" block + meta.verbosite level
+#   mj_feature_verbosity: true           # Steward "Persisted" block + meta.verbosity level
 #   mj_feature_pnj_faction_vivants: true # factions/proactivite_pnj modules + actors that "think"
 #   mj_feature_temporalite: true         # living world engine (world_tick pre/post, scene brief, propagation)
 #   mj_feature_images: true              # skill mj-tonnerre-images
@@ -97,15 +97,15 @@ mj_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM �
 # ─── Narrative voice (tts axis) — ENABLED by default on this instance ─────────
 # Explicit instance default + auto-voice length threshold. Fail-open on
 # MINIMAX_API_KEY: without a key (see vault.example.yml) the axis is a silent no-op.
-# To disable auto-voice while keeping !raconte: set meta.hooks.tts_auto=false (monde.json).
+# To disable auto-voice while keeping !raconte: set meta.hooks.tts_auto=false (world.json).
 mj_feature_tts: true                     # Minimax narrative voice (skill mj-tonnerre-tts + auto-TTS)
 mj_tts_min_chars: 100                    # narration >= 100 chars → auto-voice (short turns stay silent)
 
 # ─── Instance: deploy the SAME campaign multiple times (e.g. for testing) ────
-# instance=main  → deploy_id = <campagne_slug>            (production, backwards-compatible)
-# instance=test1 → deploy_id = <campagne_slug>-test1      (isolated copy for testing)
+# instance=main  → deploy_id = <campaign_slug>            (production, backwards-compatible)
+# instance=test1 → deploy_id = <campaign_slug>-test1      (isolated copy for testing)
 # deploy_id names the container / volumes / systemd unit / env / rendered configs.
-# The SEED always comes from the campaign data (campagne_data_dir) → each
+# The SEED always comes from the campaign data (campaign_data_dir) → each
 # instance has its own isolated data copy and its own memory.
 instance: main
-deploy_id: "{{ campagne_slug if (instance | string) in ['main', ''] else (campagne_slug ~ '-' ~ instance) }}"
+deploy_id: "{{ campaign_slug if (instance | string) in ['main', ''] else (campaign_slug ~ '-' ~ instance) }}"

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mj-tonnerre/pnj.schema.json",
-  "title": "pnj.json — fiches PNJ d'une campagne MJ Tonnerre (format canonique)",
-  "description": "Format canonique selon references/pnj-data-governance.md. Tolère les deux conteneurs : liste nue [...] OU {\"pnj\": [...]}. Chaque fiche distingue faits_etablis (joués) et hypotheses_mj (déductions non utilisables en narration). Deux couches privées OPTIONNELLES (Niveau 2, audit/06-niveau2-factions.md §4) : connaissances_privees (savoir caché du PNJ, semé par le MJ) et notes_privees (for intérieur de l'agent, appended par le coordinateur).",
+  "title": "npcs.json — fiches PNJ d'une campagne MJ Tonnerre (format canonique)",
+  "description": "Format canonique selon references/pnj-data-governance.md. Tolère les deux conteneurs : liste nue [...] OU {\"pnj\": [...]}. Chaque fiche distingue established_facts (joués) et hypotheses_mj (déductions non utilisables en narration). Deux couches privées OPTIONNELLES (Niveau 2, audit/06-niveau2-factions.md §4) : connaissances_privees (savoir caché du PNJ, semé par le MJ) et notes_privees (for intérieur de l'agent, appended par le coordinateur).",
   "oneOf": [
     {
       "type": "array",
@@ -23,14 +23,14 @@
   "$defs": {
     "fiche_pnj": {
       "type": "object",
-      "required": ["nom", "faits_etablis", "hypotheses_mj"],
+      "required": ["name", "established_facts", "hypotheses_mj"],
       "additionalProperties": true,
       "properties": {
-        "nom": { "type": "string" },
+        "name": { "type": "string" },
         "description": { "type": "string" },
         "attitude": { "type": "string" },
         "relation_niveau": { "type": "string" },
-        "faits_etablis": {
+        "established_facts": {
           "type": "array",
           "description": "Ce que le PNJ a DIT ou FAIT textuellement en jeu (traçable vers une session).",
           "items": { "type": "string" }

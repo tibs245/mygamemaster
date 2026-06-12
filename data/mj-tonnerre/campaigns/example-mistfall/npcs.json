@@ -1,6 +1,6 @@
 [
   {
-    "nom": "Elder Mosswick",
+    "name": "Elder Mosswick",
     "titre": "Elder of Thornwick, last Warden",
     "illustration": "",
     "premiere_rencontre": "Session 1 — road to Ashveil Crossing",
@@ -8,7 +8,7 @@
     "description": "A lean man in his sixties, or so he appears. His hair is white as chalk, his eyes a pale, unsettling green. He walks without a cane but moves too smoothly for his age. He is the last person in Thornwick who remembers what the founding charter actually said — because he was there when it was signed. He is far older than anyone knows.",
     "attitude": "Wary ally — will help the players but withholds the truth about himself until cornered",
     "relation_niveau": "Neutral at first meeting; potential ally if players earn his trust",
-    "faits_etablis": [
+    "established_facts": [
       "Is the last active Warden and holds the cold-iron bell",
       "Knows the Veil is fae-caused and connected to the founding charter",
       "Has begun sending people out of Thornwick to warn newcomers",
@@ -52,7 +52,7 @@
         "maitrise": true
       }
     },
-    "inventaire": [
+    "inventory": [
       "Cold-Iron Bell (taken from the Hall rack)",
       "A folded note with names of villagers he suspects are mist-shades",
       "A small vial of chalk-water (old ritual use, purpose unclear)"
@@ -72,7 +72,7 @@
     }
   },
   {
-    "nom": "The Lady of Sighs",
+    "name": "The Lady of Sighs",
     "titre": "Voice of the Pale Court",
     "illustration": "",
     "premiere_rencontre": "Not yet encountered — heard only as a voice in the Mire",
@@ -80,7 +80,7 @@
     "description": "Tall, pale, dressed in layered grey silk that moves without wind. Her face is too symmetrical. She speaks in a measured, unhurried tone as though every word is being inscribed somewhere. She is neither cruel nor kind — she is contractual. A bargain is a bargain. She will honour hers to the letter and expect the same.",
     "attitude": "Neutral — bound by her own laws as much as anyone else",
     "relation_niveau": "Antagonist by circumstance; potential negotiating partner if approached correctly",
-    "faits_etablis": [
+    "established_facts": [
       "Is the voice and authority of the Pale Court in the mortal world",
       "Seeks three souls to complete the century-old debt — has two; needs one more",
       "Cannot enter a chalk circle drawn with iron filings",
@@ -124,7 +124,7 @@
         "maitrise": true
       }
     },
-    "inventaire": [
+    "inventory": [
       "The Ledger of Debts (a slim book that writes itself)",
       "Two soul-vessels — glass spheres containing the first two collected souls"
     ],
@@ -144,7 +144,7 @@
     }
   },
   {
-    "nom": "Petra Dawnhollow",
+    "name": "Petra Dawnhollow",
     "titre": "Innkeeper, The Amber Toll",
     "illustration": "",
     "premiere_rencontre": "Session 1 — The Amber Toll inn",
@@ -152,7 +152,7 @@
     "description": "A stout woman in her forties, red-cheeked and pragmatic. She has lived at Ashveil Crossing her whole life and has seen the Veil before — once, when she was a girl. That time, it took her father. She has not spoken of it since, but she kept the cold-iron horseshoe above the inn door and knows exactly what it means.",
     "attitude": "Cautious ally — will help if the players seem competent and not reckless",
     "relation_niveau": "Friendly from the start; potential information source about local lore",
-    "faits_etablis": [
+    "established_facts": [
       "Runs The Amber Toll inn at Ashveil Crossing",
       "Has seen the Veil before (childhood) and lost her father to it",
       "Keeps cold-iron charms throughout the inn",
@@ -196,7 +196,7 @@
         "maitrise": true
       }
     },
-    "inventaire": [
+    "inventory": [
       "Cold-iron horseshoe (above the inn door)",
       "A short-handled hatchet behind the bar",
       "A half-remembered verse her father sang — she can be prompted to recite it"
@@ -217,7 +217,7 @@
     }
   },
   {
-    "nom": "Carro (fog-wraith)",
+    "name": "Carro (fog-wraith)",
     "titre": "Mist-shade posing as Thornwick's miller",
     "illustration": "",
     "premiere_rencontre": "Not yet encountered",
@@ -225,7 +225,7 @@
     "description": "Appears to be a broad-shouldered man in his thirties named Carro, Thornwick's miller. He is almost perfectly convincing. He blinks at the right moments, laughs at the right things, and asks after people's families. But he never initiates a personal memory — only mirrors what he has heard others say. Cold iron within arm's reach makes him flinch almost imperceptibly.",
     "attitude": "Deceptive — will pretend to be a frightened villager and attempt to lead players into the Veil",
     "relation_niveau": "Appears friendly; secretly hostile",
-    "faits_etablis": [
+    "established_facts": [
       "Is a fog-wraith wearing the shape of the real Carro (now a collected soul)",
       "Cannot know secrets the real Carro never spoke aloud",
       "Flinches near cold iron but can suppress the reaction with a DC 14 Wisdom save",
@@ -264,7 +264,7 @@
         "maitrise": true
       }
     },
-    "inventaire": [],
+    "inventory": [],
     "limites": {
       "lignes_rouges": [
         "Will not engage in direct combat — retreats to mist form",

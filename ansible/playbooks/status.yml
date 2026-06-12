@@ -24,7 +24,7 @@
         msg: "{{ _all.stdout_lines | default(['(none)']) }}"
 
 - name: Detailed status per declared campaign
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true        # required to resolve the UID (systemd_user_env)
   environment: "{{ systemd_user_env }}"   # systemctl/podman --user connect to the user bus
   vars:
@@ -54,7 +54,7 @@
     - name: Summary
       ansible.builtin.debug:
         msg:
-          - "campaign   : {{ campagne_titre | default(campagne_slug) }} ({{ campagne_slug }})"
+          - "campaign   : {{ campaign_title | default(campaign_slug) }} ({{ campaign_slug }})"
           - "instance   : {{ instance }}  →  id={{ deploy_id }}"
           - "service    : {{ _active.stdout | default('?') | trim }}"
           - "container  : {{ _ps.stdout | default('') | trim | default('absent', true) }}"

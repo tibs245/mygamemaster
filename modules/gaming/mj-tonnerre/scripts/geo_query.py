@@ -5,7 +5,7 @@ geo_query.py — DETERMINISTIC spatial queries for the "living world" (MJ Tonner
 Purpose (contract §4, doc 01 §6): answer EXACTLY "who is where / around /
 path / crossing" and DECLARE movements — the LLM NEVER produces
 coordinates. All geometry is deterministic: this script reads the spatial graph
-(`geo.json`), actors (`acteurs.json`) and the campaign (`monde.json`, READ-ONLY)
+(`geo.json`), actors (`actors.json`) and the campaign (`world.json`, READ-ONLY)
 and computes. The LLM queries and narrates; it computes nothing.
 
 This module is both:
@@ -24,16 +24,16 @@ Subcommands (map 1-1 to functions):
   distance    <campagne> <a> <b> [--vol-d-oiseau]
   dans-rayon  <campagne> <point_id> <rayon> [--t T]
   croisement  <campagne> --traj-a <f|-|@id> --traj-b <f|-|@id> --seuil D [--pas-ut N]
-  creer-lieu  <campagne> --nom STR --depuis ID --dir DIR --distance-m M [--type T]
+  creer-lieu  <campagne> --name STR --depuis ID --dir DIR --distance-m M [--type T]
                           [--parent ID] [--apply]
   deplacer    <campagne> --entite ID --vers ID --depart-t T [--motif STR] [--apply]
   valider     <campagne>
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
-  * NON-DESTRUCTIVE: NEVER writes to monde.json / pnj.json / evenements.json /
+  * NON-DESTRUCTIVE: NEVER writes to world.json / npcs.json / events.json /
     hooks / existing scripts. WRITES only geo.json (build, creer-lieu)
-    and acteurs.json (deplacer), and only in --apply mode, via worldlib's
+    and actors.json (deplacer), and only in --apply mode, via worldlib's
     atomic write;
   * exit codes: 0 ok; 1 business condition signaled (nothing found, path
     nonexistent, no crossing, violations refusing a write); 2 usage /
@@ -75,9 +75,9 @@ def _log(message: str) -> None:
 # ════════════════════════════════════════════════════════════════════════════
 #
 # `build` reflects the CONTAINMENT and ids carried BY THE DATA: each
-# region/location in monde.json carries its own `id` field (hierarchical) and, for
+# region/location in world.json carries its own `id` field (hierarchical) and, for
 # locations, `alias`. geo_query therefore knows NO location name nor campaign id:
-# it READS everything from monde.json. The parent of a location is DERIVED from its
+# it READS everything from world.json. The parent of a location is DERIVED from its
 # hierarchical id (cf. `_parent_depuis_id`). If a campaign does not provide an id,
 # it is forged by slug (generic, see `_collecter_lieux`).
 
@@ -109,7 +109,7 @@ def _parent_depuis_id(lid) -> str | None:
     return "lieu:" + "/".join(segments[:-1])
 
 
-# Mapping of record type labels (monde.json) → geo.schema.json enum.
+# Mapping of record type labels (world.json) → geo.schema.json enum.
 # Defaults to "lieu" if unrecognized (the schema keeps the enum, we stay within it).
 _TYPE_FICHE_VERS_GEO = {
     "habitation": "habitation",
@@ -177,15 +177,15 @@ _TYPES_GEO_VALIDES = {
 }
 
 
-def _norm_nom(nom: str) -> str:
+def _norm_nom(name: str) -> str:
     """Normalizes a record name/type (generic TYPE lookup utility).
 
     NFKD without diacritics, lowercase, « ° » and « n° » reduced, any character
     outside [a-z0-9()] becomes a space, spaces reduced.
     """
-    if not nom:
+    if not name:
         return ""
-    s = unicodedata.normalize("NFKD", str(nom))
+    s = unicodedata.normalize("NFKD", str(name))
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
     s = s.replace("n°", "n ").replace("°", " ")
@@ -196,7 +196,7 @@ def _norm_nom(nom: str) -> str:
 
 
 def _type_geo(type_fiche) -> str:
-    """Maps a record type (monde.json) to the geo enum, default 'lieu'."""
+    """Maps a record type (world.json) to the geo enum, default 'lieu'."""
     if not isinstance(type_fiche, str):
         return "lieu"
     brut = _norm_nom(type_fiche)
@@ -218,7 +218,7 @@ def _type_geo(type_fiche) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 #
 # Graph edges carry a direction (N, NE, E, SE, S, SO, O, NO, or '?').
-# Descriptions in `regles.temps.deplacements` often give it in plain text
+# Descriptions in `rules.temps.movements` often give it in plain text
 # ("à l'ouest", "direction nord-est", "nord-nord-est"). It is extracted via a
 # pattern table, from MOST SPECIFIC to most general (compound directions first).
 
@@ -308,7 +308,7 @@ def _vecteur_dir(direction: str) -> tuple[float, float]:
 #
 # Generates the complete spatial graph for a campaign:
 #   1) CONTAINMENT — one node per location from §2.2 (+ root regions), parent fixed;
-#   2) ADJACENCY  — edges from regles.temps.deplacements (duration → temps_ut via
+#   2) ADJACENCY  — edges from rules.temps.movements (duration → temps_ut via
 #      minutes_vers_ut(parser_duree_minutes), direction extracted from descriptions),
 #      reciprocal edge (return direction, opposite direction) added if absent;
 #   3) ANCHOR    — SMACOF MDS (worldlib) on the duration matrix; locations not
@@ -317,14 +317,14 @@ def _vecteur_dir(direction: str) -> tuple[float, float]:
 
 def _routes_depuis_monde(monde: dict) -> list[dict]:
     """Extracts all routes (id_a, id_b, minutes, direction, voie) from
-    regles.temps.deplacements.
+    rules.temps.movements.
 
     Iterates over `depuis_<src>_vers` (dict), `entre` (dict of keys `<a>_vers_<b>`), and
     simple top-level keys `<a>_vers_<b>` (strings). Labels are resolved
-    to ids via the index built from monde.json (`W.index_labels`) — no hardcoded names —
+    to ids via the index built from world.json (`W.index_labels`) — no hardcoded names —
     and duration by the worldlib parser, to stay consistent with MDS.
     """
-    dep = (monde.get("regles", {}) or {}).get("temps", {}).get("deplacements", {})
+    dep = (monde.get("rules", {}) or {}).get("time", {}).get("movements", {})
     routes: list[dict] = []
     if not isinstance(dep, dict):
         return routes
@@ -368,19 +368,19 @@ def _routes_depuis_monde(monde: dict) -> list[dict]:
 
 
 def _collecter_lieux(monde: dict) -> list[dict]:
-    """Builds the list of location NODES (without edges or anchor) from monde.json.
+    """Builds the list of location NODES (without edges or anchor) from world.json.
 
     Entirely GENERIC: no hardcoded campaign name/id.
-      * Regions: for each `reg` in `univers.regions`, id = `reg["id"]` (otherwise
-        forged `"region:" + slug(nom)`), parent None, type "region", description =
+      * Regions: for each `reg` in `universe.regions`, id = `reg["id"]` (otherwise
+        forged `"region:" + slug(name)`), parent None, type "region", description =
         `description`|`ambiance`.
-      * Locations: for each `fiche` in `reg["lieux"]`, id = `fiche["id"]` (otherwise
-        forged `"lieu:<region-slug>/<slug(nom)>"`), parent DERIVED from id via
+      * Locations: for each `fiche` in `reg["locations"]`, id = `fiche["id"]` (otherwise
+        forged `"lieu:<region-slug>/<slug(name)>"`), parent DERIVED from id via
         `_parent_depuis_id` (a sub-location encodes its parent in its id), type via
         `_type_geo`, description compacted.
     """
     noeuds: dict[str, dict] = {}
-    regions = (monde.get("univers", {}) or {}).get("regions", []) or []
+    regions = (monde.get("universe", {}) or {}).get("regions", []) or []
 
     # Root regions (parent null, aretes []). We store the order + region slug
     # to forge ids for locations without ids and keep a deterministic order.
@@ -389,7 +389,7 @@ def _collecter_lieux(monde: dict) -> list[dict]:
     for i, reg in enumerate(regions):
         if not isinstance(reg, dict):
             continue
-        rnom = reg.get("nom", "") or ""
+        rnom = reg.get("name", "") or ""
         rid = reg.get("id")
         if not (isinstance(rid, str) and rid):
             rid = "region:" + W.slug(rnom)
@@ -399,7 +399,7 @@ def _collecter_lieux(monde: dict) -> list[dict]:
         desc = reg.get("description") or reg.get("ambiance") or ""
         noeuds[rid] = {
             "id": rid,
-            "nom": rnom,
+            "name": rnom,
             "parent": None,
             "type": "region",
             "altitude": None,
@@ -414,24 +414,24 @@ def _collecter_lieux(monde: dict) -> list[dict]:
         if not isinstance(reg, dict):
             continue
         rslug = region_slug.get(i, "")
-        for fiche in reg.get("lieux", []) or []:
+        for fiche in reg.get("locations", []) or []:
             if not isinstance(fiche, dict):
                 continue
-            nom = fiche.get("nom", "") or ""
+            name = fiche.get("name", "") or ""
             lid = fiche.get("id")
             if not (isinstance(lid, str) and lid):
                 # Location without id: we FORGE an id under the region (slug) to not
                 # lose information nor break the hierarchy (genericity).
-                base = W.slug(nom)
+                base = W.slug(name)
                 if not base:
                     continue
                 lid = "lieu:" + (f"{rslug}/{base}" if rslug else base)
-                _log(f"ℹ Location without id mapped by slug: « {nom} » → {lid}")
+                _log(f"ℹ Location without id mapped by slug: « {name} » → {lid}")
             parent = _parent_depuis_id(lid)
             desc = fiche.get("description", "") or ""
             noeuds[lid] = {
                 "id": lid,
-                "nom": nom,
+                "name": name,
                 "parent": parent,
                 "type": _type_geo(fiche.get("type")),
                 "altitude": None,
@@ -440,7 +440,7 @@ def _collecter_lieux(monde: dict) -> list[dict]:
                 "description_narrative": _compacter(desc, 180),
             }
 
-    # Deterministic order: regions (monde.json order) first, then locations sorted
+    # Deterministic order: regions (world.json order) first, then locations sorted
     # by id.
     region_set = set(region_ids)
     autres = sorted(nid for nid in noeuds if nid not in region_set)
@@ -527,11 +527,11 @@ def _ancrer_tous(noeuds: list[dict], routes: list[dict]) -> float:
     if ids_mds:
         # Builds a minimal graph and reuses worldlib.matrice_durees(geo) to
         # benefit from the Floyd-Warshall completion + proven symmetrization.
-        geo_min = {"lieux": [
+        geo_min = {"locations": [
             {"id": nid, "parent": None, "ancrage": {"x": 0, "y": 0}, "aretes": []}
             for nid in ids_mds
         ]}
-        gmin_idx = {n["id"]: n for n in geo_min["lieux"]}
+        gmin_idx = {n["id"]: n for n in geo_min["locations"]}
         for a, b, ut in paires_ut:
             gmin_idx[a]["aretes"].append(
                 {"vers": b, "dir": "?", "distance_m": None, "temps_ut": ut})
@@ -632,10 +632,10 @@ def _barycentre(ancrages: list[dict]) -> tuple[int, int]:
 def construire_geo(campagne: Path) -> dict:
     """Builds the complete geo object (dict) for a campaign (without writing it).
 
-    Reads monde.json (READ-ONLY). Returns {'meta':…, 'lieux':[…]}. Deterministic.
+    Reads world.json (READ-ONLY). Returns {'meta':…, 'locations':[…]}. Deterministic.
     """
-    monde = W.charger_json(Path(campagne) / "monde.json", {}) or {}
-    nom_campagne = (monde.get("meta", {}) or {}).get("nom") \
+    monde = W.charger_json(Path(campagne) / "world.json", {}) or {}
+    nom_campagne = (monde.get("meta", {}) or {}).get("name") \
         or (monde.get("meta", {}) or {}).get("titre") \
         or Path(campagne).name
 
@@ -653,7 +653,7 @@ def construire_geo(campagne: Path) -> dict:
             "echelle": "1 unite d'ancrage ~ 1 UT de marche (non metrique, usage code uniquement)",
             "mds_stress_normalise": round(stress, 4),
         },
-        "lieux": noeuds,
+        "locations": noeuds,
     }
     return geo
 
@@ -668,8 +668,8 @@ def build(campagne: Path, apply: bool = False, force: bool = False) -> dict:
     """
     campagne = Path(campagne)
     geo = construire_geo(campagne)
-    nb_lieux = len(geo["lieux"])
-    nb_aretes = sum(len(n.get("aretes", [])) for n in geo["lieux"])
+    nb_lieux = len(geo["locations"])
+    nb_aretes = sum(len(n.get("aretes", [])) for n in geo["locations"])
     stress = geo["meta"]["mds_stress_normalise"]
 
     # Structural validation (graph invariants) before any write.
@@ -765,7 +765,7 @@ def qui_est_a(campagne: Path, lieu_id: str, T: int | None = None,
               rayon: float | None = None) -> list[dict]:
     """« Who is here (or within range) at T? ».
 
-    List of present actors: [{'id','nom','type','lieu','distance'}]. If rayon
+    List of present actors: [{'id','name','type','lieu','distance'}]. If rayon
     None → EXACT presence at the location (or its contents); otherwise presence within
     the anchor radius around the location. Sorted by ascending distance then id.
     """
@@ -815,7 +815,7 @@ def _present(acteur: dict, lieu: str, distance: float) -> dict:
     """Formats an actor presence entry."""
     return {
         "id": acteur.get("id"),
-        "nom": acteur.get("nom", acteur.get("id")),
+        "name": acteur.get("name", acteur.get("id")),
         "type": acteur.get("type", "pnj"),
         "lieu": lieu,
         "distance": distance,
@@ -884,8 +884,8 @@ def dans_rayon(campagne: Path, point_id: str, rayon: float,
                T: int | None = None) -> dict:
     """Spatial filtering around a point (anchor), at T.
 
-    {'lieux':[{'id','distance'}], 'acteurs':[{'id','distance'}]} within the anchor
-    radius around point_id. The point itself is not listed in 'lieux'.
+    {'locations':[{'id','distance'}], 'acteurs':[{'id','distance'}]} within the anchor
+    radius around point_id. The point itself is not listed in 'locations'.
     Sorted by ascending distance.
     """
     campagne = Path(campagne)
@@ -898,7 +898,7 @@ def dans_rayon(campagne: Path, point_id: str, rayon: float,
     centre = W._ancrage_xy(idx.get(point_id))
     if centre is None:
         _log(f"ℹ dans_rayon: unknown point or missing anchor « {point_id} ».")
-        return {"lieux": [], "acteurs": []}
+        return {"locations": [], "acteurs": []}
 
     lieux_dans: list[dict] = []
     for lid, noeud in idx.items():
@@ -925,7 +925,7 @@ def dans_rayon(campagne: Path, point_id: str, rayon: float,
 
     lieux_dans.sort(key=lambda x: (x["distance"], x["id"]))
     acteurs_dans.sort(key=lambda x: (x["distance"], x["id"]))
-    return {"lieux": lieux_dans, "acteurs": acteurs_dans}
+    return {"locations": lieux_dans, "acteurs": acteurs_dans}
 
 
 def croisement(campagne: Path, traj_a: list[dict], traj_b: list[dict],
@@ -1026,7 +1026,7 @@ def _bornes_trajectoire(traj: list[dict]) -> tuple[int, int] | None:
 #  Declarations (the LLM does not provide coordinates) — creer_lieu / deplacer
 # ════════════════════════════════════════════════════════════════════════════
 
-def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
+def creer_lieu(campagne: Path, name: str, depuis: str, dir: str,
                distance_m: int, *, type_lieu: str = "lieu",
                parent: str | None = None, apply: bool = False) -> dict:
     """RELATIVE DECLARATION of a new location (the LLM does not provide (x,y)).
@@ -1073,9 +1073,9 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
         violations.append(f"unknown parent « {parent} » (reference).")
 
     # Forged id: under the parent (kebab), with deterministic slug.
-    base_slug = W.slug(nom)
+    base_slug = W.slug(name)
     if not base_slug:
-        violations.append(f"name « {nom} » produces no usable slug.")
+        violations.append(f"name « {name} » produces no usable slug.")
         return {"id": None, "noeud": None, "violations": violations, "ecrit": False}
     # Hierarchical prefix: derived from parent (region → 'lieu:<region>/slug';
     # location → 'lieu:<parent-path>/slug').
@@ -1093,7 +1093,7 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
     # Reciprocal edge depuis <-> nouvel_id.
     arete_aller = {
         "vers": nouvel_id, "dir": direction, "distance_m": dm,
-        "temps_ut": ut_estime, "voie": f"{nom} (déclaré depuis {idx[depuis].get('nom', depuis)})",
+        "temps_ut": ut_estime, "voie": f"{name} (déclaré depuis {idx[depuis].get('name', depuis)})",
     }
     arete_retour = {
         "vers": depuis, "dir": _OPPOSE_DIR.get(direction, "?"),
@@ -1102,7 +1102,7 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
 
     noeud = {
         "id": nouvel_id,
-        "nom": nom,
+        "name": name,
         "parent": parent,
         "type": type_geo,
         "altitude": None,
@@ -1162,17 +1162,17 @@ def _geo_avec_nouveau_lieu(geo: dict, noeud: dict, depuis: str,
     Does NOT modify the original (queries remain fail-open). Minimal deep copy
     (locations + edges of the only touched node `depuis`).
     """
-    lieux = []
-    for n in geo.get("lieux", []):
+    locations = []
+    for n in geo.get("locations", []):
         if n.get("id") == depuis:
             copie = dict(n)
             copie["aretes"] = list(n.get("aretes", [])) + [arete_aller]
-            lieux.append(copie)
+            locations.append(copie)
         else:
-            lieux.append(n)
-    lieux.append(noeud)
+            locations.append(n)
+    locations.append(noeud)
     nouveau = dict(geo)
-    nouveau["lieux"] = lieux
+    nouveau["locations"] = locations
     return nouveau
 
 
@@ -1183,8 +1183,8 @@ def deplacer(campagne: Path, entite_id: str, vers: str, depart_t: int,
     Builds the edge 'chemin' (plus_court_chemin) from the entity's current position
     (at depart_t) to `vers`, deduces the duration (sum of temps_ut), APPENDs a
     'deplacement' segment then a stay to the actor's trajectory in
-    acteurs.json, VALIDATES (valider_trajectoire + monotonicity vs t_courant), and if apply →
-    writes acteurs.json (atomic).
+    actors.json, VALIDATES (valider_trajectoire + monotonicity vs t_courant), and if apply →
+    writes actors.json (atomic).
     Returns {'entite','segments_ajoutes':[…],'arrivee_t':int,'violations':[…],
     'ecrit':bool}.
     """
@@ -1257,9 +1257,9 @@ def deplacer(campagne: Path, entite_id: str, vers: str, depart_t: int,
 
     ecrit = False
     if not violations and apply:
-        # Re-integrates the trajectory into a COPY of acteurs.json then writes (atomic).
+        # Re-integrates the trajectory into a COPY of actors.json then writes (atomic).
         acteurs_maj = _acteurs_avec_trajectoire(acteurs, entite_id, nouvelle_traj)
-        W.sauver_json_atomique(campagne / "acteurs.json", acteurs_maj)
+        W.sauver_json_atomique(campagne / "actors.json", acteurs_maj)
         ecrit = True
     elif violations and apply:
         _log(f"❌ deplacer refused: {len(violations)} violation(s).")
@@ -1299,7 +1299,7 @@ def _tronquer_a(traj: list[dict], T: int) -> list[dict]:
 
 def _acteurs_avec_trajectoire(acteurs: dict, entite_id: str,
                               trajectoire: list[dict]) -> dict:
-    """Copy of acteurs.json where the trajectory of `entite_id` is replaced.
+    """Copy of actors.json where the trajectory of `entite_id` is replaced.
 
     Also updates `localisation_id` (derived display field) on the last
     stay, to remain consistent with any backward-compatible readers.
@@ -1335,7 +1335,7 @@ def _valider_objet_geo(geo: dict) -> dict:
       (1) Attachment — valid parent + ≥ 1 edge (except root regions);
       (2) Reference  — every arête.vers exists;
       (and types/anchors well-formed).
-    Continuity/monotonicity (3,4) concern the trajectories in acteurs.json (cf.
+    Continuity/monotonicity (3,4) concern the trajectories in actors.json (cf.
     valider_trajectoire) and duration governance (5) is delegated to the distance
     validator in valider_geo(campaign). Returns
     {'ok':bool, 'erreurs':[…], 'avertissements':[…]}.
@@ -1343,8 +1343,8 @@ def _valider_objet_geo(geo: dict) -> dict:
     erreurs: list[str] = []
     avert: list[str] = []
 
-    if not isinstance(geo, dict) or not isinstance(geo.get("lieux"), list):
-        return {"ok": False, "erreurs": ["geo.json: invalid structure (no 'lieux')."],
+    if not isinstance(geo, dict) or not isinstance(geo.get("locations"), list):
+        return {"ok": False, "erreurs": ["geo.json: invalid structure (no 'locations')."],
                 "avertissements": []}
 
     idx = W.index_lieux(geo)
@@ -1410,7 +1410,7 @@ def valider_geo(campagne: Path) -> dict:
 
     {'ok':bool, 'erreurs':[…], 'avertissements':[…]}. Structural invariants
     (attachment, reference) + duration governance (5) delegated to
-    validator-distances.py re-launched as a subprocess on monde.json (best-effort:
+    validator-distances.py re-launched as a subprocess on world.json (best-effort:
     its outcome does not invalidate the graph, it is joined as a warning).
     """
     campagne = Path(campagne)
@@ -1420,7 +1420,7 @@ def valider_geo(campagne: Path) -> dict:
     # (5) Duration governance: re-launches the existing distance validator
     # (best-effort, never fails hard here).
     vd = SCRIPTS_DIR / "validator-distances.py"
-    monde = campagne / "monde.json"
+    monde = campagne / "world.json"
     if vd.exists() and monde.exists():
         try:
             import subprocess
@@ -1465,13 +1465,13 @@ def _charger_trajectoire_arg(campagne: Path, spec: str) -> list[dict] | None:
     if spec is None:
         return None
     spec = str(spec)
-    # @<id> → trajectory of an actor from acteurs.json.
+    # @<id> → trajectory of an actor from actors.json.
     if spec.startswith("@"):
         aid = spec[1:]
         acteurs = W.charger_acteurs(campagne)
         idx = W.index_acteurs(acteurs)
         if aid not in idx:
-            _log(f"❌ trajectoire: actor « {aid} » not found in acteurs.json.")
+            _log(f"❌ trajectoire: actor « {aid} » not found in actors.json.")
             return None
         return W.trajectoire_de(idx[aid])
     # '-' → stdin.
@@ -1516,8 +1516,8 @@ def cmd_build(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
         return 2
-    if not (camp / "monde.json").exists():
-        _log(f"❌ monde.json not found in {camp}")
+    if not (camp / "world.json").exists():
+        _log(f"❌ world.json not found in {camp}")
         return 2
     res = build(camp, apply=args.apply, force=args.force)
     if args.as_json:
@@ -1575,7 +1575,7 @@ def cmd_qui_est_a(args) -> int:
         print(f"📍 Present at {args.lieu_id}:")
         for p in res:
             d = f" — at {p['distance']}" if args.rayon is not None and p["distance"] else ""
-            print(f"   • {p['id']} ({p['nom']}, {p['type']}){d}")
+            print(f"   • {p['id']} ({p['name']}, {p['type']}){d}")
     return 0 if res else 1
 
 
@@ -1647,17 +1647,17 @@ def cmd_dans_rayon(args) -> int:
         _sortir_json(res)
     else:
         print(f"📍 Within radius {args.rayon} around {args.point_id}:")
-        if res["lieux"]:
+        if res["locations"]:
             print("   Locations:")
-            for l in res["lieux"]:
+            for l in res["locations"]:
                 print(f"      • {l['id']} (≈{l['distance']})")
         if res["acteurs"]:
             print("   Actors:")
             for a in res["acteurs"]:
                 print(f"      • {a['id']} (≈{a['distance']})")
-        if not res["lieux"] and not res["acteurs"]:
+        if not res["locations"] and not res["acteurs"]:
             print("   (nothing)")
-    return 0 if (res["lieux"] or res["acteurs"]) else 1
+    return 0 if (res["locations"] or res["acteurs"]) else 1
 
 
 def cmd_croisement(args) -> int:
@@ -1684,7 +1684,7 @@ def cmd_creer_lieu(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
         return 2
-    res = creer_lieu(camp, nom=args.nom, depuis=args.depuis, dir=args.dir,
+    res = creer_lieu(camp, name=args.name, depuis=args.depuis, dir=args.dir,
                      distance_m=args.distance_m, type_lieu=args.type,
                      parent=args.parent, apply=args.apply)
     if args.as_json:
@@ -1695,7 +1695,7 @@ def cmd_creer_lieu(args) -> int:
             for v in res["violations"]:
                 print(f"   - {v}")
         else:
-            print(f"📍 New location: {res['id']} (« {args.nom} »)")
+            print(f"📍 New location: {res['id']} (« {args.name} »)")
             anc = res["noeud"]["ancrage"]
             print(f"   internal anchor computed (code only); attached to "
                   f"{res['noeud']['parent']}")
@@ -1725,7 +1725,7 @@ def cmd_deplacer(args) -> int:
             print(f"➜ {res['entite']} → {args.vers}  "
                   f"(arrival {W.t_vers_narratif(res['arrivee_t'])})")
             if res["ecrit"]:
-                print("   ✅ trajectory written to acteurs.json")
+                print("   ✅ trajectory written to actors.json")
             elif args.apply:
                 print("   ❌ not written (violations).")
             else:
@@ -1860,7 +1860,7 @@ def build_parser() -> argparse.ArgumentParser:
     # creer-lieu
     p = sub.add_parser("creer-lieu", help="Declares a location RELATIVELY (no coordinates).")
     p.add_argument("campagne")
-    p.add_argument("--nom", required=True)
+    p.add_argument("--name", required=True)
     p.add_argument("--depuis", required=True, help="id of the reference location.")
     p.add_argument("--dir", required=True, help="Direction ∈ {N,NE,E,SE,S,SO,O,NO}.")
     p.add_argument("--distance-m", dest="distance_m", type=int, required=True,
@@ -1880,7 +1880,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--depart-t", dest="depart_t", type=int, required=True,
                    help="Departure instant T (UT).")
     p.add_argument("--motif", default="", help="Narrative reason for the movement.")
-    p.add_argument("--apply", action="store_true", help="Writes acteurs.json (atomic).")
+    p.add_argument("--apply", action="store_true", help="Writes actors.json (atomic).")
     _ajout_json(p)
     p.set_defaults(func=cmd_deplacer)
 

@@ -16,14 +16,14 @@ NET="harness-net"
 WORK="$(mktemp -d)"
 CAMP="$WORK/campagne"
 HHOME="$WORK/hhome"
-mkdir -p "$CAMP/sessions" "$CAMP/personnages" "$HHOME"
+mkdir -p "$CAMP/sessions" "$CAMP/characters" "$HHOME"
 
-cat > "$CAMP/monde.json" <<'JSON'
-{ "meta": { "nom": "Harness", "temps": { "regime": "Narratif" }, "verbosite": "DEBUG",
-    "diagnostic": { "actif": true, "fichier": "collecte.csv", "regles": { "echantillon_frequence": 1 } } },
-  "modules": {}, "etat_global": {}, "univers": { "regions": [] } }
+cat > "$CAMP/world.json" <<'JSON'
+{ "meta": { "name": "Harness", "time": { "regime": "Narratif" }, "verbosity": "DEBUG",
+    "diagnostic": { "actif": true, "fichier": "collecte.csv", "rules": { "echantillon_frequence": 1 } } },
+  "modules": {}, "global_state": {}, "universe": { "regions": [] } }
 JSON
-echo '[]' > "$CAMP/pnj.json"
+echo '[]' > "$CAMP/npcs.json"
 cp "$HARNESS/config.local.yaml" "$HHOME/config.yaml"
 cp "$REPO/ansible/templates/SOUL.md.j2" "$HHOME/SOUL.md"
 

@@ -56,7 +56,7 @@ MIME_EXT = {"jpeg": "jpg", "jpg": "jpg", "png": "png", "webp": "webp"}
 # specific prompt from the GM.
 _REF_INSTRUCTION_FR = (
     "RÉFÉRENCE VISUELLE CANONIQUE — à respecter absolument :\n"
-    "{n_ref_label} {verb} l'apparence établie du ou des personnages représentés dans cette scène.\n"
+    "{n_ref_label} {verb} l'apparence établie du ou des characters représentés dans cette scène.\n"
     "Tu DOIS conserver EXACTEMENT : visage, forme du visage, couleur et style des cheveux, "
     "teinte de peau, traits distinctifs (cicatrices, tatouages, couleur des yeux…). "
     "Seuls la pose, l'expression, l'éclairage et le cadrage peuvent changer.\n\n"

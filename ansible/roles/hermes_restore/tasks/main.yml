@@ -20,7 +20,7 @@
 - name: Verify required variables
   ansible.builtin.assert:
     that:
-      - campagne_slug is defined
+      - campaign_slug is defined
       - (set is defined) or (snapshot is defined)
       - _what in ['data', 'home', 'all']
     fail_msg: >-

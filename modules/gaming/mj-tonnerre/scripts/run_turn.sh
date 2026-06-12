@@ -44,7 +44,7 @@ Usage: $0 <slug> --mode pnj|faction --campagne <chemin> "<contexte>"
   "<contexte>" Contexte narratif de la scène (obligatoire, entre guillemets)
 
 Exemples :
-  $0 barda --mode pnj --campagne .hermes/mj-tonnerre/campagnes/mon-monde \\
+  $0 barda --mode pnj --campagne .hermes/mj-tonnerre/campaigns/mon-monde \\
     "Les PJ entrent dans ta forge, couverts de boue, et demandent à réparer une lame."
 EOF
     exit 1
@@ -115,7 +115,7 @@ else
 fi
 
 if [[ -z "$BRIEF" ]]; then
-    die "Brief vide pour \"$SLUG\" — vérifie sa fiche dans pnj.json"
+    die "Brief vide pour \"$SLUG\" — vérifie sa fiche dans npcs.json"
 fi
 
 ok "Brief construit (${#BRIEF} caractères)" >&2

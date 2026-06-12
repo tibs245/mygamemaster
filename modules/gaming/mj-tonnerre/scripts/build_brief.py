@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Phase 1 — NPC brief cache
-Extracts the brief for an NPC from pnj.json, with checksum-based caching.
+Extracts the brief for an NPC from npcs.json, with checksum-based caching.
 Avoids re-paying the read/parsing cost if nothing has changed.
 
 Usage:
@@ -29,11 +29,11 @@ def find_pnj(pnj_list, name):
     """Search for an NPC by name, case-insensitive match."""
     name_lower = name.lower().strip()
     for pnj in pnj_list:
-        if pnj.get('nom', '').lower() == name_lower:
+        if pnj.get('name', '').lower() == name_lower:
             return pnj
     # Partial match
     for pnj in pnj_list:
-        if name_lower in pnj.get('nom', '').lower():
+        if name_lower in pnj.get('name', '').lower():
             return pnj
     return None
 
@@ -41,7 +41,7 @@ def find_pnj(pnj_list, name):
 def build_brief(pnj):
     """Build the text brief for an NPC from their sheet."""
     lines = []
-    lines.append(f"=== NPC BRIEF : {pnj.get('nom', 'UNKNOWN')} ===")
+    lines.append(f"=== NPC BRIEF : {pnj.get('name', 'UNKNOWN')} ===")
     lines.append(f"Title: {pnj.get('titre', '')}")
     lines.append(f"Description: {pnj.get('description', '')}")
     lines.append(f"Attitude: {pnj.get('attitude', '')}")
@@ -49,7 +49,7 @@ def build_brief(pnj):
     lines.append(f"Location: {pnj.get('localisation_actuelle', 'Unknown')}")
     lines.append("")
 
-    faits = pnj.get('faits_etablis', [])
+    faits = pnj.get('established_facts', [])
     if faits:
         lines.append("--- ESTABLISHED FACTS (what the NPC knows) ---")
         for f in faits:
@@ -75,19 +75,19 @@ def build_brief(pnj):
                 lines.append(f"  • {m}")
         lines.append("")
 
-    inv = pnj.get('inventaire', [])
+    inv = pnj.get('inventory', [])
     if inv:
         lines.append("--- INVENTORY ---")
         for item in inv:
             lines.append(f"  • {item}")
         lines.append("")
 
-    competences = pnj.get('competences_observees', {})
-    if competences:
+    skills = pnj.get('competences_observees', {})
+    if skills:
         lines.append("--- OBSERVED SKILLS ---")
-        for nom, data in competences.items():
+        for name, data in skills.items():
             bonus = data.get('bonus', 0)
-            lines.append(f"  • {nom} (+{bonus})")
+            lines.append(f"  • {name} (+{bonus})")
         lines.append("")
 
     stats = pnj.get('stats', {})
@@ -169,13 +169,13 @@ def main():
     campagne_path = sys.argv[1]
     # If it is a relative path, resolve it
     if not campagne_path.startswith('/'):
-        base = os.path.expanduser("~/.hermes/mj-tonnerre/campagnes")
+        base = os.path.expanduser("~/.hermes/mj-tonnerre/campaigns")
         campagne_path = os.path.join(base, campagne_path)
 
     # Extract the campaign name for the cache
     campagne_nom = os.path.basename(campagne_path.rstrip('/'))
 
-    pnj_json_path = os.path.join(campagne_path, 'pnj.json')
+    pnj_json_path = os.path.join(campagne_path, 'npcs.json')
 
     if not os.path.exists(pnj_json_path):
         print(f"❌ File not found: {pnj_json_path}")
@@ -189,7 +189,7 @@ def main():
         print("NPCs available in this campaign:")
         for pnj in pnj_data:
             loc = pnj.get('localisation_actuelle', '?')
-            print(f"  • {pnj['nom']:20s} [{loc}]")
+            print(f"  • {pnj['name']:20s} [{loc}]")
         sys.exit(0)
 
     if len(sys.argv) < 3:
@@ -214,7 +214,7 @@ def main():
         print(f"❌ NPC '{pnj_nom}' not found in {pnj_json_path}")
         print("Available NPCs:")
         for p in pnj_data:
-            print(f"  • {p['nom']}")
+            print(f"  • {p['name']}")
         sys.exit(1)
 
     # Attempt cache lookup
@@ -223,7 +223,7 @@ def main():
         if cached:
             print(cached)
             # Stats on stderr
-            print(f"\n--- [Cache HIT — pnj.json unchanged] ---", file=sys.stderr)
+            print(f"\n--- [Cache HIT — npcs.json unchanged] ---", file=sys.stderr)
             sys.exit(0)
         else:
             print("\n--- [Cache MISS — regenerating] ---", file=sys.stderr)

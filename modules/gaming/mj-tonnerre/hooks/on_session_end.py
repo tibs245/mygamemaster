@@ -2,7 +2,7 @@
 """
 on_session_end — timestamped snapshot of campaign JSON files (safety net).
 
-Copies monde.json / pnj.json / evenements.json / personnages/* / sessions/*
+Copies world.json / npcs.json / events.json / characters/* / sessions/*
 under .banquier/snapshots/<timestamp>/ and keeps the KEEP most recent ones.
 Best-effort: never causes session end to fail.
 """
@@ -27,11 +27,11 @@ def handle(payload):
     dest = camp / ".banquier" / "snapshots" / stamp
     try:
         dest.mkdir(parents=True, exist_ok=True)
-        for name in ("monde.json", "pnj.json", "evenements.json"):
+        for name in ("world.json", "npcs.json", "events.json"):
             src = camp / name
             if src.exists():
                 shutil.copy2(src, dest / name)
-        for sub in ("personnages", "sessions"):
+        for sub in ("characters", "sessions"):
             srcdir = camp / sub
             if srcdir.is_dir():
                 (dest / sub).mkdir(exist_ok=True)

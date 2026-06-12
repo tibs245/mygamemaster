@@ -58,7 +58,7 @@ def build_context(camp, monde, payload=None):
     head = [
         "🧮 ÉTAT FAISANT AUTORITÉ — vérifie les fichiers avant de narrer "
         "(ne te fie pas à ta mémoire) :",
-        "• Verbosité : %s" % L.verbosite(monde),
+        "• Verbosité : %s" % L.verbosity(monde),
     ]
     # Author + admin status (reliable): lets the GM know who is speaking and only
     # execute !feature <axe> on|off if "admin: oui". Fail-open.

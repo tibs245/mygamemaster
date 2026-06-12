@@ -3,12 +3,12 @@
     "campagne": "Mistfall",
     "version": 1,
     "t_reference": 0,
-    "note": "Living-world actors derived from pnj.json and etat_global.factions. Narrative time regime (no UT). t_reference=0 = Day 1 dusk, the moment the players arrive at Ashveil Crossing. Echeances expressed in days. Non-destructive: this file EXTENDS monde.json/pnj.json (never rewritten)."
+    "note": "Living-world actors derived from npcs.json and global_state.factions. Narrative time regime (no UT). t_reference=0 = Day 1 dusk, the moment the players arrive at Ashveil Crossing. Echeances expressed in days. Non-destructive: this file EXTENDS world.json/npcs.json (never rewritten)."
   },
   "acteurs": [
     {
       "id": "faction:pale-court",
-      "nom": "The Pale Court",
+      "name": "The Pale Court",
       "type": "faction",
       "lod": "froid",
       "majeur": true,
@@ -76,11 +76,11 @@
         { "vers": "faction:thornwick-wardens", "type": "hostilite", "intensite": 0.7, "poids": 0.7 },
         { "vers": "acteur:carro-wraith", "type": "commandement", "intensite": 1.0, "poids": 1.0 }
       ],
-      "source": "etat_global.factions[The Pale Court]"
+      "source": "global_state.factions[The Pale Court]"
     },
     {
       "id": "faction:thornwick-wardens",
-      "nom": "The Thornwick Wardens",
+      "name": "The Thornwick Wardens",
       "type": "faction",
       "lod": "tiede",
       "majeur": true,
@@ -139,11 +139,11 @@
         { "vers": "acteur:mosswick", "type": "vassalite", "intensite": 0.9, "poids": 0.9 },
         { "vers": "acteur:petra-dawnhollow", "type": "alliance", "intensite": 0.5, "poids": 0.5 }
       ],
-      "source": "etat_global.factions[The Thornwick Wardens]"
+      "source": "global_state.factions[The Thornwick Wardens]"
     },
     {
       "id": "acteur:mosswick",
-      "nom": "Elder Mosswick",
+      "name": "Elder Mosswick",
       "type": "pnj",
       "lod": "tiede",
       "majeur": true,
@@ -181,11 +181,11 @@
         { "vers": "faction:pale-court", "type": "dette", "intensite": 0.9, "poids": 0.9 },
         { "vers": "acteur:petra-dawnhollow", "type": "alliance", "intensite": 0.4, "poids": 0.4 }
       ],
-      "source": "pnj.json[Elder Mosswick]"
+      "source": "npcs.json[Elder Mosswick]"
     },
     {
       "id": "acteur:petra-dawnhollow",
-      "nom": "Petra Dawnhollow",
+      "name": "Petra Dawnhollow",
       "type": "pnj",
       "lod": "chaud",
       "majeur": false,
@@ -222,11 +222,11 @@
         { "vers": "acteur:mosswick", "type": "alliance", "intensite": 0.4, "poids": 0.4 },
         { "vers": "faction:pale-court", "type": "peur", "intensite": 0.8, "poids": 0.8 }
       ],
-      "source": "pnj.json[Petra Dawnhollow]"
+      "source": "npcs.json[Petra Dawnhollow]"
     },
     {
       "id": "acteur:carro-wraith",
-      "nom": "Carro (fog-wraith)",
+      "name": "Carro (fog-wraith)",
       "type": "pnj",
       "lod": "froid",
       "majeur": false,
@@ -264,7 +264,7 @@
         { "vers": "faction:pale-court", "type": "vassalite", "intensite": 1.0, "poids": 1.0 },
         { "vers": "acteur:mosswick", "type": "surveillance", "intensite": 0.7, "poids": 0.7 }
       ],
-      "source": "pnj.json[Carro (fog-wraith)]"
+      "source": "npcs.json[Carro (fog-wraith)]"
     }
   ]
 }

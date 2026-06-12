@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mj-tonnerre/acteur.schema.json",
   "title": "acteur — acteur du monde vivant (PNJ-clé, faction, ville)",
-  "description": "Modèle d'acteur UNIFIÉ (doc 02 §1, contrat §6.1) : but → plan → trajectoire → relations, le tout estampillé en T (UT). Étend (ne remplace pas) pnj.json / etat_global.factions côté simulation. Ce schéma accepte DEUX formes : (a) un acteur ISOLÉ ; (b) le FICHIER acteurs.json {meta, acteurs:[...]} (vérité des acteurs majeurs), dans l'esprit de pnj.schema.json qui tolère deux conteneurs. Les définitions de trajectoire / plan(intention) / relation sont embarquées ($defs) pour rester autoportantes (le validateur maison ne résout que les $ref locaux), STRICTEMENT cohérentes avec trajectoire.schema.json, plan.schema.json, intention.schema.json, relation.schema.json. Tolérant (additionalProperties:true).",
+  "description": "Modèle d'acteur UNIFIÉ (doc 02 §1, contrat §6.1) : but → plan → trajectoire → relations, le tout estampillé en T (UT). Étend (ne remplace pas) npcs.json / global_state.factions côté simulation. Ce schéma accepte DEUX formes : (a) un acteur ISOLÉ ; (b) le FICHIER actors.json {meta, acteurs:[...]} (vérité des acteurs majeurs), dans l'esprit de pnj.schema.json qui tolère deux conteneurs. Les définitions de trajectoire / plan(intention) / relation sont embarquées ($defs) pour rester autoportantes (le validateur maison ne résout que les $ref locaux), STRICTEMENT cohérentes avec trajectoire.schema.json, plan.schema.json, intention.schema.json, relation.schema.json. Tolérant (additionalProperties:true).",
   "oneOf": [
     { "$ref": "#/$defs/acteur" },
     { "$ref": "#/$defs/fichier_acteurs" }
@@ -10,7 +10,7 @@
   "$defs": {
     "fichier_acteurs": {
       "type": "object",
-      "description": "Conteneur de fichier acteurs.json (contrat §6).",
+      "description": "Conteneur de fichier actors.json (contrat §6).",
       "required": ["meta", "acteurs"],
       "additionalProperties": true,
       "properties": {
@@ -37,14 +37,14 @@
     "acteur": {
       "type": "object",
       "description": "Acteur majeur (ou fiche réactive figée si majeur:false). id figé 'acteur:…'/'faction:…'/'comte:…' (contrat §2.3).",
-      "required": ["id", "nom", "type", "lod", "majeur", "but_long_terme", "situation", "ressources", "trajectoire", "plan", "relations"],
+      "required": ["id", "name", "type", "lod", "majeur", "but_long_terme", "situation", "ressources", "trajectoire", "plan", "relations"],
       "additionalProperties": true,
       "properties": {
         "id": {
           "type": "string",
           "description": "Identifiant figé, forme 'type:kebab' (ex. 'faction:bande-du-corbeau', 'acteur:berthe')."
         },
-        "nom": { "type": "string", "description": "Nom libre." },
+        "name": { "type": "string", "description": "Nom libre." },
         "type": {
           "type": "string",
           "description": "Échelle de l'acteur.",
@@ -94,7 +94,7 @@
         },
         "source": {
           "type": "string",
-          "description": "Provenance (ex. 'pnj.json[Berthe]', 'etat_global.factions'). Optionnel."
+          "description": "Provenance (ex. 'npcs.json[Berthe]', 'global_state.factions'). Optionnel."
         }
       }
     },
@@ -134,7 +134,7 @@
         },
         "chemin": {
           "type": "array",
-          "description": "Suite d'ids de lieux suivant des arêtes consécutives.",
+          "description": "Suite d'ids de locations suivant des arêtes consécutives.",
           "items": { "type": "string" }
         },
         "motif": { "type": "string" }

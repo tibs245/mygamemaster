@@ -7,10 +7,10 @@ syntactically valid. Replaces the `python3 -c "import json; json.load(...)"`
 calls scattered throughout the closing procedure.
 
 Files checked (if they exist):
-  - monde.json
-  - pnj.json
-  - evenements.json
-  - personnages/*.json
+  - world.json
+  - npcs.json
+  - events.json
+  - characters/*.json
   - sessions/*.json
   - outils/*.json  (if applicable)
 Also recursively scans any other *.json present in the campaign so
@@ -82,8 +82,8 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 validate_json.py .hermes/mj-tonnerre/campagnes/la-naissance-dun-roi\n"
-            "  python3 validate_json.py monde.json sessions/004.json\n"
+            "  python3 validate_json.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
+            "  python3 validate_json.py world.json sessions/004.json\n"
         ),
     )
     parser.add_argument("cibles", nargs="+",

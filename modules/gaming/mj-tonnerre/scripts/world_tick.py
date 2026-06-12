@@ -24,9 +24,9 @@ is INJECTABLE (env var `MJ_AGENT_DECIDE_CMD`) and outside pure-code scope.
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
-  * NON-DESTRUCTIVE: NEVER writes to monde.json / pnj.json / evenements.json /
-    hooks / existing scripts. WRITES only to acteurs.json
-    (plans/trajectories/lod) and evenements_programmes.json (emitted events), and
+  * NON-DESTRUCTIVE: NEVER writes to world.json / npcs.json / events.json /
+    hooks / existing scripts. WRITES only to actors.json
+    (plans/trajectories/lod) and scheduled_events.json (emitted events), and
     only in --apply mode, via worldlib atomic write;
   * exit codes: 0 ok; 1 business condition signalled; 2 usage / file not found;
   * `pre`/`post` run OUTSIDE the narration loop: they CAN fail hard in
@@ -127,8 +127,8 @@ def _cone_lieux(cone: dict | None) -> list[str]:
     """Locations of interest from the player's cone (probable destinations). [] if no cone."""
     if not isinstance(cone, dict):
         return []
-    lieux = cone.get("lieux", [])
-    return [l for l in lieux if isinstance(l, str)] if isinstance(lieux, list) else []
+    locations = cone.get("locations", [])
+    return [l for l in locations if isinstance(l, str)] if isinstance(locations, list) else []
 
 
 def _cone_fenetre(cone: dict | None, defaut: tuple[int, int]) -> tuple[int, int]:
@@ -391,8 +391,8 @@ def resoudre_intentions(acteur: dict, T_de: int, T_a: int,
       * otherwise → status → 'echoue' (no automatic rescheduling: the deadline is
         "at the latest", an unsatisfied overrun is a failure — doc 03 §2).
     Mutates the actor IN PLACE. Returns the list of emitted events (resolved +
-    derived). NEVER TOUCHES evenements.json (events go to
-    evenements_programmes.json, appended by the caller in --apply).
+    derived). NEVER TOUCHES events.json (events go to
+    scheduled_events.json, appended by the caller in --apply).
     """
     emis: list[dict] = []
     if not isinstance(acteur, dict):
@@ -529,7 +529,7 @@ def projeter_croisements(campagne: Path, cone: dict,
     """Crossings between the PLAYER's trajectory (cone) and those of warm actors.
 
     For each warm actor: geo_query.croisement(traj(cone), traj(actor),
-    seuil). Aggregates and sorts by ascending T. This is the step "does the player
+    seuil). Aggregates and spells by ascending T. This is the step "does the player
     cross the raid / migration?" (doc 03 §3). DEGRADED mode (geo_query unavailable)
     → []. Each entry: {'acteur','T','lieu','distance','narratif'}.
     """
@@ -575,7 +575,7 @@ def _trajectoire_cone(cone: dict | None, geo: dict) -> list[dict]:
     """Builds a player trajectory from the cone.
 
     The cone may directly provide a 'trajectoire' (list of segments); otherwise
-    we build it from 'lieux' + 'fenetre': a movement chaining the cone's locations
+    we build it from 'locations' + 'fenetre': a movement chaining the cone's locations
     over the time window (real path via plus_court_chemin),
     OR as a fallback a stay at the first location for the whole window.
     """
@@ -586,8 +586,8 @@ def _trajectoire_cone(cone: dict | None, geo: dict) -> list[dict]:
     if isinstance(traj, list) and traj:
         return traj
 
-    lieux = _cone_lieux(cone)
-    if not lieux:
+    locations = _cone_lieux(cone)
+    if not locations:
         return []
     fen = _cone_fenetre(cone, (0, 0))
     t0, t1 = fen
@@ -595,19 +595,19 @@ def _trajectoire_cone(cone: dict | None, geo: dict) -> list[dict]:
         t1 = t0
 
     # Single location: stay for the whole window.
-    if len(lieux) == 1:
-        return [{"lieu": lieux[0], "de": t0, "a": None}]
+    if len(locations) == 1:
+        return [{"lieu": locations[0], "de": t0, "a": None}]
 
     # Multiple locations: attempt a chain of real displacements on the graph,
     # distributed uniformly over the window. If a segment has no path, fall back
     # to a stay at the first location (the crossing remains computable).
     segments: list[dict] = []
-    nb_troncons = len(lieux) - 1
+    nb_troncons = len(locations) - 1
     duree_dispo = max(0, t1 - t0)
     pas_t = (duree_dispo // nb_troncons) if nb_troncons else 0
     t_courant = t0
     ok_chaine = True
-    for u, v in zip(lieux, lieux[1:]):
+    for u, v in zip(locations, locations[1:]):
         pc = W.plus_court_chemin(geo, u, v)
         if pc.get("temps_ut", -1) < 0 or not pc.get("chemin"):
             ok_chaine = False
@@ -622,10 +622,10 @@ def _trajectoire_cone(cone: dict | None, geo: dict) -> list[dict]:
         })
         t_courant = arrivee
     if ok_chaine and segments:
-        segments.append({"lieu": lieux[-1], "de": t_courant, "a": None})
+        segments.append({"lieu": locations[-1], "de": t_courant, "a": None})
         return segments
 
-    return [{"lieu": lieux[0], "de": t0, "a": None}]
+    return [{"lieu": locations[0], "de": t0, "a": None}]
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -664,7 +664,7 @@ def agent_decide(acteur: dict, brief: str, campagne: Path) -> dict:
     (The stub remains allowed: it is plan CONTINUATION, not an LLM decision.
     The tick can therefore advance time and resolve already-planned intentions,
     but no longer "thinks" new plans.) Fail-open: flags read via
-    worldlib.features_campagne (all ON if monde.json absent).
+    worldlib.features_campagne (all ON if world.json absent).
     """
     cmd_modele = os.environ.get(_ENV_AGENT_CMD)
     intention = None
@@ -725,7 +725,7 @@ def _intention_stub(acteur: dict, campagne: Path) -> dict:
     signal to the GM that a real LLM decision will replace this placeholder.
     """
     aid = acteur.get("id", "acteur")
-    but = acteur.get("but_long_terme", "") or "poursuivre ses objectifs"
+    but = acteur.get("but_long_terme", "") or "poursuivre ses goals"
     try:
         T_now = W.t_courant(Path(campagne))
     except Exception:
@@ -860,8 +860,8 @@ _MSG_TICK_PRE_OFF = "pre-processing disabled (meta.hooks.tick_pre=false)"
 _MSG_TICK_POST_OFF = "closing reconciliation disabled (meta.hooks.tick_post=false)"
 
 
-def _hook_actif(monde, nom: str) -> bool:
-    """Fine toggle meta.hooks.<nom> (default True). False ONLY if explicitly
+def _hook_actif(monde, name: str) -> bool:
+    """Fine toggle meta.hooks.<name> (default True). False ONLY if explicitly
     cut. Read from the already-loaded world; fail-open "active" if block absent.
 
     NB: the "temporalite" axis (main switch) is checked separately upstream;
@@ -870,7 +870,7 @@ def _hook_actif(monde, nom: str) -> bool:
     """
     h = (monde.get("meta") or {}).get("hooks") if isinstance(monde, dict) else None
     h = h if isinstance(h, dict) else {}
-    return W.as_bool(h.get(nom), True)
+    return W.as_bool(h.get(name), True)
 
 
 def _noop_pre(campagne: Path, motif: str = _MSG_TEMPORALITE_OFF,
@@ -935,9 +935,9 @@ def pre(campagne: Path, t_session: int | None = None,
       5) project player × warm-trajectory crossings;
       6) promote crossed actors to hot;
       7) assemble the text BRIEFING.
-    Without --apply: DRY-RUN (writes NOTHING). With --apply: writes acteurs.json
+    Without --apply: DRY-RUN (writes NOTHING). With --apply: writes actors.json
     (lod/plans/trajectories updated) and APPENDs emitted events to
-    evenements_programmes.json. NEVER evenements.json/monde.json.
+    scheduled_events.json. NEVER events.json/world.json.
 
     FEATURE GUARD: if meta.features.temporalite is False, the engine does NOT run
     → fail-open no-op (coherent empty result, no writes).
@@ -947,8 +947,8 @@ def pre(campagne: Path, t_session: int | None = None,
     """
     campagne = Path(campagne)
 
-    # monde.json loaded ONCE: feature flags + meta.hooks toggles + pj_ids.
-    monde = W.charger_json(campagne / "monde.json", {}) or {}
+    # world.json loaded ONCE: feature flags + meta.hooks toggles + pj_ids.
+    monde = W.charger_json(campagne / "world.json", {}) or {}
 
     # Main switch: "temporalite" axis cut → no-op (fail-open).
     if not W.features(monde).get("temporalite", True):
@@ -1034,16 +1034,16 @@ def pre(campagne: Path, t_session: int | None = None,
     # --- Writes (--apply only). ---
     ecritures: list[str] = []
     if apply:
-        # acteurs.json: lod/plans/trajectories updated (rewrite the full container
+        # actors.json: lod/plans/trajectories updated (rewrite the full container
         # from the mutated index, preserving meta).
         acteurs_out = dict(acteurs) if isinstance(acteurs, dict) else {}
         acteurs_out["acteurs"] = list(acteurs_idx.values())
-        W.sauver_json_atomique(campagne / "acteurs.json", acteurs_out)
-        ecritures.append(str(campagne / "acteurs.json"))
-        # evenements_programmes.json: append emitted events.
+        W.sauver_json_atomique(campagne / "actors.json", acteurs_out)
+        ecritures.append(str(campagne / "actors.json"))
+        # scheduled_events.json: append emitted events.
         if evenements_emis:
             n = _appender_evenements(campagne, evenements_emis)
-            ecritures.append(f"{campagne / 'evenements_programmes.json'} (+{n})")
+            ecritures.append(f"{campagne / 'scheduled_events.json'} (+{n})")
 
     return {
         "t_de": T_de,
@@ -1102,7 +1102,7 @@ def _resume_tick(acteur: dict, lod: str, emis: list[dict], a_pense: bool) -> dic
     """Per-actor summary (entry in 'ticks')."""
     return {
         "acteur": acteur.get("id"),
-        "nom": acteur.get("nom", acteur.get("id")),
+        "name": acteur.get("name", acteur.get("id")),
         "lod": lod,
         "evenements": [e.get("id") for e in emis],
         "a_pense": a_pense,
@@ -1116,7 +1116,7 @@ def _scene_depuis_croisement(c: dict, acteurs_idx: dict) -> dict:
     acteur = acteurs_idx.get(aid, {})
     return {
         "acteur": aid,
-        "nom": acteur.get("nom", aid),
+        "name": acteur.get("name", aid),
         "T": c.get("T"),
         "lieu": c.get("lieu"),
         "distance": c.get("distance"),
@@ -1131,7 +1131,7 @@ def _brief_acteur(campagne: Path, acteur: dict, emis: list[dict]) -> str:
     Aligned with build_brief.py (existing): we give ONLY the relevant to the actor's
     agent (anti-knowledge-leak, doc 02 §3). No network call here.
     """
-    lignes = [f"=== BRIEF ACTEUR : {acteur.get('nom', acteur.get('id'))} ==="]
+    lignes = [f"=== BRIEF ACTEUR : {acteur.get('name', acteur.get('id'))} ==="]
     lignes.append(f"But long terme : {acteur.get('but_long_terme', '')}")
     motifs = acteur.get("motivations", [])
     if isinstance(motifs, list) and motifs:
@@ -1164,8 +1164,8 @@ def post(campagne: Path, session: dict | str | None = None,
     facts (real position/resources/relations), marks intentions accomplished/failed,
     renews disrupted plans (seam agent_decide) and PROPAGATES player actions (the
     player becomes a cause).
-    Without --apply: DRY-RUN. With --apply: writes acteurs.json and APPENDs
-    propagation events to evenements_programmes.json.
+    Without --apply: DRY-RUN. With --apply: writes actors.json and APPENDs
+    propagation events to scheduled_events.json.
 
     FEATURE GUARD: if meta.features.temporalite is False, the engine does NOT run
     → fail-open no-op (coherent empty result, no writes).
@@ -1175,8 +1175,8 @@ def post(campagne: Path, session: dict | str | None = None,
     """
     campagne = Path(campagne)
 
-    # monde.json loaded ONCE: feature flags + meta.hooks toggles + pj_ids.
-    monde = W.charger_json(campagne / "monde.json", {}) or {}
+    # world.json loaded ONCE: feature flags + meta.hooks toggles + pj_ids.
+    monde = W.charger_json(campagne / "world.json", {}) or {}
 
     # Main switch: "temporalite" axis cut → no-op (fail-open).
     if not W.features(monde).get("temporalite", True):
@@ -1238,11 +1238,11 @@ def post(campagne: Path, session: dict | str | None = None,
     if apply:
         acteurs_out = dict(acteurs) if isinstance(acteurs, dict) else {}
         acteurs_out["acteurs"] = list(acteurs_idx.values())
-        W.sauver_json_atomique(campagne / "acteurs.json", acteurs_out)
-        ecritures.append(str(campagne / "acteurs.json"))
+        W.sauver_json_atomique(campagne / "actors.json", acteurs_out)
+        ecritures.append(str(campagne / "actors.json"))
         if propagations_evt:
             n = _appender_evenements(campagne, propagations_evt)
-            ecritures.append(f"{campagne / 'evenements_programmes.json'} (+{n})")
+            ecritures.append(f"{campagne / 'scheduled_events.json'} (+{n})")
 
     return {
         "faits_joueur": faits,
@@ -1311,17 +1311,17 @@ def extraire_faits_joueur(session: dict) -> list[dict]:
 
     # NPCs encountered → encounter fact (touches the corresponding actor).
     for pnj in session.get("pnj_rencontres", []) or []:
-        nom = pnj if isinstance(pnj, str) else (pnj.get("nom") if isinstance(pnj, dict) else None)
-        if nom:
-            faits.append({"type": "rencontre", "libelle": f"Rencontre : {nom}",
-                          "cible": str(nom), "a_consequences": False})
+        name = pnj if isinstance(pnj, str) else (pnj.get("name") if isinstance(pnj, dict) else None)
+        if name:
+            faits.append({"type": "rencontre", "libelle": f"Rencontre : {name}",
+                          "cible": str(name), "a_consequences": False})
 
     # Locations visited → presence fact (useful for position reconciliation).
     for lieu in session.get("lieux_visites", []) or []:
-        nom = lieu if isinstance(lieu, str) else (lieu.get("nom") if isinstance(lieu, dict) else None)
-        if nom:
-            faits.append({"type": "presence", "libelle": f"Visité : {nom}",
-                          "cible": str(nom), "a_consequences": False})
+        name = lieu if isinstance(lieu, str) else (lieu.get("name") if isinstance(lieu, dict) else None)
+        if name:
+            faits.append({"type": "presence", "libelle": f"Visité : {name}",
+                          "cible": str(name), "a_consequences": False})
 
     # End state: key leads/NPCs → context (no direct mechanical consequence).
     etat = session.get("etat_fin", {})
@@ -1350,11 +1350,11 @@ def _action_a_consequences(texte: str) -> bool:
 def _faits_concernant(acteur: dict, faits: list[dict]) -> list[dict]:
     """Subset of facts naming the actor (by id OR by name, case-insensitive)."""
     aid = (acteur.get("id") or "").lower()
-    nom = (acteur.get("nom") or "").lower()
+    name = (acteur.get("name") or "").lower()
     concernes: list[dict] = []
     for f in faits:
         blob = (str(f.get("libelle", "")) + " " + str(f.get("cible", ""))).lower()
-        if (aid and aid in blob) or (nom and nom in blob):
+        if (aid and aid in blob) or (name and name in blob):
             concernes.append(f)
     return concernes
 
@@ -1468,9 +1468,9 @@ def _type_fait(libelle: str) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 
 def _appender_evenements(campagne: Path, evenements: list[dict]) -> int:
-    """Appends events to evenements_programmes.json (atomic, dedup by id).
+    """Appends events to scheduled_events.json (atomic, dedup by id).
 
-    Creates the file (with meta) if it does not exist. NEVER on evenements.json.
+    Creates the file (with meta) if it does not exist. NEVER on events.json.
     If `causal_propagate.appliquer` is available, reuses it (inter-agent write
     consistency); otherwise appends ourselves in the same format (§8.3). Returns
     the number ACTUALLY written (excluding duplicates).
@@ -1484,7 +1484,7 @@ def _appender_evenements(campagne: Path, evenements: list[dict]) -> int:
         except Exception as e:
             _log(f"ℹ causal_propagate.appliquer unavailable ({e}) — local append.")
 
-    cible = Path(campagne) / "evenements_programmes.json"
+    cible = Path(campagne) / "scheduled_events.json"
     data = W.charger_json(cible, None)
     if not isinstance(data, dict) or not isinstance(data.get("evenements"), list):
         data = {
@@ -1492,7 +1492,7 @@ def _appender_evenements(campagne: Path, evenements: list[dict]) -> int:
                 "campagne": _nom_campagne(campagne),
                 "version": 1,
                 "note": ("Evenements PROGRAMMES/RESOLUS par le monde vivant. T en UT. "
-                         "Ne JAMAIS fusionner dans evenements.json sans decision MJ."),
+                         "Ne JAMAIS fusionner dans events.json sans decision MJ."),
             },
             "evenements": [],
         }
@@ -1512,11 +1512,11 @@ def _appender_evenements(campagne: Path, evenements: list[dict]) -> int:
 
 
 def _nom_campagne(campagne: Path) -> str:
-    """Human-readable campaign name (meta from monde.json, otherwise folder name)."""
-    monde = W.charger_json(Path(campagne) / "monde.json", {}) or {}
+    """Human-readable campaign name (meta from world.json, otherwise folder name)."""
+    monde = W.charger_json(Path(campagne) / "world.json", {}) or {}
     meta = monde.get("meta", {}) if isinstance(monde, dict) else {}
-    nom = meta.get("nom") or meta.get("titre")
-    return nom if isinstance(nom, str) and nom else Path(campagne).name
+    name = meta.get("name") or meta.get("titre")
+    return name if isinstance(name, str) and name else Path(campagne).name
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1539,8 +1539,8 @@ def _assembler_briefing(campagne: Path, T_de: int, T_a: int, ticks: list[dict],
     if croisements:
         lignes.append("│ ⚠ POSSIBLE CROSSINGS:")
         for c in croisements:
-            nom = _nom_acteur(c.get("acteur"), scenes)
-            lignes.append(f"│   • {c.get('narratif')} — {nom} near "
+            name = _nom_acteur(c.get("acteur"), scenes)
+            lignes.append(f"│   • {c.get('narratif')} — {name} near "
                           f"{_lieu_court(c.get('lieu'))} (distance {c.get('distance')})")
     else:
         lignes.append("│ ℹ No crossing projected with the player's cone.")
@@ -1555,7 +1555,7 @@ def _assembler_briefing(campagne: Path, T_de: int, T_a: int, ticks: list[dict],
     if actifs:
         lignes.append("│ 🟠 ACTIVE ACTORS (resolved intentions):")
         for t in actifs:
-            lignes.append(f"│   • {t.get('nom')} [{t.get('lod')}] : "
+            lignes.append(f"│   • {t.get('name')} [{t.get('lod')}] : "
                           + ", ".join(t.get("evenements", [])))
 
     # Emitted events (dated in narrative form).
@@ -1578,7 +1578,7 @@ def _assembler_briefing(campagne: Path, T_de: int, T_a: int, ticks: list[dict],
 def _nom_acteur(aid, scenes: list[dict]) -> str:
     for s in scenes:
         if s.get("acteur") == aid:
-            return s.get("nom", aid)
+            return s.get("name", aid)
     return aid if isinstance(aid, str) else "?"
 
 
@@ -1627,9 +1627,9 @@ def cmd_pre(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
         return 2
-    # In --apply, we require acteurs.json (we do not invent actor truth).
-    if args.apply and not (camp / "acteurs.json").exists():
-        _log(f"❌ acteurs.json not found in {camp} — nothing to project in --apply.")
+    # In --apply, we require actors.json (we do not invent actor truth).
+    if args.apply and not (camp / "actors.json").exists():
+        _log(f"❌ actors.json not found in {camp} — nothing to project in --apply.")
         return 2
     cone = _charger_cone_arg(args.cone)
     res = pre(camp, t_session=args.t_session, cone=cone, apply=args.apply)
@@ -1649,8 +1649,8 @@ def cmd_post(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
         return 2
-    if args.apply and not (camp / "acteurs.json").exists():
-        _log(f"❌ acteurs.json not found in {camp} — nothing to reconcile in --apply.")
+    if args.apply and not (camp / "actors.json").exists():
+        _log(f"❌ actors.json not found in {camp} — nothing to reconcile in --apply.")
         return 2
     res = post(camp, session=args.session, apply=args.apply)
     if args.as_json:
@@ -1678,7 +1678,7 @@ def cmd_lod(args) -> int:
     geo = W.charger_geo(camp)
     acteurs = W.charger_acteurs(camp)
     acteurs_idx = W.index_acteurs(acteurs)
-    pj_set = set(W.pj_ids(W.charger_json(camp / "monde.json", {}) or {}))
+    pj_set = set(W.pj_ids(W.charger_json(camp / "world.json", {}) or {}))
     T_a = args.t if args.t is not None else W.t_courant(camp)
     contexte = _contexte_joueur(None, T_a, T_a)
     rangs: list[dict] = []
@@ -1686,14 +1686,14 @@ def cmd_lod(args) -> int:
         if aid in pj_set:
             continue   # PCs are not classified (reserved)
         lod = classer_LOD(acteur, contexte, geo, T_a)
-        rangs.append({"acteur": aid, "nom": acteur.get("nom", aid), "lod": lod})
+        rangs.append({"acteur": aid, "name": acteur.get("name", aid), "lod": lod})
     if args.as_json:
         _sortir_json({"T": T_a, "narratif": W.t_vers_narratif(T_a), "acteurs": rangs})
     else:
         print(f"🌡  LOD — {camp.name} — {W.t_vers_narratif(T_a)}")
         for r in rangs:
             marq = {"chaud": "🔴", "tiede": "🟠", "froid": "🟢"}.get(r["lod"], "·")
-            print(f"   {marq} {r['lod']:6s} {r['acteur']} ({r['nom']})")
+            print(f"   {marq} {r['lod']:6s} {r['acteur']} ({r['name']})")
     return 0
 
 
@@ -1701,8 +1701,8 @@ def cmd_actor(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
         return 2
-    if not (camp / "acteurs.json").exists():
-        _log(f"❌ acteurs.json not found in {camp}.")
+    if not (camp / "actors.json").exists():
+        _log(f"❌ actors.json not found in {camp}.")
         return 2
     acteurs = W.charger_acteurs(camp)
     acteurs_idx = W.index_acteurs(acteurs)
@@ -1726,7 +1726,7 @@ def cmd_actor(args) -> int:
     if args.apply:
         out = dict(acteurs)
         out["acteurs"] = list(acteurs_idx.values())
-        W.sauver_json_atomique(camp / "acteurs.json", out)
+        W.sauver_json_atomique(camp / "actors.json", out)
         ecrit = True
 
     if args.as_json:
@@ -1735,7 +1735,7 @@ def cmd_actor(args) -> int:
     else:
         print(f"👤 {args.acteur_id} : {message}")
         if ecrit:
-            print("   ✅ acteurs.json updated.")
+            print("   ✅ actors.json updated.")
         elif not args.apply:
             print("   ℹ dry-run: no writes (use --apply).")
     return 0
@@ -1770,9 +1770,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Target T (UT) for the session. Default: t_courant.")
     p.add_argument("--cone", default=None,
                    help="Player cone: JSON file | '-' (stdin). "
-                        "{'lieux':[…],'fenetre':[T0,T1],'lieu_joueur':id}.")
+                        "{'locations':[…],'fenetre':[T0,T1],'lieu_joueur':id}.")
     p.add_argument("--apply", action="store_true",
-                   help="Persist (acteurs.json + evenements_programmes.json).")
+                   help="Persist (actors.json + scheduled_events.json).")
     _ajout_json(p)
     p.set_defaults(func=cmd_pre)
 
@@ -1782,7 +1782,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", default=None,
                    help="Number '<NNN>', file path, or last session if absent.")
     p.add_argument("--apply", action="store_true",
-                   help="Persist (acteurs.json + evenements_programmes.json).")
+                   help="Persist (actors.json + scheduled_events.json).")
     _ajout_json(p)
     p.set_defaults(func=cmd_post)
 
@@ -1798,7 +1798,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("campagne")
     p.add_argument("operation", choices=["promote", "demote"])
     p.add_argument("acteur_id")
-    p.add_argument("--apply", action="store_true", help="Write acteurs.json (atomic).")
+    p.add_argument("--apply", action="store_true", help="Write actors.json (atomic).")
     _ajout_json(p)
     p.set_defaults(func=cmd_actor)
 

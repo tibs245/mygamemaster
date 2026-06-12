@@ -27,9 +27,9 @@ Usage:
       --criteres "Portrait d'Oscar, rôdeur, capuche" --threshold 8 --max-attempts 3 --json
 
 Feature flag guard "images": before any network call, we read
-`meta.features.images` from the `monde.json` of the current campaign (resolved by walking
+`meta.features.images` from the `world.json` of the current campaign (resolved by walking
 up from `--out`). If the flag is explicitly `false` (or env `MJ_FEATURE_IMAGES` set to
-0/false), we do NOT generate and exit with code 3. FAIL-OPEN: campaign / monde.json
+0/false), we do NOT generate and exit with code 3. FAIL-OPEN: campaign / world.json
 not found or unreadable → images considered ON (we never block on an error).
 
 Exit codes:
@@ -60,15 +60,15 @@ def die(msg, code):
 
 def _trouver_monde(out_path):
     """Walks up from `--out` (…/<campaign>/images/<type>/<file>) to find the
-    monde.json of the current campaign. Returns the Path to monde.json or None.
+    world.json of the current campaign. Returns the Path to world.json or None.
 
     Same implicit resolution as the rest of the module: a campaign's directory tree
-    places `monde.json` at the root of the folder containing `images/`. We walk
-    upward until we find a `monde.json` (bound: filesystem root)."""
+    places `world.json` at the root of the folder containing `images/`. We walk
+    upward until we find a `world.json` (bound: filesystem root)."""
     d = os.path.dirname(os.path.abspath(out_path))
     prev = None
     while d and d != prev:
-        cand = os.path.join(d, "monde.json")
+        cand = os.path.join(d, "world.json")
         if os.path.isfile(cand):
             return cand
         prev, d = d, os.path.dirname(d)
@@ -80,7 +80,7 @@ def _images_actives(out_path):
 
     Cascade aligned with the project resolver: meta.features.images > env
     MJ_FEATURE_IMAGES > True. Returns False only if the flag is EXPLICITLY
-    disabled (readable monde.json with images=false, or env set to 0/false). Any doubt
+    disabled (readable world.json with images=false, or env set to 0/false). Any doubt
     (world not found / unreadable / key absent) → True (we generate). We NEVER block
     a session on a read error."""
     monde_path = _trouver_monde(out_path)

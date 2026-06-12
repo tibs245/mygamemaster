@@ -25,7 +25,7 @@ Also (component coverage, contract §9 / §14):
 Data: the real campaign `…/la-naissance-dun-roi` in READ-ONLY for nominal cases,
 and throwaway fixtures (tmp copy + inline JSON) to deterministically exercise
 IMMINENT / RECENT / MOVEMENT (the real world does not yet have
-`evenements_programmes.json` nor an actor in movement at `t_courant`).
+`scheduled_events.json` nor an actor in movement at `t_courant`).
 """
 
 from __future__ import annotations
@@ -50,14 +50,14 @@ import worldlib as W              # noqa: E402
 
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 # PC from the real campaign, resolved GENERICALLY (meta.pj_ids > meta.pj_id) — no
 # more hardcoded constant in scene_brief: we read the ids as the engine does at
 # runtime. PJ_REEL = the first PC (backwards-compat); PJ_REELS = the full set.
-PJ_REEL = W.pj_id(W.charger_json(CAMPAGNE_REELLE / "monde.json", {}) or {})
-PJ_REELS = set(W.pj_ids(W.charger_json(CAMPAGNE_REELLE / "monde.json", {}) or {}))
+PJ_REEL = W.pj_id(W.charger_json(CAMPAGNE_REELLE / "world.json", {}) or {})
+PJ_REELS = set(W.pj_ids(W.charger_json(CAMPAGNE_REELLE / "world.json", {}) or {}))
 
 # Pivot location of the vertical slice (cf. contract §10): target of the winter raid.
 LIEU_CABANE = "lieu:marche-aux-trois-rivieres/cabane-berthe"
@@ -154,14 +154,14 @@ class TestAxeSpatial(unittest.TestCase):
         self.assertIn("lieu:marche-aux-trois-rivieres/bois-des-charmes", cibles)
 
     def test_presents_inclut_berthe(self):
-        # Berthe is located at her cabin (acteurs.json §10) → present.
+        # Berthe is located at her cabin (actors.json §10) → present.
         ids = {p.get("id") for p in self.brief["presents"]}
         self.assertIn("acteur:berthe", ids)
 
     def test_presents_bien_formes(self):
         for p in self.brief["presents"]:
             self.assertIn("id", p)
-            self.assertIn("nom", p)
+            self.assertIn("name", p)
             self.assertIn("type", p)
 
 
@@ -192,7 +192,7 @@ class TestAxeRelationnel(unittest.TestCase):
         self.assertIn("acteur:berthe", srcs)
 
     def test_enjeux_vers_le_lieu(self):
-        # Berthe has a 'tutelle' relation toward the cabin (acteurs.json §10).
+        # Berthe has a 'tutelle' relation toward the cabin (actors.json §10).
         vers_lieu = [e for e in self.brief["enjeux"] if e.get("_vers") == LIEU_CABANE]
         self.assertTrue(vers_lieu, "des enjeux doivent pointer vers le lieu")
         self.assertTrue(any(e["acteur"] == "acteur:berthe" and e["type"] == "tutelle"
@@ -224,7 +224,7 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
         # minimal geo: one scene location + one location from which an actor travels.
         geo = {
             "meta": {"campagne": "multi-pj"},
-            "lieux": [
+            "locations": [
                 {"id": "lieu:scene", "parent": None, "ancrage": {"x": 0, "y": 0},
                  "aretes": [{"vers": "lieu:loin", "dir": "E",
                              "temps_ut": 6, "distance_m": 100}]},
@@ -234,9 +234,9 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
         }
         W.sauver_json_atomique(self.camp / "geo.json", geo)
         # Two PCs declared in canonical list (e.g. Oscar AND Cendre).
-        W.sauver_json_atomique(self.camp / "monde.json", {
-            "meta": {"nom": "MultiPJ", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
-            "etat_global": {"chronologie": "Jour 7 : début."},
+        W.sauver_json_atomique(self.camp / "world.json", {
+            "meta": {"name": "MultiPJ", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
+            "global_state": {"chronologie": "Jour 7 : début."},
         })
         # Actors:
         #  - garde: 'serment' relation toward the SECOND PC (Cendre) → without the
@@ -245,16 +245,16 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
         acteurs = {
             "meta": {"campagne": "multi-pj", "version": 1},
             "acteurs": [
-                {"id": "acteur:garde", "nom": "Le Garde", "type": "pnj",
+                {"id": "acteur:garde", "name": "Le Garde", "type": "pnj",
                  "majeur": True, "trajectoire": [{"lieu": "lieu:scene", "de": 0, "a": None}],
                  "relations": [{"vers": "acteur:cendre", "type": "serment",
                                 "intensite": 0.7}]},
-                {"id": "acteur:oscar", "nom": "Oscar", "type": "pnj", "majeur": True,
+                {"id": "acteur:oscar", "name": "Oscar", "type": "pnj", "majeur": True,
                  "trajectoire": [{"lieu": "lieu:scene", "de": 0, "a": None}],
                  "relations": []},
                 # Cendre IN MOVEMENT toward the scene: would cross the location, but is a
                 # PC → must NEVER appear in MOUVEMENT.
-                {"id": "acteur:cendre", "nom": "Cendre", "type": "pnj", "majeur": True,
+                {"id": "acteur:cendre", "name": "Cendre", "type": "pnj", "majeur": True,
                  "trajectoire": [
                      {"lieu": "lieu:loin", "de": 0, "a": 3},
                      {"type": "deplacement", "de": 3, "a": 9,
@@ -263,7 +263,7 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
                  "relations": []},
             ],
         }
-        W.sauver_json_atomique(self.camp / "acteurs.json", acteurs)
+        W.sauver_json_atomique(self.camp / "actors.json", acteurs)
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -312,7 +312,7 @@ class TestAxeTemporel(unittest.TestCase):
                  "statut": "resolu", "label": "Rumeur au Gue"},
             ],
         }
-        (self.camp / "evenements_programmes.json").write_text(
+        (self.camp / "scheduled_events.json").write_text(
             json.dumps(progs, ensure_ascii=False), encoding="utf-8")
 
     def tearDown(self):
@@ -375,7 +375,7 @@ class TestMouvementCroisement(unittest.TestCase):
                      "chemin": [LIEU_MAISON, LIEU_CABANE], "motif": "test croisement"},
                     {"lieu": LIEU_CABANE, "de": 1290, "a": None},
                 ]
-        (self.camp / "acteurs.json").write_text(
+        (self.camp / "actors.json").write_text(
             json.dumps(acteurs, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def tearDown(self):
@@ -393,7 +393,7 @@ class TestMouvementCroisement(unittest.TestCase):
     def test_mouvement_exclut_le_pj(self):
         # No PC (resolved via meta.pj_ids) is a « mouvement-monde » (§2.5).
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1200, fenetre_ut=432)
-        pj_set = set(W.pj_ids(W.charger_json(self.camp / "monde.json", {}) or {}))
+        pj_set = set(W.pj_ids(W.charger_json(self.camp / "world.json", {}) or {}))
         acteurs_mvt = {m["acteur"] for m in b["mouvement"]}
         self.assertTrue(pj_set.isdisjoint(acteurs_mvt),
                         "no PC must appear in MOUVEMENT")
@@ -479,7 +479,7 @@ class TestFailOpen(unittest.TestCase):
     """No failure must crash scene_brief: coherent minimal brief."""
 
     def test_dossier_vide_donne_brief_minimal(self):
-        # Campaign without geo.json/acteurs.json → minimal brief, never an exception.
+        # Campaign without geo.json/actors.json → minimal brief, never an exception.
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
             b = SB.scene_brief(camp, "lieu:inconnu/xyz")
@@ -543,7 +543,7 @@ class TestNonDestructif(unittest.TestCase):
             self.assertEqual(avant, apres,
                              "scene_brief must not create/modify ANY file")
             # In particular: no new scheduled file created.
-            self.assertFalse((camp / "evenements_programmes.json").exists())
+            self.assertFalse((camp / "scheduled_events.json").exists())
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -594,7 +594,7 @@ class TestHelpersInternes(unittest.TestCase):
         self.assertEqual(SB._nom_lieu_court(None, {}), "?")
 
     def test_nom_acteur_court_depuis_index(self):
-        idx = {"acteur:berthe": {"id": "acteur:berthe", "nom": "Berthe"}}
+        idx = {"acteur:berthe": {"id": "acteur:berthe", "name": "Berthe"}}
         self.assertEqual(SB._nom_acteur_court("acteur:berthe", idx), "Berthe")
         # Not in index: derived from the id suffix.
         self.assertEqual(SB._nom_acteur_court("acteur:la-corneille", {}), "la corneille")

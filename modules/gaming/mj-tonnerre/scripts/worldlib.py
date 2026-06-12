@@ -26,10 +26,10 @@ Targets: Python 3.11, PURE STDLIB (no external dependencies — no pip / numpy
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
-  * NON-DESTRUCTIVE: this module never rewrites monde.json / pnj.json /
-    evenements.json (it only READS them); only explicit atomic writes by the
-    caller (on geo.json / acteurs.json /
-    evenements_programmes.json) go through `sauver_json_atomique`;
+  * NON-DESTRUCTIVE: this module never rewrites world.json / npcs.json /
+    events.json (it only READS them); only explicit atomic writes by the
+    caller (on geo.json / actors.json /
+    scheduled_events.json) go through `sauver_json_atomique`;
   * FAIL-OPEN at runtime: READ functions return a degraded default and a message
     on stderr rather than raising; writes may fail hard.
 """
@@ -170,12 +170,12 @@ def slug(texte: str) -> str:
 # KEEP IN SYNC with _lib.py if axes or cascade logic evolve.
 #
 # Six main axes, ALL enabled by default. Cascade, from most specific to most general:
-#     meta.features.<axe> (monde.json)  >  env MJ_FEATURE_<AXE>  >  default True
-# The world (monde.json) has the final say; the env sets the instance default.
+#     meta.features.<axe> (world.json)  >  env MJ_FEATURE_<AXE>  >  default True
+# The world (world.json) has the final say; the env sets the instance default.
 # FAIL-OPEN: an ON axis whose data is missing is a simple no-op, not an error;
-# and an absent monde.json → "all ON" (features_campagne).
+# and an absent world.json → "all ON" (features_campagne).
 
-FEATURES = ("tracabilite", "verbosite", "pnj_faction_vivants", "temporalite", "images", "tts")
+FEATURES = ("tracabilite", "verbosity", "pnj_faction_vivants", "temporalite", "images", "tts")
 
 
 def as_bool(val, default: bool) -> bool:
@@ -215,12 +215,12 @@ def features(monde) -> dict:
 
 
 def features_campagne(campagne: str | Path) -> dict:
-    """Load monde.json from a campaign and return the dict of 6 feature flags.
+    """Load world.json from a campaign and return the dict of 6 feature flags.
 
-    FAIL-OPEN: absent/unreadable monde.json → charger_json returns {} → all ON
+    FAIL-OPEN: absent/unreadable world.json → charger_json returns {} → all ON
     (each axis falls back to its env/True default). Used as tick entry point.
     """
-    monde = charger_json(Path(campagne) / "monde.json", {}) or {}
+    monde = charger_json(Path(campagne) / "world.json", {}) or {}
     return features(monde)
 
 
@@ -230,8 +230,8 @@ def pj_ids(monde) -> list[str]:
     Some campaigns have MULTIPLE PCs; this is the canonical form. Fail-open
     cascade, from most specific to most general (the FIRST non-empty source wins;
     sources are NOT merged):
-      1) `meta.pj_ids` (monde.json): list of str (canonical form);
-      2) otherwise `meta.pj_id` (monde.json): single str → `[meta.pj_id]` (backward-compat);
+      1) `meta.pj_ids` (world.json): list of str (canonical form);
+      2) otherwise `meta.pj_id` (world.json): single str → `[meta.pj_id]` (backward-compat);
       3) otherwise env `MJ_PJ_ID`: str split on commas ("a,b" → ["a","b"]);
       4) otherwise `[]`.
     Empty/blank entries are ignored and duplicates removed PRESERVING first-seen
@@ -336,9 +336,9 @@ def t_vers_narratif(T: int) -> str:
     """
     jour, heure, _ = t_vers_jour_heure(T)
     libelle = "nuit"
-    for lo, hi, nom in _TRANCHES_NARRATIVES:
+    for lo, hi, name in _TRANCHES_NARRATIVES:
         if lo <= heure <= hi:
-            libelle = nom
+            libelle = name
             break
     return f"Jour {jour}, {libelle}"
 
@@ -388,18 +388,18 @@ def t_courant(campagne: Path) -> int:
     """Current T of the campaign (UT), DETERMINISTIC and FAIL-OPEN.
 
     Resolution order (contract §3.3):
-      1) max of INTEGER 't' values in evenements_programmes.json (resolved events);
-      2) otherwise, derived from the max 'Jour N' in monde.json>etat_global.chronologie +
+      1) max of INTEGER 't' values in scheduled_events.json (resolved events);
+      2) otherwise, derived from the max 'Jour N' in world.json>global_state.chronologie +
          sessions/*.json via jour_heure_vers_t(jour_max, 12, 0)  (noon by default);
       3) otherwise 0.
 
-    NEVER reads evenements.json as integers (its 't' values are STRINGS 'Jour N…').
+    NEVER reads events.json as integers (its 't' values are STRINGS 'Jour N…').
     Reuses the 'Jour N' heuristic from clock.jour_courant.
     """
     campagne = Path(campagne)
 
     # 1) Scheduled/resolved events (integer t values in UT).
-    prog = charger_json(campagne / "evenements_programmes.json", {}) or {}
+    prog = charger_json(campagne / "scheduled_events.json", {}) or {}
     ts = []
     if isinstance(prog, dict):
         for e in prog.get("evenements", []) or []:
@@ -420,15 +420,15 @@ def t_courant(campagne: Path) -> int:
 
 
 def _jour_max_narratif(campagne: Path) -> int | None:
-    """Largest "Jour N" found in monde.json (chronology) + sessions/*.json.
+    """Largest "Jour N" found in world.json (chronology) + sessions/*.json.
 
     None if none found. (Heuristic aligned with clock.jour_courant, but WITHOUT units_per_day
     since this module reasons in pure T.)
     """
     jours: set[int] = set()
 
-    monde = charger_json(campagne / "monde.json", {}) or {}
-    chrono = monde.get("etat_global", {}).get("chronologie", "")
+    monde = charger_json(campagne / "world.json", {}) or {}
+    chrono = monde.get("global_state", {}).get("chronologie", "")
     if isinstance(chrono, str):
         for m in re.findall(r"[Jj]our\s+(\d+)", chrono):
             jours.add(int(m))
@@ -451,7 +451,7 @@ def _jour_max_narratif(campagne: Path) -> int | None:
 # ════════════════════════════════════════════════════════════════════════════
 
 def charger_geo(campagne: Path) -> dict:
-    """Load geo.json → dict {'meta':…, 'lieux':[…]}; {} if absent (fail-open)."""
+    """Load geo.json → dict {'meta':…, 'locations':[…]}; {} if absent (fail-open)."""
     geo = charger_json(Path(campagne) / "geo.json", {})
     return geo if isinstance(geo, dict) else {}
 
@@ -461,7 +461,7 @@ def index_lieux(geo: dict) -> dict[str, dict]:
     idx: dict[str, dict] = {}
     if not isinstance(geo, dict):
         return idx
-    for noeud in geo.get("lieux", []) or []:
+    for noeud in geo.get("locations", []) or []:
         if isinstance(noeud, dict) and isinstance(noeud.get("id"), str):
             idx[noeud["id"]] = noeud
     return idx
@@ -699,9 +699,9 @@ def _ancrage_xy(noeud) -> tuple[float, float] | None:
 # a few dozen locations. The produced coordinates are NON-METRIC and are only
 # used in code (radius, crossing, proximity sort) — NEVER exposed to the LLM.
 
-# Mapping label (key from regles.temps.deplacements) → location id.
-# Sources/destinations in `deplacements` matrices are snake/kebab labels.
-# The mapping is NO LONGER hardcoded: it is BUILT on the fly from monde.json
+# Mapping label (key from rules.temps.movements) → location id.
+# Sources/destinations in `movements` matrices are snake/kebab labels.
+# The mapping is NO LONGER hardcoded: it is BUILT on the fly from world.json
 # (names + aliases of regions/locations) by `index_labels`. worldlib therefore
 # knows NO location name or campaign id — all geography comes from data.
 
@@ -718,39 +718,39 @@ def _norm_label(s) -> str:
 
 
 def index_labels(monde) -> dict[str, str]:
-    """Build the { _norm_label(form) -> id } index from monde.json.
+    """Build the { _norm_label(form) -> id } index from world.json.
 
-    Iterates `monde["univers"]["regions"]` and, for each region, indexes its
-    `nom` → `reg["id"]`; for each location in `reg["lieux"]`, indexes its `nom` and
+    Iterates `monde["universe"]["regions"]` and, for each region, indexes its
+    `name` → `reg["id"]`; for each location in `reg["locations"]`, indexes its `name` and
     each of its `alias` → `fiche["id"]`. NO hardcoded names. Fail-open: absent/
     wrongly-typed structure → returns {} (never raises).
     """
     index: dict[str, str] = {}
     if not isinstance(monde, dict):
         return index
-    univers = monde.get("univers")
-    regions = univers.get("regions") if isinstance(univers, dict) else None
+    universe = monde.get("universe")
+    regions = universe.get("regions") if isinstance(universe, dict) else None
     if not isinstance(regions, list):
         return index
     for reg in regions:
         if not isinstance(reg, dict):
             continue
         rid = reg.get("id")
-        rnom = reg.get("nom")
+        rnom = reg.get("name")
         if isinstance(rid, str) and rid and isinstance(rnom, str) and rnom:
             index[_norm_label(rnom)] = rid
-        lieux = reg.get("lieux")
-        if not isinstance(lieux, list):
+        locations = reg.get("locations")
+        if not isinstance(locations, list):
             continue
-        for fiche in lieux:
+        for fiche in locations:
             if not isinstance(fiche, dict):
                 continue
             lid = fiche.get("id")
             if not (isinstance(lid, str) and lid):
                 continue
-            nom = fiche.get("nom")
-            if isinstance(nom, str) and nom:
-                index[_norm_label(nom)] = lid
+            name = fiche.get("name")
+            if isinstance(name, str) and name:
+                index[_norm_label(name)] = lid
             alias = fiche.get("alias")
             if isinstance(alias, list):
                 for al in alias:
@@ -760,7 +760,7 @@ def index_labels(monde) -> dict[str, str]:
 
 
 def _label_vers_id(label: str, index: dict[str, str]) -> str | None:
-    """Map a deplacements matrix label to a location id via `index`.
+    """Map a movements matrix label to a location id via `index`.
 
     Fallback if absent from the index: if the label IS already an id (`lieu:`/`region:`/
     `ville:`), return it as-is; otherwise None.
@@ -776,7 +776,7 @@ def _label_vers_id(label: str, index: dict[str, str]) -> str | None:
 
 
 def _paires_depuis_deplacements(dep: dict, index: dict[str, str]) -> list[tuple[str, str, int]]:
-    """Extract (id_a, id_b, minutes) pairs from regles.temps.deplacements.
+    """Extract (id_a, id_b, minutes) pairs from rules.temps.movements.
 
     Iterates `depuis_<source>_vers`, `entre`, and simple keys of the form
     `<a>_vers_<b>`. Labels are resolved to ids via `index` (built by
@@ -872,7 +872,7 @@ def matrice_durees(geo_ou_deplacements,
                    index_labels=None) -> tuple[list[str], list[list[float]]]:
     """Build the dissimilarity matrix (in UT).
 
-    Input = `deplacements` dict (regles.temps.deplacements) OR `geo` graph.
+    Input = `movements` dict (rules.temps.movements) OR `geo` graph.
       * GEO (edges already in ids): extracts (id_a, id_b, temps_ut) pairs;
         `index_labels` is unused (ignored).
       * DEPLACEMENTS (snake labels): resolves labels to ids via
@@ -884,10 +884,10 @@ def matrice_durees(geo_ou_deplacements,
       * returns (sorted_ids, D) with D[i][j] symmetric (min of both directions),
         diagonal 0.
 
-    Input detection: a geo graph has a 'lieux' key (list of nodes).
+    Input detection: a geo graph has a 'locations' key (list of nodes).
     """
     est_geo = (isinstance(geo_ou_deplacements, dict)
-               and isinstance(geo_ou_deplacements.get("lieux"), list))
+               and isinstance(geo_ou_deplacements.get("locations"), list))
 
     if est_geo:
         brutes = _paires_depuis_geo(geo_ou_deplacements)  # already in UT
@@ -1270,8 +1270,8 @@ def valider_trajectoire(geo: dict, trajectoire: list[dict]) -> list[str]:
 # ════════════════════════════════════════════════════════════════════════════
 
 def charger_acteurs(campagne: Path) -> dict:
-    """Load acteurs.json → {'meta':…, 'acteurs':[…]}; {} if absent (fail-open)."""
-    act = charger_json(Path(campagne) / "acteurs.json", {})
+    """Load actors.json → {'meta':…, 'acteurs':[…]}; {} if absent (fail-open)."""
+    act = charger_json(Path(campagne) / "actors.json", {})
     return act if isinstance(act, dict) else {}
 
 
@@ -1374,7 +1374,7 @@ def _demo(argv: list[str]) -> int:
     """Small NON-DESTRUCTIVE demonstration of worldlib building blocks.
 
     If a campaign path is provided as an argument, reads (READ-ONLY) its
-    `regles.temps.deplacements` matrix, derives an MDS anchor from it and
+    `rules.temps.movements` matrix, derives an MDS anchor from it and
     displays the stress. Writes NOTHING. Serves as a manual smoke-test.
     """
     print("worldlib — demonstration (pure stdlib, non-destructive)\n")
@@ -1403,21 +1403,21 @@ def _demo(argv: list[str]) -> int:
 
     # 4) MDS on the real matrix (if a campaign is provided), otherwise on a toy set.
     print("\n• Anchor MDS (SMACOF stdlib)")
-    deplacements = None
+    movements = None
     idx_labels: dict[str, str] = {}
     if len(argv) > 1:
         camp = chemin_campagne(argv[1])
-        monde = charger_json(camp / "monde.json", {})
-        deplacements = monde.get("regles", {}).get("temps", {}).get("deplacements")
+        monde = charger_json(camp / "world.json", {})
+        movements = monde.get("rules", {}).get("time", {}).get("movements")
         idx_labels = index_labels(monde)
-        if deplacements:
-            print(f"    source: {camp / 'monde.json'} → regles.temps.deplacements")
+        if movements:
+            print(f"    source: {camp / 'world.json'} → rules.temps.movements")
 
-    if not deplacements:
+    if not movements:
         # Toy set: ~unit square (durations in minutes). No campaign provided:
         # we build a small ad hoc labels→id index (the engine never guesses the
         # geography, so it must be fed — here hardcoded IN THE DEMO only).
-        deplacements = {
+        movements = {
             "depuis_a_vers": {
                 "b": "40min",
                 "c": "20min",
@@ -1431,7 +1431,7 @@ def _demo(argv: list[str]) -> int:
         idx_labels = {lab: f"lieu:demo/{lab}" for lab in ("a", "b", "c", "d", "e", "f")}
         print("    source: built-in toy set (no campaign provided)")
 
-    ids, D = matrice_durees(deplacements, idx_labels)
+    ids, D = matrice_durees(movements, idx_labels)
     coords = ancrer_mds(ids, D, iterations=300, seed=42)
     stress = stress_normalise(ids, D, coords)
     print(f"    {len(ids)} locations anchored; normalized stress = {stress:.4f}")
@@ -1443,7 +1443,7 @@ def _demo(argv: list[str]) -> int:
     # 5) Toy trajectory (validation + position).
     print("\n• Trajectory (position = f(time))")
     geo_jouet = {
-        "lieux": [
+        "locations": [
             {"id": "A", "parent": None, "ancrage": {"x": 0, "y": 0},
              "aretes": [{"vers": "B", "dir": "E", "temps_ut": 6, "distance_m": 100}]},
             {"id": "B", "parent": None, "ancrage": {"x": 60, "y": 0}, "aretes": []},

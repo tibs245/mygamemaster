@@ -19,7 +19,7 @@ cases (unknown entity/location = fail-open, no path, crossing without
 overlap), NON-DESTRUCTIVENESS (dry-run writes nothing), and CLI (exit codes).
 
 Data: self-contained INLINE fixture (throwaway campaign built from a copy of
-the real monde.json to be able to run `build`) + the real campaign in READ-ONLY
+the real world.json to be able to run `build`) + the real campaign in READ-ONLY
 mode for nominal queries. NO writes to the real campaign.
 """
 
@@ -45,7 +45,7 @@ import worldlib as W                  # noqa: E402
 
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 # Fixed ids reused everywhere (contract §2.2).
@@ -58,24 +58,24 @@ REGION_MARCHE = "region:marche-aux-trois-rivieres"
 
 
 def _a_campagne_reelle() -> bool:
-    """Is the real campaign (with geo.json + acteurs.json) available?"""
+    """Is the real campaign (with geo.json + actors.json) available?"""
     return (
         CAMPAGNE_REELLE.is_dir()
         and (CAMPAGNE_REELLE / "geo.json").exists()
-        and (CAMPAGNE_REELLE / "monde.json").exists()
+        and (CAMPAGNE_REELLE / "world.json").exists()
     )
 
 
 def _campagne_jetable_avec_monde(racine: Path) -> Path:
-    """Copy the real monde.json into a throwaway campaign (to test `build`).
+    """Copy the real world.json into a throwaway campaign (to test `build`).
 
-    We do NOT fabricate a synthetic monde.json: `build` depends on the real format
-    of `regles.temps.deplacements` + `univers.regions`. We therefore copy the real
-    monde.json (read-only from the source) into an isolated temporary directory, so
+    We do NOT fabricate a synthetic world.json: `build` depends on the real format
+    of `rules.temps.movements` + `universe.regions`. We therefore copy the real
+    world.json (read-only from the source) into an isolated temporary directory, so
     that `build --apply` only writes to the temporary location (non-destructive).
     """
     racine.mkdir(parents=True, exist_ok=True)
-    shutil.copy(CAMPAGNE_REELLE / "monde.json", racine / "monde.json")
+    shutil.copy(CAMPAGNE_REELLE / "world.json", racine / "world.json")
     return racine
 
 
@@ -87,14 +87,14 @@ def _geo_fixture() -> dict:
     """
     return {
         "meta": {"campagne": "Fixture", "version": 1},
-        "lieux": [
+        "locations": [
             {
-                "id": "region:test", "nom": "Région Test", "parent": None,
+                "id": "region:test", "name": "Région Test", "parent": None,
                 "type": "region", "altitude": None,
                 "ancrage": {"x": 0, "y": 0}, "aretes": [],
             },
             {
-                "id": "lieu:test/a", "nom": "Lieu A", "parent": "region:test",
+                "id": "lieu:test/a", "name": "Lieu A", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 0, "y": 0},
                 "aretes": [
                     {"vers": "lieu:test/b", "dir": "E", "distance_m": None,
@@ -102,7 +102,7 @@ def _geo_fixture() -> dict:
                 ],
             },
             {
-                "id": "lieu:test/b", "nom": "Lieu B", "parent": "region:test",
+                "id": "lieu:test/b", "name": "Lieu B", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 10, "y": 0},
                 "aretes": [
                     {"vers": "lieu:test/c", "dir": "E", "distance_m": None,
@@ -110,7 +110,7 @@ def _geo_fixture() -> dict:
                 ],
             },
             {
-                "id": "lieu:test/c", "nom": "Lieu C", "parent": "region:test",
+                "id": "lieu:test/c", "name": "Lieu C", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 20, "y": 0},
                 "aretes": [],
             },
@@ -119,7 +119,7 @@ def _geo_fixture() -> dict:
 
 
 def _acteurs_fixture() -> dict:
-    """Minimal acteurs.json aligned with the mini-graph (_geo_fixture).
+    """Minimal actors.json aligned with the mini-graph (_geo_fixture).
 
     pat stays at A; mathilde also stays at A (→ crossing at distance 0);
     loin stays at C (→ no crossing with a tight threshold)."""
@@ -127,21 +127,21 @@ def _acteurs_fixture() -> dict:
         "meta": {"campagne": "Fixture", "version": 1, "t_reference": 0},
         "acteurs": [
             {
-                "id": "acteur:pat", "nom": "Pat", "type": "pnj", "lod": "tiede",
+                "id": "acteur:pat", "name": "Pat", "type": "pnj", "lod": "tiede",
                 "majeur": True, "but_long_terme": "—", "situation": "—",
                 "ressources": {}, "localisation_id": "lieu:test/a",
                 "trajectoire": [{"lieu": "lieu:test/a", "de": 0, "a": None}],
                 "plan": [], "relations": [],
             },
             {
-                "id": "acteur:mathilde", "nom": "Mathilde", "type": "pnj",
+                "id": "acteur:mathilde", "name": "Mathilde", "type": "pnj",
                 "lod": "tiede", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "localisation_id": "lieu:test/a",
                 "trajectoire": [{"lieu": "lieu:test/a", "de": 0, "a": None}],
                 "plan": [], "relations": [],
             },
             {
-                "id": "acteur:loin", "nom": "Loin", "type": "pnj", "lod": "froid",
+                "id": "acteur:loin", "name": "Loin", "type": "pnj", "lod": "froid",
                 "majeur": True, "but_long_terme": "—", "situation": "—",
                 "ressources": {}, "localisation_id": "lieu:test/c",
                 "trajectoire": [{"lieu": "lieu:test/c", "de": 0, "a": None}],
@@ -154,11 +154,11 @@ def _acteurs_fixture() -> dict:
 def _ecrire_campagne_fixture(racine: Path) -> Path:
     """Complete throwaway campaign (minimal world + geo + acteurs fixture)."""
     racine.mkdir(parents=True, exist_ok=True)
-    (racine / "monde.json").write_text(
-        json.dumps({"meta": {"nom": "Fixture"}}, ensure_ascii=False),
+    (racine / "world.json").write_text(
+        json.dumps({"meta": {"name": "Fixture"}}, ensure_ascii=False),
         encoding="utf-8")
     W.sauver_json_atomique(racine / "geo.json", _geo_fixture())
-    W.sauver_json_atomique(racine / "acteurs.json", _acteurs_fixture())
+    W.sauver_json_atomique(racine / "actors.json", _acteurs_fixture())
     return racine
 
 
@@ -198,7 +198,7 @@ class TestBuild(unittest.TestCase):
 
     def test_build_contient_les_ids_figes_et_contenance(self):
         res = G.build(self.camp, apply=False)
-        idx = {l["id"]: l for l in res["geo"]["lieux"]}
+        idx = {l["id"]: l for l in res["geo"]["locations"]}
         # Fixed ids present (contract §2.2).
         for lid in (CABANE_BERTHE, VALLEE_COEUR, REGION_MARCHE):
             self.assertIn(lid, idx, f"fixed id missing: {lid}")
@@ -226,10 +226,10 @@ class TestBuild(unittest.TestCase):
         # Same ids, same anchors, same edges (determinism: fixed MDS seed).
         ida = [(l["id"], l["ancrage"]["x"], l["ancrage"]["y"],
                 tuple(sorted(e["vers"] for e in l["aretes"])))
-               for l in a["lieux"]]
+               for l in a["locations"]]
         idb = [(l["id"], l["ancrage"]["x"], l["ancrage"]["y"],
                 tuple(sorted(e["vers"] for e in l["aretes"])))
-               for l in b["lieux"]]
+               for l in b["locations"]]
         self.assertEqual(ida, idb, "build must be deterministic")
 
 
@@ -246,7 +246,7 @@ class TestVoisinsReel(unittest.TestCase):
         self.assertEqual(res["lieu"], CABANE_BERTHE)
         self.assertEqual(res["parent"], REGION_MARCHE)
         vers = {a["vers"] for a in res["aretes"]}
-        # Expected immediate neighbors (from regles.temps.deplacements §5).
+        # Expected immediate neighbors (from rules.temps.movements §5).
         self.assertIn(PRUNELLIER, vers, "the prunellier is a direct neighbor")
         self.assertIn(BOIS_CHARMES, vers, "the bois des charmes is a direct neighbor")
         # Each edge has the fixed shape (vers, dir, temps_ut).
@@ -363,7 +363,7 @@ class TestCroisement(unittest.TestCase):
         self.assertIsInstance(f["T"], int)
 
     def test_croisement_via_acteurs_reels(self):
-        # Trajectories read from acteurs.json (pat and mathilde, both at A).
+        # Trajectories read from actors.json (pat and mathilde, both at A).
         idx = W.index_acteurs(W.charger_acteurs(self.camp))
         ta = W.trajectoire_de(idx["acteur:pat"])
         tb = W.trajectoire_de(idx["acteur:mathilde"])
@@ -404,7 +404,7 @@ class TestCreerLieu(unittest.TestCase):
 
     def test_nominal_dry_run_n_ecrit_rien(self):
         avant = (self.camp / "geo.json").read_text(encoding="utf-8")
-        res = G.creer_lieu(self.camp, nom="Cabane du puits", depuis="lieu:test/a",
+        res = G.creer_lieu(self.camp, name="Cabane du puits", depuis="lieu:test/a",
                            dir="E", distance_m=1000)
         self.assertEqual(res["violations"], [], "consistent declaration: 0 violation")
         self.assertFalse(res["ecrit"], "dry-run must write NOTHING")
@@ -418,7 +418,7 @@ class TestCreerLieu(unittest.TestCase):
         self.assertEqual((self.camp / "geo.json").read_text(encoding="utf-8"), avant)
 
     def test_apply_ecrit_et_cree_l_arete_reciproque(self):
-        res = G.creer_lieu(self.camp, nom="Cabane du puits", depuis="lieu:test/a",
+        res = G.creer_lieu(self.camp, name="Cabane du puits", depuis="lieu:test/a",
                            dir="E", distance_m=1000, apply=True)
         self.assertEqual(res["violations"], [])
         self.assertTrue(res["ecrit"])
@@ -433,7 +433,7 @@ class TestCreerLieu(unittest.TestCase):
 
     def test_refus_declaration_incoherente(self):
         # Unknown departure + invalid direction + distance ≤ 0 → REJECTION (violations).
-        res = G.creer_lieu(self.camp, nom="X", depuis="lieu:inexistant",
+        res = G.creer_lieu(self.camp, name="X", depuis="lieu:inexistant",
                            dir="ZZ", distance_m=-5, apply=True)
         self.assertTrue(res["violations"], "inconsistent declaration must be rejected")
         self.assertIsNone(res["id"])
@@ -446,7 +446,7 @@ class TestCreerLieu(unittest.TestCase):
 
     def test_refus_n_ecrit_pas_le_fichier(self):
         avant = (self.camp / "geo.json").read_text(encoding="utf-8")
-        G.creer_lieu(self.camp, nom="X", depuis="lieu:inexistant", dir="ZZ",
+        G.creer_lieu(self.camp, name="X", depuis="lieu:inexistant", dir="ZZ",
                      distance_m=-5, apply=True)
         self.assertEqual((self.camp / "geo.json").read_text(encoding="utf-8"), avant,
                          "a rejection must NEVER modify geo.json")
@@ -550,10 +550,10 @@ class TestRequetesFixture(unittest.TestCase):
     def test_dans_rayon(self):
         # Around A(0,0), radius 12: B(10,0) is inside, C(20,0) is outside.
         res = G.dans_rayon(self.camp, "lieu:test/a", rayon=12.0, T=0)
-        lieux = {l["id"] for l in res["lieux"]}
-        self.assertIn("lieu:test/b", lieux)
-        self.assertNotIn("lieu:test/c", lieux)
-        self.assertNotIn("lieu:test/a", lieux, "le point central ne se liste pas")
+        locations = {l["id"] for l in res["locations"]}
+        self.assertIn("lieu:test/b", locations)
+        self.assertNotIn("lieu:test/c", locations)
+        self.assertNotIn("lieu:test/a", locations, "le point central ne se liste pas")
         # Pat and Mathilde (at A) are within radius; Loin (at C) is not.
         acteurs = {a["id"] for a in res["acteurs"]}
         self.assertIn("acteur:pat", acteurs)
@@ -561,7 +561,7 @@ class TestRequetesFixture(unittest.TestCase):
 
     def test_dans_rayon_point_inconnu(self):
         res = G.dans_rayon(self.camp, "rien:du:tout", rayon=10.0)
-        self.assertEqual(res, {"lieux": [], "acteurs": []})
+        self.assertEqual(res, {"locations": [], "acteurs": []})
 
     def test_qui_est_a_presence_exacte(self):
         # Without radius: exact presence at the location (Pat + Mathilde at A).
@@ -581,7 +581,7 @@ class TestRequetesFixture(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  FAIL-OPEN — reads without geo.json / without acteurs.json (contract §0.6)
+#  FAIL-OPEN — reads without geo.json / without actors.json (contract §0.6)
 # ════════════════════════════════════════════════════════════════════════════
 
 class TestFailOpen(unittest.TestCase):
@@ -590,8 +590,8 @@ class TestFailOpen(unittest.TestCase):
     def test_requetes_sans_aucun_fichier(self):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
-            (camp / "monde.json").write_text("{}", encoding="utf-8")
-            # No geo.json / acteurs.json: everything returns a consistent empty value.
+            (camp / "world.json").write_text("{}", encoding="utf-8")
+            # No geo.json / actors.json: everything returns a consistent empty value.
             self.assertEqual(G.voisins(camp, "lieu:x"), {})
             self.assertEqual(G.ou_est(camp, "acteur:x"), {})
             self.assertEqual(G.qui_est_a(camp, "lieu:x"), [])
@@ -602,7 +602,7 @@ class TestFailOpen(unittest.TestCase):
     def test_valider_geo_sans_geo_signale_sans_planter(self):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
-            (camp / "monde.json").write_text("{}", encoding="utf-8")
+            (camp / "world.json").write_text("{}", encoding="utf-8")
             rapport = G.valider_geo(camp)
             # geo.json absent → invalid structure reported, but no exception raised.
             self.assertIn("ok", rapport)
@@ -638,7 +638,7 @@ class TestCLI(unittest.TestCase):
 
     def test_creer_lieu_incoherent_code_1(self):
         # Violations rejecting the write → business code 1.
-        code = G.main(["creer-lieu", str(self.camp), "--nom", "X",
+        code = G.main(["creer-lieu", str(self.camp), "--name", "X",
                        "--depuis", "lieu:inexistant", "--dir", "ZZ",
                        "--distance-m", "-5"])
         self.assertEqual(code, 1)

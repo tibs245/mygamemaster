@@ -1,4 +1,4 @@
-# config.yaml — campaign « {{ campagne_titre }} »  (rendered by Ansible, do not edit by hand)
+# config.yaml — campaign « {{ campaign_title }} »  (rendered by Ansible, do not edit by hand)
 # Source of truth: ansible/templates/config.yaml.j2 + the games.yml table
 
 model:
@@ -19,7 +19,7 @@ skills:
 # The agent runs its skill scripts in its own container; cwd = campaign data
 terminal:
   backend: local
-  cwd: {{ container_data_root }}/{{ campagne_data_dir }}
+  cwd: {{ container_data_root }}/{{ campaign_data_dir }}
   persistent_shell: true
   auto_source_bashrc: true
 
@@ -58,7 +58,7 @@ logging:
 
 # ── MJ Tonnerre runtime hooks (Steward / verbosity / systematic traceability) ──
 # Scripts baked into the image (COPY modules/), invoked via explicit interpreter.
-# Per-campaign fine-tuning in monde.json > meta.{verbosite,diagnostic,admins,hooks}.
+# Per-campaign fine-tuning in world.json > meta.{verbosity,diagnostic,admins,hooks}.
 # Global disable: set hooks_enabled: false in the games.yml table.
 # Spec: specs/hooks-runtime.md — Doc: docs/09-hooks-runtime.md
 {% if hooks_enabled | default(true) %}

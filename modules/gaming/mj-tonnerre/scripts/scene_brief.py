@@ -10,8 +10,8 @@ does not carry the world: the relevant slice is assembled for it, filtered on TH
                  durations), its contained locations, and WHO is present at T
                  (geo_query.voisins + qui_est_a + dans_rayon);
   * TEMPORAL   — what is recent and imminent: events from recent days
-                 ([T−δ, T]) from evenements.json (narrative timeline) and
-                 evenements_programmes.json (resolved), and especially SCHEDULED events
+                 ([T−δ, T]) from events.json (narrative timeline) and
+                 scheduled_events.json (resolved), and especially SCHEDULED events
                  that will "trigger" during the session ([T, T+δ]);
   * RELATIONAL — who has a stake here: relations pointing TOWARD this location or TOWARD ANY
                  of the players (PCs resolved by worldlib.pj_ids; meta.pj_ids /
@@ -26,7 +26,7 @@ This module is both:
 Cross-cutting conventions (contract §0, §9):
   * source of truth = files; no state outside files;
   * NON-DESTRUCTIVE: READ-ONLY — NEVER writes any file (neither geo.json,
-    nor acteurs.json, nor evenements*.json, nor monde.json);
+    nor actors.json, nor evenements*.json, nor world.json);
   * STRICT FAIL-OPEN (game loop): any failure (missing/corrupted data,
     geo.json absent, unexpected exception) → MINIMAL BRIEF + code 0. The only non-zero
     code is 2 when the CAMPAIGN itself is not found (usage error);
@@ -93,10 +93,10 @@ def _log(message: str) -> None:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  Temporal bridge: textual 't' from evenements.json → T (UT)  [READ ONLY]
+#  Temporal bridge: textual 't' from events.json → T (UT)  [READ ONLY]
 # ════════════════════════════════════════════════════════════════════════════
 #
-# evenements.json stores TEXTUAL 't' values ("Jour 7, fin d'après-midi") — the
+# events.json stores TEXTUAL 't' values ("Jour 7, fin d'après-midi") — the
 # narrative timeline generated from sessions. We do NOT convert them in place
 # (non-destructive). For the RECENT filter, we derive a COMPARABLE T: "Jour N"
 # → the UT of the midpoint of the named time slice (or noon by default). This is
@@ -141,7 +141,7 @@ def _t_textuel_vers_t(t_texte) -> int | None:
 
     READ ONLY: used SOLELY to place narrative events within the temporal
     window. Heuristic aligned with t_vers_narratif (approximate inverse).
-    A 't' that is ALREADY an integer (improbable case on the evenements.json side) is
+    A 't' that is ALREADY an integer (improbable case on the events.json side) is
     returned as-is.
     """
     if isinstance(t_texte, bool):
@@ -178,12 +178,12 @@ def _t_textuel_vers_t(t_texte) -> int | None:
 # ════════════════════════════════════════════════════════════════════════════
 
 def _charger_evenements_narratifs(campagne: Path) -> list[dict]:
-    """List of events from evenements.json (narrative timeline), [] if absent.
+    """List of events from events.json (narrative timeline), [] if absent.
 
     Each entry is enriched with an internal '_T' field (T derived from the textual 't')
     or None if not datable. DOES NOT MODIFY the file (in-memory copy).
     """
-    data = W.charger_json(Path(campagne) / "evenements.json", {}) or {}
+    data = W.charger_json(Path(campagne) / "events.json", {}) or {}
     bruts = data.get("evenements", []) if isinstance(data, dict) else []
     sortie: list[dict] = []
     for e in bruts or []:
@@ -196,11 +196,11 @@ def _charger_evenements_narratifs(campagne: Path) -> list[dict]:
 
 
 def _charger_evenements_programmes(campagne: Path) -> list[dict]:
-    """List of events from evenements_programmes.json, [] if absent (fail-open).
+    """List of events from scheduled_events.json, [] if absent (fail-open).
 
     SEPARATE and OPTIONAL file (emitted by causal_propagate / world_tick). Integer T values.
     """
-    data = W.charger_json(Path(campagne) / "evenements_programmes.json", {}) or {}
+    data = W.charger_json(Path(campagne) / "scheduled_events.json", {}) or {}
     bruts = data.get("evenements", []) if isinstance(data, dict) else []
     return [e for e in (bruts or []) if isinstance(e, dict)]
 
@@ -247,11 +247,11 @@ def _axe_spatial(campagne: Path, geo: dict, lieu_id: str, T: int,
     if G is not None:
         for p in (G.qui_est_a(campagne, lieu_id, T=T, rayon=None) or []):
             if isinstance(p, dict) and p.get("id"):
-                presents_map[p["id"]] = {"id": p["id"], "nom": p.get("nom", p["id"]),
+                presents_map[p["id"]] = {"id": p["id"], "name": p.get("name", p["id"]),
                                          "type": p.get("type", "pnj")}
         for p in (G.qui_est_a(campagne, lieu_id, T=T, rayon=float(rayon)) or []):
             if isinstance(p, dict) and p.get("id") and p["id"] not in presents_map:
-                presents_map[p["id"]] = {"id": p["id"], "nom": p.get("nom", p["id"]),
+                presents_map[p["id"]] = {"id": p["id"], "name": p.get("name", p["id"]),
                                          "type": p.get("type", "pnj")}
 
     presents = sorted(presents_map.values(), key=lambda x: x["id"])
@@ -266,7 +266,7 @@ def _axe_spatial(campagne: Path, geo: dict, lieu_id: str, T: int,
 def _axe_temporel(campagne: Path, T: int, fenetre_ut: int) -> dict:
     """Builds RÉCENT ([T−δ, T]) and IMMINENT ([T, T+δ]).
 
-    RECENT   : narrative events (evenements.json) datable within the past window,
+    RECENT   : narrative events (events.json) datable within the past window,
                + SCHEDULED events already 'resolu' within that window.
     IMMINENT : SCHEDULED events (status 'programme', future) that "trigger"
                within [T, T+δ]. Sorted by T. Rendering is NARRATIVE (never the raw T).
@@ -454,7 +454,7 @@ def _est_en_mouvement(traj: list[dict], T: int, fenetre_ut: int) -> bool:
         return False
     t_haut = T + int(fenetre_ut)
     a_deplacement = False
-    lieux = set()
+    locations = set()
     for seg in traj:
         if not isinstance(seg, dict):
             continue
@@ -466,8 +466,8 @@ def _est_en_mouvement(traj: list[dict], T: int, fenetre_ut: int) -> bool:
             if a >= T and de <= t_haut:
                 a_deplacement = True
         elif seg.get("lieu"):
-            lieux.add(seg.get("lieu"))
-    return a_deplacement or len(lieux) > 1
+            locations.add(seg.get("lieu"))
+    return a_deplacement or len(locations) > 1
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -483,7 +483,7 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
       {'T':int, 'lieu':lieu_id,
        'autour':[{vers,dir,distance_m,temps_ut}],   # geo_query.voisins
        'contenus':[id…],
-       'presents':[{id,nom,type}],                  # qui_est_a (location + radius)
+       'presents':[{id,name,type}],                  # qui_est_a (location + radius)
        'mouvement':[{acteur,T,lieu,narratif}],      # upcoming crossings
        'recent':[{T,label}],                        # [T−δ, T]
        'imminent':[{T,label,type}],                 # scheduled "triggering" [T, T+δ]
@@ -524,7 +524,7 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
     # env MJ_PJ_ID > []. A campaign can have MULTIPLE PCs. Empty list ⇒ the
     # relational "toward the player" section is simply empty.
     try:
-        pj_set = set(W.pj_ids(W.charger_json(campagne / "monde.json", {}) or {}))
+        pj_set = set(W.pj_ids(W.charger_json(campagne / "world.json", {}) or {}))
     except Exception as e:
         _log(f"ℹ scene_brief : pj_ids unavailable ({e}) — no PC targeted.")
         pj_set = set()
@@ -535,7 +535,7 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
 
         # Name + description of the location (for the LIEU header).
         noeud = W.index_lieux(geo).get(lieu_id) if isinstance(geo, dict) else None
-        brief["_nom_lieu"] = (noeud.get("nom") if isinstance(noeud, dict) else None)
+        brief["_nom_lieu"] = (noeud.get("name") if isinstance(noeud, dict) else None)
         brief["_desc_lieu"] = (noeud.get("description_narrative")
                                if isinstance(noeud, dict) else None)
 
@@ -602,11 +602,11 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
     lignes: list[list[str]] = []   # each entry: [label, content]
 
     # LIEU (always present).
-    nom = brief.get("_nom_lieu")
+    name = brief.get("_nom_lieu")
     desc = brief.get("_desc_lieu")
     lieu_txt = brief.get("lieu") or "(unknown location)"
-    if nom:
-        suffixe = f" — « {_compacter(desc, 60)} »" if desc else f" — « {nom} »"
+    if name:
+        suffixe = f" — « {_compacter(desc, 60)} »" if desc else f" — « {name} »"
         lieu_txt = f"{brief.get('lieu')}{suffixe}"
     lignes.append(["LOCATION", lieu_txt])
 
@@ -628,7 +628,7 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
         gardes, reste = _plafonner(presents, MAX_PRESENTS)
         morceaux = []
         for p in gardes:
-            nom_p = p.get("nom")
+            nom_p = p.get("name")
             etiq = p.get("id")
             morceaux.append(f"{etiq} ({nom_p})" if nom_p and nom_p != etiq else f"{etiq}")
         lignes.append(["PRESENT", _joindre(morceaux, " · ", reste)])
@@ -918,8 +918,8 @@ def _nom_acteur_court(acteur_id, idx_act: dict) -> str:
     if not isinstance(acteur_id, str) or not acteur_id:
         return "?"
     a = idx_act.get(acteur_id)
-    if isinstance(a, dict) and a.get("nom"):
-        return a["nom"]
+    if isinstance(a, dict) and a.get("name"):
+        return a["name"]
     return acteur_id.split(":", 1)[-1].replace("-", " ").strip() or acteur_id
 
 

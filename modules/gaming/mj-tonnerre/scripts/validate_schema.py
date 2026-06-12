@@ -5,9 +5,9 @@ the JSON Schemas in scripts/schemas/ (HOME-BUILT validator, stdlib only —
 NO external jsonschema dependency).
 
 Validates :
-  monde.json        → schemas/monde.schema.json
-  pnj.json          → schemas/pnj.schema.json
-  personnages/*.json→ schemas/personnage.schema.json
+  world.json        → schemas/world.schema.json
+  npcs.json          → schemas/npcs.schema.json
+  characters/*.json→ schemas/character.schema.json
   sessions/*.json   → schemas/session.schema.json
 
 The validator supports the Draft 2020-12 subset used by these schemas:
@@ -175,8 +175,8 @@ def charger(chemin: Path):
         return json.load(f)
 
 
-def charger_schema(nom: str) -> dict:
-    p = SCHEMAS_DIR / f"{nom}.schema.json"
+def charger_schema(name: str) -> dict:
+    p = SCHEMAS_DIR / f"{name}.schema.json"
     if not p.exists():
         raise FileNotFoundError(f"Schema not found: {p}")
     return charger(p)
@@ -203,17 +203,17 @@ def valider_campagne(campagne: Path) -> dict:
         resultats.append({"fichier": str(fichier), "schema": schema_nom,
                           "present": True, "ecarts": ecarts})
 
-    ajouter(campagne / "monde.json", "monde")
-    ajouter(campagne / "pnj.json", "pnj")
-    ajouter(campagne / "acteurs.json", "acteur")
+    ajouter(campagne / "world.json", "world")
+    ajouter(campagne / "npcs.json", "npcs")
+    ajouter(campagne / "actors.json", "actor")
     ajouter(campagne / "geo.json", "geo")
-    for p in sorted((campagne / "personnages").glob("*.json")) \
-            if (campagne / "personnages").is_dir() else []:
-        ajouter(p, "personnage")
+    for p in sorted((campagne / "characters").glob("*.json")) \
+            if (campagne / "characters").is_dir() else []:
+        ajouter(p, "character")
     for p in sorted((campagne / "sessions").glob("*.json")) \
             if (campagne / "sessions").is_dir() else []:
         ajouter(p, "session")
-    ajouter(campagne / "evenements.json", "evenements")
+    ajouter(campagne / "events.json", "events")
 
     n_ecarts = sum(len(r["ecarts"]) for r in resultats)
     return {"campagne": str(campagne), "resultats": resultats,
@@ -230,8 +230,8 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Exemples :\n"
-            "  python3 validate_schema.py .hermes/mj-tonnerre/campagnes/la-naissance-dun-roi\n"
-            "  python3 validate_schema.py monde.json --schema monde\n"
+            "  python3 validate_schema.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
+            "  python3 validate_schema.py world.json --schema monde\n"
         ),
     )
     parser.add_argument("cible", help="Campaign folder OR a specific .json file.")
@@ -266,8 +266,8 @@ def main(argv=None) -> int:
             {"fichier": str(cible), "schema": args.schema,
              "present": True, "ecarts": ecarts}], "n_ecarts": len(ecarts)}
     else:
-        if not (cible / "monde.json").exists():
-            print(f"❌ monde.json not found in {cible}", file=sys.stderr)
+        if not (cible / "world.json").exists():
+            print(f"❌ world.json not found in {cible}", file=sys.stderr)
             return 2
         try:
             rapport = valider_campagne(cible)

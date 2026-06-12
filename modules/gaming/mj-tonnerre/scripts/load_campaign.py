@@ -2,7 +2,7 @@
 """load_campaign.py — Campaign load self-test for MJ Tonnerre.
 
 Verifies that a campaign is READY to be played by the modular engine:
-  (a) reads `monde.json > modules`, separates ACTIVE modules from inactive ones;
+  (a) reads `world.json > modules`, separates ACTIVE modules from inactive ones;
   (b) maps each active module → its `references/modules/<x>.md` file
       (handles underscore key → hyphen filename mapping) and checks it EXISTS;
   (c) verifies that the campaign declares the DATA SECTIONS required by each
@@ -10,7 +10,7 @@ Verifies that a campaign is READY to be played by the modular engine:
   (d) outputs a readable "🧩 READINESS" report.
 
 This is the safeguard that makes conditional module loading
-(`monde.json > modules.<x>.actif`) VERIFIABLE — instead of "the engine is supposed
+(`world.json > modules.<x>.actif`) VERIFIABLE — instead of "the engine is supposed
 to read the modules block". No network, Python 3 stdlib only.
 
 Exit codes:
@@ -19,7 +19,7 @@ Exit codes:
   2  usage / campaign not found / broken JSON
 
 Path convention (from project root):
-  CAMP=.hermes/mj-tonnerre/campagnes/<campagne>
+  CAMP=.hermes/mj-tonnerre/campaigns/<campagne>
   python3 /opt/modules/gaming/mj-tonnerre/scripts/load_campaign.py "$CAMP"
 """
 
@@ -38,60 +38,60 @@ from pathlib import Path
 #                  The module is "data OK" if ALL its groups are satisfied.
 #   - "info"     : soft requirements (progressive, filled during play) → never blocking.
 #
-# Paths target monde.json unless prefixed "pnj.json:".
+# Paths target world.json unless prefixed "npcs.json:".
 # Requirements inferred from reading modules references/modules/<x>.md + README.md:
-#   voyage              -> regles.temps.deplacements         (voyage.md:92, README:39)
-#   factions            -> etat_global.factions + faction_actions_horloge (factions.md:11,38 ; README:40)
-#   proactivite_pnj     -> pnj.json present (motivations = info)  (proactivite-pnj.md:19 ; README:41)
-#   artefacts           -> etat_global.artefacts_connus        (artefacts.md:7 ; README:42)
-#   politique           -> univers.entites_politiques OR souverainete (politique.md:60-91 ; README:43)
-#   meteo               -> regles.meteo                        (meteo.md:16 ; README:44)
-#   worldbuilding_lieux -> univers.regions                     (worldbuilding-lieux.md:123 ; README:45)
-#   construction_royaume-> systeme.construction_royaume OR regles.construction (construction-royaume.md:5 ; README:46)
+#   voyage              -> rules.temps.movements         (voyage.md:92, README:39)
+#   factions            -> global_state.factions + faction_actions_horloge (factions.md:11,38 ; README:40)
+#   proactivite_pnj     -> npcs.json present (motivations = info)  (proactivite-pnj.md:19 ; README:41)
+#   artefacts           -> global_state.artefacts_connus        (artefacts.md:7 ; README:42)
+#   politique           -> universe.entites_politiques OR souverainete (politique.md:60-91 ; README:43)
+#   meteo               -> rules.meteo                        (meteo.md:16 ; README:44)
+#   worldbuilding_lieux -> universe.regions                     (worldbuilding-locations.md:123 ; README:45)
+#   construction_royaume-> system.construction_royaume OR rules.construction (construction-royaume.md:5 ; README:46)
 
 MODULES = {
     "voyage": {
         "fichier": "voyage.md",
-        "requis": [["regles.temps.deplacements"]],
+        "requis": [["rules.temps.movements"]],
         "info": [],
     },
     "factions": {
         "fichier": "factions.md",
         "requis": [
-            ["etat_global.factions"],
-            ["etat_global.faction_actions_horloge"],
+            ["global_state.factions"],
+            ["global_state.faction_actions_horloge"],
         ],
         "info": [],
     },
     "proactivite_pnj": {
         "fichier": "proactivite-pnj.md",
-        "requis": [["pnj.json:*"]],  # the pnj.json file must exist
-        "info": ["pnj.json:motivations_personnelles"],  # progressive (per NPC)
+        "requis": [["npcs.json:*"]],  # the npcs.json file must exist
+        "info": ["npcs.json:motivations_personnelles"],  # progressive (per NPC)
     },
     "artefacts": {
         "fichier": "artefacts.md",
-        "requis": [["etat_global.artefacts_connus"]],
+        "requis": [["global_state.artefacts_connus"]],
         "info": [],
     },
     "politique": {
         "fichier": "politique.md",
-        "requis": [["univers.entites_politiques", "univers.souverainete", "souverainete"]],
+        "requis": [["universe.entites_politiques", "universe.souverainete", "souverainete"]],
         "info": [],
     },
     "meteo": {
         "fichier": "meteo.md",
-        "requis": [["regles.meteo"]],
-        "info": ["univers.regions[].biodiversite"],  # progressive (per region)
+        "requis": [["rules.meteo"]],
+        "info": ["universe.regions[].biodiversite"],  # progressive (per region)
     },
     "worldbuilding_lieux": {
-        "fichier": "worldbuilding-lieux.md",
-        "requis": [["univers.regions"]],
+        "fichier": "worldbuilding-locations.md",
+        "requis": [["universe.regions"]],
         "info": [],
     },
     "construction_royaume": {
         "fichier": "construction-royaume.md",
-        "requis": [["systeme.construction_royaume", "regles.construction"]],
-        "info": ["etat_global.royaume", "etat_global.phase_construction"],
+        "requis": [["system.construction_royaume", "rules.construction"]],
+        "info": ["global_state.royaume", "global_state.phase_construction"],
     },
 }
 
@@ -105,13 +105,13 @@ MODULES_DIR = Path(__file__).resolve().parent.parent / "references" / "modules"
 # --- Data access -------------------------------------------------------
 
 def _get_path(data: dict, dotted: str):
-    """Resolves a dotted path (e.g. 'regles.temps.deplacements').
+    """Resolves a dotted path (e.g. 'rules.temps.movements').
 
     Returns (present: bool, value). A value of None/[]/{}/'' counts as structurally
     present but 'empty' (reported differently).
     The '[].x' suffix tests whether AT LEAST one list element has key x.
     """
-    # list case: "univers.regions[].biodiversite"
+    # list case: "universe.regions[].biodiversite"
     if "[]." in dotted:
         head, tail = dotted.split("[].", 1)
         ok, lst = _get_path(data, head)
@@ -144,8 +144,8 @@ def _load_json(path: Path):
 
 def analyser(campagne: Path) -> dict:
     """Builds the readiness report for a campaign (structured dict)."""
-    monde_path = campagne / "monde.json"
-    pnj_path = campagne / "pnj.json"
+    monde_path = campagne / "world.json"
+    pnj_path = campagne / "npcs.json"
 
     monde = _load_json(monde_path)
     pnj_present = pnj_path.is_file()
@@ -153,11 +153,11 @@ def analyser(campagne: Path) -> dict:
 
     bloc = monde.get("modules", {})
     if not isinstance(bloc, dict):
-        raise ValueError("monde.json > modules missing or is not an object")
+        raise ValueError("world.json > modules missing or is not an object")
 
     rapport = {
         "campagne": campagne.name,
-        "regime": monde.get("meta", {}).get("temps", {}).get("regime", "?"),
+        "regime": monde.get("meta", {}).get("time", {}).get("regime", "?"),
         "modules_actifs": [],
         "modules_inactifs": [],
         "fichiers_manquants": [],
@@ -233,18 +233,18 @@ def _verifier_chemin(chemin: str, monde: dict, pnj_present: bool, pnj_data):
     - vide    : the key exists but is None/[]/{}/'' (structure there, to be filled during play);
     - absent  : the key does not exist at all (the module has no data support).
     """
-    if chemin.startswith("pnj.json:"):
+    if chemin.startswith("npcs.json:"):
         champ = chemin.split(":", 1)[1]
         if champ == "*":
-            return ("present" if pnj_present else "absent", "pnj.json")
+            return ("present" if pnj_present else "absent", "npcs.json")
         if not pnj_present:
-            return ("absent", f"pnj.json>{champ}")
+            return ("absent", f"npcs.json>{champ}")
         liste = _pnj_liste(pnj_data)
         ok = any(
             isinstance(p, dict) and p.get(champ) not in (None, "", [], {})
             for p in liste
         )
-        return ("present" if ok else "vide", f"pnj.json>{champ}")
+        return ("present" if ok else "vide", f"npcs.json>{champ}")
     present, value = _get_path(monde, chemin)
     if not present:
         return ("absent", chemin)
@@ -278,7 +278,7 @@ def _verifier_groupe(groupe, monde, pnj_present, pnj_data):
 
 
 def _pnj_liste(pnj_data):
-    """Accepts pnj.json as a bare list OR {"pnj": [...]} (like check_session.py)."""
+    """Accepts npcs.json as a bare list OR {"pnj": [...]} (like check_session.py)."""
     if isinstance(pnj_data, list):
         return pnj_data
     if isinstance(pnj_data, dict):
@@ -355,13 +355,13 @@ def main(argv=None) -> int:
         epilog="Exit: 0 ready · 1 inconsistency · 2 usage/not found/broken JSON.",
     )
     parser.add_argument("campagne",
-                        help="Path to the campaign folder (containing monde.json).")
+                        help="Path to the campaign folder (containing world.json).")
     parser.add_argument("--json", action="store_true",
                         help="Machine output (JSON) instead of the human-readable report.")
     args = parser.parse_args(argv)
 
     campagne = Path(args.campagne)
-    monde_path = campagne / "monde.json"
+    monde_path = campagne / "world.json"
     if not campagne.is_dir() or not monde_path.is_file():
         print(f"❌ Campaign not found: {monde_path} does not exist.", file=sys.stderr)
         return 2

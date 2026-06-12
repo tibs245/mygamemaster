@@ -73,7 +73,7 @@ def _pending_has_text(path):
 
 def build_fixture(root, strict=False, judge=False, auto_commit=False):
     camp = os.path.join(root, "campagne")
-    os.makedirs(os.path.join(camp, "personnages"), exist_ok=True)
+    os.makedirs(os.path.join(camp, "characters"), exist_ok=True)
     os.makedirs(os.path.join(camp, "sessions"), exist_ok=True)
     hooks_cfg = {"garde_json_strict": strict}
     # auto_commit=None → key absent (tests default on) ; bool → explicit key.
@@ -81,28 +81,28 @@ def build_fixture(root, strict=False, judge=False, auto_commit=False):
         hooks_cfg["auto_commit"] = auto_commit
     if judge:
         hooks_cfg["judge"] = {"actif": True, "modele": "test/mock", "gate_max_tentatives": 2}
-    write_json(os.path.join(camp, "monde.json"), {
+    write_json(os.path.join(camp, "world.json"), {
         "meta": {
-            "nom": "Test",
-            "temps": {"regime": "Narratif"},
-            "verbosite": "INFO",
+            "name": "Test",
+            "time": {"regime": "Narratif"},
+            "verbosity": "INFO",
             "admins": ["999000111"],
             "hooks": hooks_cfg,
             "diagnostic": {
                 "actif": True, "fichier": "collecte.csv",
-                "regles": {"echantillon_frequence": 1},
+                "rules": {"echantillon_frequence": 1},
             },
         },
-        "modules": {}, "etat_global": {}, "univers": {"regions": []},
+        "modules": {}, "global_state": {}, "universe": {"regions": []},
     })
-    write_json(os.path.join(camp, "pnj.json"), [
-        {"nom": "Berthe", "faits_etablis": ["x"], "hypotheses_mj": []},
-        {"nom": "Firmin", "faits_etablis": ["y", "z"], "hypotheses_mj": []},
+    write_json(os.path.join(camp, "npcs.json"), [
+        {"name": "Berthe", "established_facts": ["x"], "hypotheses_mj": []},
+        {"name": "Firmin", "established_facts": ["y", "z"], "hypotheses_mj": []},
     ])
-    write_json(os.path.join(camp, "personnages", "403.json"), {
-        "meta": {"nom_perso": "Rubis", "discord_id": "403"},
-        "stats": {}, "inventaire": ["saucisson", "corde", "lanterne"],
-        "sante": {"pv_actuels": 10, "pv_max": 10},
+    write_json(os.path.join(camp, "characters", "403.json"), {
+        "meta": {"character_name": "Rubis", "discord_id": "403"},
+        "stats": {}, "inventory": ["saucisson", "corde", "lanterne"],
+        "health": {"hp_current": 10, "hp_max": 10},
     })
     write_json(os.path.join(camp, "sessions", "009.json"), {
         "session": 9, "date": None, "participants": ["403"],
@@ -116,7 +116,7 @@ def main():
     sid = "sess_test"
     try:
         camp = build_fixture(root)
-        persoj = os.path.join(camp, "personnages", "403.json")
+        persoj = os.path.join(camp, "characters", "403.json")
 
         # ── 1. pre_llm_call : state injection ───────────────────────────────
         print("\n[1] pre_llm_call — state injection")
@@ -143,16 +143,16 @@ def main():
         # pre_tool_call : snapshot (path only, no guard)
         run_hook("pre_tool_call.py", {
             "cwd": camp, "session_id": sid, "tool_name": "write_file",
-            "tool_input": {"path": "personnages/403.json"},
+            "tool_input": {"path": "characters/403.json"},
         })
         # real mutation : remove the saucisson (3 → 2 items)
         data = json.load(open(persoj, encoding="utf-8"))
-        data["inventaire"] = ["corde", "lanterne"]
+        data["inventory"] = ["corde", "lanterne"]
         write_json(persoj, data)
         # post_tool_call : compute the delta
         run_hook("post_tool_call.py", {
             "cwd": camp, "session_id": sid, "tool_name": "write_file",
-            "tool_input": {"path": "personnages/403.json"},
+            "tool_input": {"path": "characters/403.json"},
         })
         # transform_llm_output : augments the response + CSV
         out, err = run_hook("transform_llm_output.py", {
@@ -258,7 +258,7 @@ def main():
         # 100% code response → neutral fallback, never a no-op (original would leak otherwise)
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_scrub2",
-            "response": "```python\nimport json\njson.load(open('pnj.json'))\n```",
+            "response": "```python\nimport json\njson.load(open('npcs.json'))\n```",
             "extra": {"model": "m"}})
         check("all-code response → rewritten (not a no-op)", out != {}, json.dumps(out)[:80])
         check("all-code response → no code delivered", "import json" not in out.get("response", ""))
@@ -275,7 +275,7 @@ def main():
         # whereas the same all-code response is rewritten outside the exception (cf. sess_scrub2).
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_scrub4", "message": "MJ, montre-moi le script",
-            "response": "```python\nimport json\njson.load(open('pnj.json'))\n```", "extra": {"model": "m"}})
+            "response": "```python\nimport json\njson.load(open('npcs.json'))\n```", "extra": {"model": "m"}})
         check("explicit request → no scrub (no-op)", out == {}, json.dumps(out)[:80])
 
         # ── 5. strict JSON guard : blocks broken content ─────────────────────
@@ -452,13 +452,13 @@ def main():
 
         # 12a — default ON (key absent) : one validated write → one auto-commit.
         campg = build_fixture(os.path.join(root, "autocommit"), auto_commit=None)
-        pjg = os.path.join(campg, "personnages", "403.json")
+        pjg = os.path.join(campg, "characters", "403.json")
         dg = json.load(open(pjg, encoding="utf-8"))
-        dg["inventaire"] = ["corde"]
+        dg["inventory"] = ["corde"]
         write_json(pjg, dg)
         _, err_g = run_hook("post_tool_call.py", {
             "cwd": campg, "session_id": "sg", "tool_name": "write_file",
-            "tool_input": {"path": "personnages/403.json"},
+            "tool_input": {"path": "characters/403.json"},
         })
         check("git repo initialized (auto-commit default ON)",
               os.path.isdir(os.path.join(campg, ".git")))
@@ -471,13 +471,13 @@ def main():
 
         # 12b — toggle OFF : no git write.
         campo = build_fixture(os.path.join(root, "nocommit"), auto_commit=False)
-        pjo = os.path.join(campo, "personnages", "403.json")
+        pjo = os.path.join(campo, "characters", "403.json")
         do = json.load(open(pjo, encoding="utf-8"))
-        do["inventaire"] = ["x"]
+        do["inventory"] = ["x"]
         write_json(pjo, do)
         run_hook("post_tool_call.py", {
             "cwd": campo, "session_id": "so", "tool_name": "write_file",
-            "tool_input": {"path": "personnages/403.json"},
+            "tool_input": {"path": "characters/403.json"},
         })
         check("no repo when auto_commit=false",
               not os.path.isdir(os.path.join(campo, ".git")))

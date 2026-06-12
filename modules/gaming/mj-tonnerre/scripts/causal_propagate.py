@@ -5,12 +5,12 @@ causal_propagate.py — BOUNDED causal propagation of the "living world" (MJ Ton
 Goal (contract §8, doc 04): make one event CAUSE others — ELSEWHERE (at a distance,
 via the typed relationships of actors) and LATER (with a delay). This is what makes
 long-term consistency almost free: we record FUTURE dated events (status "programme")
-in a SEPARATE file (`evenements_programmes.json`), which the tick engine resolves when
+in a SEPARATE file (`scheduled_events.json`), which the tick engine resolves when
 T reaches them. We "find the traces" of a drama we did not witness without having
 simulated the detail.
 
 Two graphs coexist: the SPATIAL graph (geo.json) says who is *next to* whom;
-the CAUSAL graph (actor relationships, acteurs.json) says who *depends on* whom. This
+the CAUSAL graph (actor relationships, actors.json) says who *depends on* whom. This
 propagation traverses the second.
 
 DETERMINISM: *who* is affected, *when* (T = T_cause + delai_ut), *with what
@@ -35,9 +35,9 @@ This module is both:
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
-  * NON-DESTRUCTIVE: NEVER writes to monde.json / pnj.json / evenements.json /
-    acteurs.json / geo.json / hooks / existing scripts. WRITES ONLY
-    (atomic append) to evenements_programmes.json, and only in --apply mode;
+  * NON-DESTRUCTIVE: NEVER writes to world.json / npcs.json / events.json /
+    actors.json / geo.json / hooks / existing scripts. WRITES ONLY
+    (atomic append) to scheduled_events.json, and only in --apply mode;
   * exit codes: 0 ok; 1 business condition signalled (wave extinguished immediately
     below SEUIL, no derived events); 2 usage / file not found / broken JSON;
   * propagation NEVER recalculates the past: it only schedules FUTURE events
@@ -136,17 +136,17 @@ _REGLES_PROPAGATION: dict[tuple[str, str], dict] = {
 _REGLES_CAMPAGNE: dict[tuple[str, str], dict] = {}
 
 
-def enrichir_regles(regles: dict) -> None:
+def enrichir_regles(rules: dict) -> None:
     """Registers campaign-SPECIFIC propagation rules.
 
-    `regles`: { (type_evt, type_relation) -> {"type": <effect>} } OR
+    `rules`: { (type_evt, type_relation) -> {"type": <effect>} } OR
               { "<type_evt>|<type_relation>" -> {"type": <effect>} }.
     These pairs TAKE PRIORITY over the base table. No persistent global side effects:
     used for extensions/tests. (The contract allows a table extensible per campaign.)
     """
-    if not isinstance(regles, dict):
+    if not isinstance(rules, dict):
         return
-    for cle, effet in regles.items():
+    for cle, effet in rules.items():
         if isinstance(cle, tuple) and len(cle) == 2:
             couple = (str(cle[0]), str(cle[1]))
         elif isinstance(cle, str) and "|" in cle:
@@ -272,7 +272,7 @@ def _evt_significativite(evt: dict) -> float:
 def _noeud_source(evt: dict, idx: dict[str, dict]) -> str | None:
     """id of the actor-NODE from which the relationships propagating this event originate.
 
-    Chooses the node ACTUALLY present in acteurs.json (`idx`):
+    Chooses the node ACTUALLY present in actors.json (`idx`):
       * priority to the TARGET — once an event is RESOLVED on a target, it is that
         target which re-propagates along ITS OWN dependencies (the starving settlement
         migrates, the city in shortage calls its overlord…). Conforms to the worked
@@ -290,7 +290,7 @@ def _noeud_source(evt: dict, idx: dict[str, dict]) -> str | None:
         v = evt.get(clef)
         if isinstance(v, str) and v:
             candidats.append(v)
-    # Priority to the candidate present in acteurs.json.
+    # Priority to the candidate present in actors.json.
     for c in candidats:
         if c in idx:
             return c
@@ -310,7 +310,7 @@ def propager(evt: dict, profondeur: int = 0, *,
         if profondeur > PROFONDEUR_MAX:          return          # safeguard 1
         if evt.significativite < SEUIL:          return          # safeguard 2
         if budget exhausted (BUDGET_PAR_SOURCE): return          # safeguard 4
-        for each outgoing relationship of evt's node (acteurs.json):
+        for each outgoing relationship of evt's node (actors.json):
             effect = regle_de_propagation(evt.type, relation)    # deterministic
             if effect is None: continue
             evt_derive = programmer_evenement(
@@ -330,7 +330,7 @@ def propager(evt: dict, profondeur: int = 0, *,
     of cycles in the causal graph.
 
     Accumulation parameters (for internal recursive use; top-level caller leaves
-    them as default): `acteurs` = already-loaded acteurs.json (avoids N reads);
+    them as default): `acteurs` = already-loaded actors.json (avoids N reads);
     `budget` = shared [remaining]; `emis` = shared accumulator list.
     """
     campagne = Path(campagne)
@@ -358,7 +358,7 @@ def propager(evt: dict, profondeur: int = 0, *,
 
     noeud = idx.get(noeud_id)
     if noeud is None:
-        # Target/actor outside acteurs.json (e.g. a simple location with no known
+        # Target/actor outside actors.json (e.g. a simple location with no known
         # dependencies): no outgoing relationships → the wave stops here (deterministic,
         # fail-open).
         return emis
@@ -437,7 +437,7 @@ def propager(evt: dict, profondeur: int = 0, *,
 
 def _evt_racine_depuis_intention(campagne: Path, acteur_id: str,
                                  intent_id: str, acteurs: dict) -> dict | None:
-    """Builds the ROOT event from an actor's intention (acteurs.json).
+    """Builds the ROOT event from an actor's intention (actors.json).
 
     The target = intention.lieu (or the actor itself if non-spatial). The type = effect
     type inferred from the action (simple heuristic: 'raid' if the action evokes a raid,
@@ -447,7 +447,7 @@ def _evt_racine_depuis_intention(campagne: Path, acteur_id: str,
     idx = W.index_acteurs(acteurs)
     acteur = idx.get(acteur_id)
     if acteur is None:
-        _log(f"❌ Actor not found in acteurs.json: {acteur_id}")
+        _log(f"❌ Actor not found in actors.json: {acteur_id}")
         return None
     intention = None
     for it in acteur.get("plan", []) or []:
@@ -495,26 +495,26 @@ def _evt_racine_depuis_intention(campagne: Path, acteur_id: str,
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  Persistence — atomic append to evenements_programmes.json (SEPARATE)
+#  Persistence — atomic append to scheduled_events.json (SEPARATE)
 # ════════════════════════════════════════════════════════════════════════════
 
-NOM_FICHIER_PROG = "evenements_programmes.json"
+NOM_FICHIER_PROG = "scheduled_events.json"
 
 
 def _meta_par_defaut(campagne: Path) -> dict:
-    """Metadata for a fresh evenements_programmes.json (contract §8.3)."""
+    """Metadata for a fresh scheduled_events.json (contract §8.3)."""
     return {
         "campagne": _nom_campagne(campagne),
         "version": PROG_VERSION,
         "note": ("Evenements PROGRAMMES/RESOLUS par le monde vivant. T en UT. "
-                 "Ne JAMAIS fusionner dans evenements.json sans decision MJ."),
+                 "Ne JAMAIS fusionner dans events.json sans decision MJ."),
     }
 
 
 def _nom_campagne(campagne: Path) -> str:
-    """Human-readable campaign name (from monde.json if possible, otherwise folder)."""
-    monde = W.charger_json(Path(campagne) / "monde.json", {}) or {}
-    for chemin in (("meta", "nom"), ("meta", "titre"), ("titre",), ("nom",)):
+    """Human-readable campaign name (from world.json if possible, otherwise folder)."""
+    monde = W.charger_json(Path(campagne) / "world.json", {}) or {}
+    for chemin in (("meta", "name"), ("meta", "titre"), ("titre",), ("name",)):
         cur = monde
         ok = True
         for k in chemin:
@@ -529,10 +529,10 @@ def _nom_campagne(campagne: Path) -> str:
 
 
 def appliquer(campagne: Path, evenements: list[dict]) -> int:
-    """ATOMIC append of events to evenements_programmes.json. Returns the number written.
+    """ATOMIC append of events to scheduled_events.json. Returns the number written.
 
     Creates the file (with metadata) if it does not exist. WRITES ONLY this SEPARATE
-    file — NEVER to evenements.json (non-destructive invariant, contract §0.2/§14.3).
+    file — NEVER to events.json (non-destructive invariant, contract §0.2/§14.3).
     Duplicate ids already present are ignored (idempotence: the same scheduled event
     is never emitted twice). Raises OSError if the atomic write fails (outside the
     game loop: fail-hard assumed).
@@ -757,7 +757,7 @@ def build_parser() -> argparse.ArgumentParser:
             "\nSafeguards (guaranteed termination): PROFONDEUR_MAX="
             f"{PROFONDEUR_MAX}, SEUIL={SEUIL}, ATTENUATION={ATTENUATION}, "
             f"BUDGET_PAR_SOURCE={BUDGET_PAR_SOURCE}.\n"
-            "Writes ONLY evenements_programmes.json (never evenements.json)."
+            "Writes ONLY scheduled_events.json (never events.json)."
         ),
     )
     sub = ap.add_subparsers(dest="commande", required=True)
@@ -775,7 +775,7 @@ def build_parser() -> argparse.ArgumentParser:
                         "<acteur_id>:<intent_id> (e.g. "
                         "'faction:<faction>:intent:<intent>').")
     p.add_argument("--apply", action="store_true",
-                   help="Atomically append derived events to evenements_programmes.json.")
+                   help="Atomically append derived events to scheduled_events.json.")
     p.add_argument("--json", action="store_true", dest="as_json",
                    help="Output in JSON format (summary + derived events).")
     p.set_defaults(func=cmd_propager)

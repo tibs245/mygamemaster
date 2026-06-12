@@ -194,7 +194,7 @@ def _rng(*cle) -> random.Random:
 # ════════════════════════════════════════════════════════════════════════════
 
 def selectionner(geo: dict, lieu: str | None) -> list[dict]:
-    tous = [n for n in geo.get("lieux", []) or []
+    tous = [n for n in geo.get("locations", []) or []
             if isinstance(n, dict) and isinstance(n.get("id"), str)
             and n.get("type") != "region"]
     if not lieu:
@@ -395,7 +395,7 @@ def fausser(geo, noeuds, coords, largeur, hauteur, seed):
     coords2 = {nid: (max(0.0, min(largeur, x + rng.uniform(-amp, amp))),
                      max(0.0, min(hauteur, y + rng.uniform(-amp, amp))))
                for nid, (x, y) in coords.items()}
-    noms = {n["id"]: n.get("nom", "") for n in noeuds}
+    noms = {n["id"]: n.get("name", "") for n in noeuds}
     ids = list(noms)
     if len(ids) >= 2:
         a, b = rng.sample(ids, 2)
@@ -404,7 +404,7 @@ def fausser(geo, noeuds, coords, largeur, hauteur, seed):
     fantome = None
     if ids:
         fantome = {"id": "__fantome__",
-                   "nom": rng.choice(["Vieux gué", "Pierre levée", "Source oubliée",
+                   "name": rng.choice(["Vieux gué", "Pierre levée", "Source oubliée",
                                       "Carrefour des corbeaux", "Tertre gris"]),
                    "type": rng.choice(["ruine", "menhir", "habitation"]),
                    "px": rng.uniform(0, largeur), "py": rng.uniform(0, hauteur)}
@@ -423,7 +423,7 @@ def fausser(geo, noeuds, coords, largeur, hauteur, seed):
 def rendre_svg(geo, noeuds, coords, largeur, hauteur, titre, focus,
                labels_mode, truque=None):
     idx = {n["id"]: n for n in noeuds}
-    noms = {n["id"]: n.get("nom", "") for n in noeuds}
+    noms = {n["id"]: n.get("name", "") for n in noeuds}
     types = {n["id"]: (n.get("type") or "lieu") for n in noeuds}
     degre = {n["id"]: len(W.aretes_sortantes(geo, n["id"])) for n in noeuds}
     contenance = {n["id"]: len(W.contenus(geo, n["id"])) for n in noeuds}
@@ -498,7 +498,7 @@ def rendre_svg(geo, noeuds, coords, largeur, hauteur, titre, focus,
         ordre.append(fantome["id"])
         coords = {**coords, fantome["id"]: (fantome["px"], fantome["py"])}
         types = {**types, fantome["id"]: fantome["type"]}
-        noms = {**noms, fantome["id"]: fantome["nom"]}
+        noms = {**noms, fantome["id"]: fantome["name"]}
     numero = {nid: i + 1 for i, nid in enumerate(ordre)}
 
     # 4) Markers + labels.
@@ -543,9 +543,9 @@ def rendre_svg(geo, noeuds, coords, largeur, hauteur, titre, focus,
         s.append(f'<text x="{lx}" y="34" font-size="16" font-family="serif" '
                  f'font-weight="bold" fill="{_C_TEXTE}">Legend</text>')
         ly = 58
-        for num, nom, typ in legende:
+        for num, name, typ in legende:
             # A single <text>: ImageMagick's SVG engine does not position <tspan> elements.
-            ligne = f"{num}. {nom}  ·  {typ}"
+            ligne = f"{num}. {name}  ·  {typ}"
             s.append(f'<text x="{lx}" y="{ly}" font-size="12.5" font-family="serif" '
                      f'fill="{_C_TEXTE}">{html.escape(ligne)}</text>')
             ly += 19
@@ -633,13 +633,13 @@ def geo_hash(noeuds: list[dict]) -> str:
 
 def construire_prompt(camp: Path, legende: list[tuple]) -> str:
     """REPRODUCIBLE embellishment prompt (model-independent): world style
-    (monde.json > meta.style_visuel.description_complete) + fixed cartographic
+    (world.json > meta.style_visuel.description_complete) + fixed cartographic
     scaffold + per-number description drawn from the semiology table."""
-    monde = W.charger_json(camp / "monde.json", {})
+    monde = W.charger_json(camp / "world.json", {})
     style = (((monde.get("meta") or {}).get("style_visuel") or {})
              .get("description_complete")
              or "Hand-drawn fantasy cartography, aged parchment, ink and watercolour.")
-    lignes = [f"{num} = {nom}: {_sem(typ)['visuel']}" for num, nom, typ in legende]
+    lignes = [f"{num} = {name}: {_sem(typ)['visuel']}" for num, name, typ in legende]
     return (
         f"{style} A top-down hand-drawn REGION MAP. The spatial layout is FIXED by "
         "the tracing reference image — only paint the style over it. Forests as green "
@@ -692,7 +692,7 @@ def main() -> int:
                for t in sorted(set(_SEM) | set(_OVERRIDE))}
         modele = {"_doc": (
                       "Sémiologie de carte de CETTE campagne — c'est TA donnée, à toi MJ, "
-                      "à façonner selon ton univers (le fantasy ci-dessous n'est qu'un point "
+                      "à façonner selon ton universe (le fantasy ci-dessous n'est qu'un point "
                       "de départ ; ajoute licornes spatiales, trous de ver, ce que tu veux). "
                       "La carte montre les ROUTES COMMERCIALES = les voies les plus faciles "
                       "pour le transport de ton monde ; un type `obstacle:true` est ce que ces "
@@ -712,7 +712,7 @@ def main() -> int:
         return 0
 
     geo = W.charger_json(camp / "geo.json", {})
-    if not geo or not geo.get("lieux"):
+    if not geo or not geo.get("locations"):
         print(f"⚠  No usable geo.json in {camp} "
               f"(run `geo_query.py build` first).", file=sys.stderr)
         return 2
@@ -731,7 +731,7 @@ def main() -> int:
         idx = W.index_lieux(geo)
         racine = W.lieu_racine(geo, args.lieu)
         if racine and racine in idx:
-            titre = idx[racine].get("nom", titre)
+            titre = idx[racine].get("name", titre)
 
     truque = fausser(geo, noeuds, coords, args.width, hauteur, args.seed) \
         if args.unreliable else None
@@ -752,7 +752,7 @@ def main() -> int:
     # Legend → sidecar (to be injected into the embellishment prompt).
     if args.labels in ("numbered", "pins"):
         out_svg.with_suffix(".legend.txt").write_text(
-            "\n".join(f"{n}. {nom} ({typ})" for n, nom, typ in legende), encoding="utf-8")
+            "\n".join(f"{n}. {name} ({typ})" for n, name, typ in legende), encoding="utf-8")
 
     # Reproducible embellishment prompt.
     if args.emit_prompt:
@@ -771,8 +771,8 @@ def main() -> int:
     print(f"🗺  Schema {marqueur} — {len(noeuds)} locations — v:{vhash} — {chemin}")
     if args.labels in ("numbered", "pins"):
         print("   names (for the embellishment prompt):")
-        for n, nom, typ in legende:
-            print(f"     {n}. {nom} ({typ})")
+        for n, name, typ in legende:
+            print(f"     {n}. {name} ({typ})")
     return 0
 
 

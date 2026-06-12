@@ -50,7 +50,7 @@ def handle(payload):
     cfg = L.hooks_cfg(monde)
     bypass = L.is_bypassed(payload, monde, camp)   # pause OR admin → scrub / block / CSV
     paused = L.pause_active(payload, monde, camp)   # pause ONLY → judge gate (decoupled from admin)
-    lvl = L.verbosite(monde)
+    lvl = L.verbosity(monde)
 
     entries = L.ledger_read_clear(camp, payload)
     input_entry = next((e for e in entries if isinstance(e, dict) and "input" in e), {})
@@ -256,7 +256,7 @@ def _write_csv(camp, monde, payload, input_entry, original, persisted, errors, v
     row = {
         "timestamp": L.now_iso(),
         "session": L.active_session_number(camp) or "",
-        "verbosite": L.verbosite(monde),
+        "verbosity": L.verbosity(monde),
         "origine_type": "MJ",
         "origine_detail": "bypass" if bypass else "MJ Tonnerre",
         "action_type": "transaction" if persisted else "dialogue",

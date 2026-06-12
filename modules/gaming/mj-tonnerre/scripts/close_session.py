@@ -9,21 +9,21 @@ it PROPOSES a commit message and lets the GM/Steward decide
 
 Chained steps (reuses neighbouring scripts via subprocess):
   1. validate_json.py        <campaign>/           → BLOCKING if exit ≠ 0
-  2. validator-distances.py  <campaign>/monde.json → WARN (exit 1) / BLOCKING (exit 2)
+  2. validator-distances.py  <campaign>/world.json → WARN (exit 1) / BLOCKING (exit 2)
   3. check_session.py        <campaign> [--session]→ BLOCKING if exit ≠ 0
   4. clock.py --dry-run      <campaign>            → ALERT if deadline elapsed
 
 ~10-point pipeline check (read-only, complements check_session):
-  P1  session locations propagated into univers.regions[].lieux
-  P2  encountered NPCs filed in pnj.json
+  P1  session locations propagated into universe.regions[].locations
+  P2  encountered NPCs filed in npcs.json
   P3  each faction has objectif_court_terme + objectif_long_terme
   P4  each faction present in faction_actions_horloge
   P5  clock up to date: no elapsed unresolved deadline (clock.py)
-  P6  chronology: etat_global.chronologie not empty
+  P6  chronology: global_state.chronologie not empty
   P7  session log complete: heure_fin filled in
   P8  session log complete: resume not empty
   P9  session log complete: etat_fin present
-  P10 timeline (UT regime): evenements.json present and valid
+  P10 timeline (UT regime): events.json present and valid
 
 Usage:
   python3 close_session.py <campaign> [--session N]
@@ -68,18 +68,18 @@ def lancer(script: str, args: list[str]) -> dict:
 
 
 def _tick_post_si_actif(campagne: Path, num: int) -> dict:
-    """B2 — run `world_tick.py post --apply` if acteurs.json exists.
+    """B2 — run `world_tick.py post --apply` if actors.json exists.
     NON-BLOCKING: returns a trace dict, never raises.
     {'lance':bool,'exit':int,'stdout':str,'stderr':str,'raison':str}.
 
     Simplified gate: we do NOT read meta.hooks.tick_post here. world_tick.py
     guards ITSELF on features.temporalite (cf. _lib + docs/monde-vivant/10):
     if temporality is OFF, it performs a clean no-op exit 0. We only keep
-    the `acteurs.json exists` check to avoid a useless call on a campaign
+    the `actors.json exists` check to avoid a useless call on a campaign
     without a living world.
     """
-    if not (campagne / "acteurs.json").exists():
-        return {"lance": False, "raison": "acteurs.json absent (living world not initialised)"}
+    if not (campagne / "actors.json").exists():
+        return {"lance": False, "raison": "actors.json absent (living world not initialised)"}
     # ⚠️ world_tick.py uses SUBCOMMANDS: the verb 'post' comes FIRST,
     #    before the positional <campaign> (cf. docs/monde-vivant/09 §3.4).
     #    DO NOT write [campagne, "post", …].
@@ -123,30 +123,30 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
     # P1 & P2: delegated to check_session.py (exit code = source of truth).
     # We summarise its verdict for both points here to stay DRY.
     check_ok = res_check["exit"] == 0
-    add("P1", "Session locations propagated into univers.regions",
+    add("P1", "Session locations propagated into universe.regions",
         check_ok, True,
         "verified by check_session.py" if check_ok
         else "check_session.py reports a blocking discrepancy (see its report)")
-    add("P2", "Encountered NPCs filed in pnj.json",
+    add("P2", "Encountered NPCs filed in npcs.json",
         check_ok, True,
         "verified by check_session.py" if check_ok
         else "check_session.py reports a blocking discrepancy (see its report)")
 
     # P3 & P4: factions / clock (direct read, independent).
-    factions = monde.get("etat_global", {}).get("factions", [])
-    horloge = monde.get("etat_global", {}).get("faction_actions_horloge", {})
+    factions = monde.get("global_state", {}).get("factions", [])
+    horloge = monde.get("global_state", {}).get("faction_actions_horloge", {})
     h_actions = horloge.get("actions", []) if isinstance(horloge, dict) else []
     factions_horloge = {_norm(a.get("faction", "")) for a in h_actions
                         if isinstance(a, dict)}
 
-    sans_obj = [f.get("nom", "?") for f in factions if isinstance(f, dict)
+    sans_obj = [f.get("name", "?") for f in factions if isinstance(f, dict)
                 and not (f.get("objectif_court_terme") and f.get("objectif_long_terme"))]
     add("P3", "Each faction has objectif CT + LT",
         not sans_obj, True,
         "" if not sans_obj else f"incomplete factions: {', '.join(sans_obj)}")
 
-    sans_horloge = [f.get("nom", "?") for f in factions if isinstance(f, dict)
-                    and _norm(f.get("nom", "")) not in factions_horloge]
+    sans_horloge = [f.get("name", "?") for f in factions if isinstance(f, dict)
+                    and _norm(f.get("name", "")) not in factions_horloge]
     add("P4", "Each faction present in faction_actions_horloge",
         not sans_horloge, True,
         "" if not sans_horloge else f"missing: {', '.join(sans_horloge)}")
@@ -161,8 +161,8 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
         "consequence to play out / resolve by the GM")
 
     # P6: chronology not empty.
-    chrono = monde.get("etat_global", {}).get("chronologie", "")
-    add("P6", "Chronology filled in (etat_global.chronologie)",
+    chrono = monde.get("global_state", {}).get("chronologie", "")
+    add("P6", "Chronology filled in (global_state.chronologie)",
         bool(str(chrono).strip()), True,
         "" if str(chrono).strip() else "chronologie empty")
 
@@ -180,10 +180,10 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
         "" if session.get("etat_fin") else "etat_fin absent (recommended)")
 
     # P10: UT timeline.
-    temps = monde.get("meta", {}).get("temps", {})
+    temps = monde.get("meta", {}).get("time", {})
     est_ut = "ut" in str(temps.get("regime", "")).lower() or temps.get("units_per_day")
     if est_ut:
-        evt = campagne / "evenements.json"
+        evt = campagne / "events.json"
         evt_ok = evt.exists()
         detail = ""
         if evt_ok:
@@ -191,23 +191,23 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
                 charger_json(evt)
             except (OSError, json.JSONDecodeError) as e:
                 evt_ok = False
-                detail = f"evenements.json illisible : {e}"
+                detail = f"events.json illisible : {e}"
         else:
-            detail = "evenements.json absent (required in UT regime)"
-        add("P10", "UT timeline: evenements.json present and valid",
+            detail = "events.json absent (required in UT regime)"
+        add("P10", "UT timeline: events.json present and valid",
             evt_ok, True, detail)
     else:
         add("P10", "UT timeline: N/A (narrative regime)", True, False,
-            "narrative regime — evenements.json not required")
+            "narrative regime — events.json not required")
 
     return points
 
 
-def _norm(nom: str) -> str:
+def _norm(name: str) -> str:
     import unicodedata
-    if not nom:
+    if not name:
         return ""
-    s = unicodedata.normalize("NFKD", nom)
+    s = unicodedata.normalize("NFKD", name)
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = re.sub(r"[^a-z0-9\s]", " ", s.lower())
     return re.sub(r"\s+", " ", s).strip()
@@ -223,7 +223,7 @@ def executer(campagne: Path, num_session: int | None,
         raise FileNotFoundError(f"Session not found in {campagne}/sessions")
     num = num if num is not None else int(re.match(r"0*(\d+)", session_path.stem).group(1))
 
-    monde = charger_json(campagne / "monde.json")
+    monde = charger_json(campagne / "world.json")
 
     # 1. validate_json (BLOCKING) — short-circuits everything else if broken.
     res_json = lancer("validate_json.py", [str(campagne)])
@@ -232,7 +232,7 @@ def executer(campagne: Path, num_session: int | None,
     res_schema = lancer("validate_schema.py", [str(campagne)])
 
     # 3. distances (WARN/BLOCKING)
-    res_dist = lancer("validator-distances.py", [str(campagne / "monde.json")])
+    res_dist = lancer("validator-distances.py", [str(campagne / "world.json")])
 
     # 4. check_session (BLOCKING)
     cs_args = [str(campagne)]
@@ -244,7 +244,7 @@ def executer(campagne: Path, num_session: int | None,
     res_clock = lancer("clock.py", [str(campagne)])
 
     # 6. world_tick post --apply (LIVING WORLD) — reconciliation. NON-BLOCKING:
-    #    gated by the presence of acteurs.json (world_tick guards itself on
+    #    gated by the presence of actors.json (world_tick guards itself on
     #    features.temporalite). A failure here NEVER prevents closing (alert).
     res_tick = _tick_post_si_actif(campagne, num)
 
@@ -288,7 +288,7 @@ def executer(campagne: Path, num_session: int | None,
     ok = len(blocs) == 0
 
     # Proposed commit message (never executed here)
-    nom_camp = monde.get("meta", {}).get("nom", campagne.name)
+    nom_camp = monde.get("meta", {}).get("name", campagne.name)
     titre_aff = titre or _titre_session(session_path)
     msg_commit = f"🎲 {nom_camp} — Session {num:03d} clôturée : {titre_aff}"
 
@@ -339,7 +339,7 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 close_session.py .hermes/mj-tonnerre/campagnes/la-naissance-dun-roi\n"
+            "  python3 close_session.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
             "  python3 close_session.py <campagne> --session 5 --titre 'Le Cœur' --json\n"
             "\n"
             "WARNING --commit: this script does NOT commit automatically.\n"
@@ -360,8 +360,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     campagne = Path(args.campagne)
-    if not campagne.is_dir() or not (campagne / "monde.json").exists():
-        print(f"❌ Campaign or monde.json not found: {campagne}", file=sys.stderr)
+    if not campagne.is_dir() or not (campagne / "world.json").exists():
+        print(f"❌ Campaign or world.json not found: {campagne}", file=sys.stderr)
         return 2
 
     try:

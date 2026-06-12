@@ -114,13 +114,13 @@ def resoudre_session(campagne: str, session: str | None) -> Path:
     if session is None:
         raise ValueError(
             "session number missing (e.g.: add_action.py <campaign> 9).")
-    nom = session.strip()
-    if nom.endswith(".json"):
-        nom = nom[:-5]
+    name = session.strip()
+    if name.endswith(".json"):
+        name = name[:-5]
     # Pure number → zero-padded to 3 digits (009); otherwise name kept as-is.
-    if nom.isdigit():
-        nom = nom.zfill(3)
-    return base / "sessions" / f"{nom}.json"
+    if name.isdigit():
+        name = name.zfill(3)
+    return base / "sessions" / f"{name}.json"
 
 
 def lire_donnee(args) -> str:

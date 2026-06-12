@@ -29,8 +29,8 @@ ansible/inventory/hosts.yml
 ansible/inventory/host_vars/
 
 # --- Real game data (kept local as reference; only _template/ and example-* committed) ---
-/data/mj-tonnerre/campagnes/la-naissance-dun-roi/
-/data/mj-tonnerre/campagnes/jusquau-bout-de-mon-monde/
+/data/mj-tonnerre/campaigns/la-naissance-dun-roi/
+/data/mj-tonnerre/campaigns/jusquau-bout-de-mon-monde/
 
 # --- Local editor/agent settings (may contain host IPs, paths) ---
 .claude/settings.local.json

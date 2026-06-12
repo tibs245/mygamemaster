@@ -101,12 +101,12 @@ def load_json(path):
 
 
 def load_monde(camp):
-    return load_json(camp / "monde.json") or {}
+    return load_json(camp / "world.json") or {}
 
 
 def load_pnj_list(camp):
     """Returns the list of NPC sheets (tolerates [...] or {"pnj":[...]})."""
-    data = load_json(camp / "pnj.json")
+    data = load_json(camp / "npcs.json")
     if isinstance(data, list):
         return data
     if isinstance(data, dict) and isinstance(data.get("pnj"), list):
@@ -114,9 +114,9 @@ def load_pnj_list(camp):
     return []
 
 
-def iter_personnages(camp):
+def iter_characters(camp):
     """Iterates (path, sheet) over player characters."""
-    pdir = camp / "personnages"
+    pdir = camp / "characters"
     if not pdir.is_dir():
         return
     for p in sorted(pdir.glob("*.json")):
@@ -130,8 +130,8 @@ def meta(monde):
     return m if isinstance(m, dict) else {}
 
 
-def verbosite(monde):
-    lvl = str(meta(monde).get("verbosite", "INFO")).upper()
+def verbosity(monde):
+    lvl = str(meta(monde).get("verbosity", "INFO")).upper()
     return lvl if lvl in ("TRACE", "DEBUG", "INFO", "WARN", "ERROR") else "INFO"
 
 
@@ -144,13 +144,13 @@ def diagnostic_cfg(monde):
 #
 # Six main axes, ALL enabled by default. Resolution cascades from most
 # specific to most general:
-#     meta.features.<axis> (monde.json)  >  env MJ_FEATURE_<AXIS>  >  default True
-# The world (monde.json) has the final say; env sets the instance/deployment default.
+#     meta.features.<axis> (world.json)  >  env MJ_FEATURE_<AXIS>  >  default True
+# The world (world.json) has the final say; env sets the instance/deployment default.
 # Effects remain fail-open: an ON axis with missing data (e.g. living world
 # without geo.json) is a simple no-op, never an error.
 # Wiring details: docs/monde-vivant/10-features.md.
 
-FEATURES = ("tracabilite", "verbosite", "pnj_faction_vivants", "temporalite", "images", "tts")
+FEATURES = ("tracabilite", "verbosity", "pnj_faction_vivants", "temporalite", "images", "tts")
 
 
 def as_bool(val, default):
@@ -200,8 +200,8 @@ def hooks_cfg(monde):
         # Core, always available (not governed by any axis):
         "injection_etat": h.get("injection_etat", True),
         "garde_json_strict": h.get("garde_json_strict", False),
-        # Axis "verbosite" → Steward "Persisted" block:
-        "banquier_persiste": gated("banquier_persiste", True, feat["verbosite"]),
+        # Axis "verbosity" → Steward "Persisted" block:
+        "banquier_persiste": gated("banquier_persiste", True, feat["verbosity"]),
         # Axis "tracabilite" → session snapshots + git auto-commit:
         "snapshot_fin_session": gated("snapshot_fin_session", True, feat["tracabilite"]),
         "auto_commit": gated("auto_commit", True, feat["tracabilite"]),
@@ -422,13 +422,13 @@ def classify(path, camp):
     parent = p.parent.name
     if p.suffix != ".json":
         return None, p
-    if name == "monde.json":
+    if name == "world.json":
         return "monde", p
-    if name == "pnj.json":
+    if name == "npcs.json":
         return "pnj", p
-    if name == "evenements.json":
+    if name == "events.json":
         return "evenements", p
-    if parent == "personnages":
+    if parent == "characters":
         return "personnage", p
     if parent == "sessions":
         return "session", p
@@ -448,22 +448,22 @@ def file_counts(kind, path):
             c["lieux_visites"] = len(data.get("lieux_visites") or [])
             c["cloturee"] = bool(data.get("heure_fin"))
         elif kind == "personnage" and isinstance(data, dict):
-            c["inventaire"] = len(data.get("inventaire") or [])
-            c["equipement"] = len(data.get("equipement") or [])
-            sante = data.get("sante") or {}
-            if isinstance(sante, dict) and "pv_actuels" in sante:
-                c["pv"] = sante.get("pv_actuels")
-            c["nom"] = (data.get("meta") or {}).get("nom_perso")
+            c["inventory"] = len(data.get("inventory") or [])
+            c["equipment"] = len(data.get("equipment") or [])
+            health = data.get("health") or {}
+            if isinstance(health, dict) and "hp_current" in health:
+                c["pv"] = health.get("hp_current")
+            c["name"] = (data.get("meta") or {}).get("character_name")
         elif kind == "pnj":
             lst = data if isinstance(data, list) else (data.get("pnj") if isinstance(data, dict) else [])
             total = 0
             for f in lst or []:
                 if isinstance(f, dict):
-                    total += len(f.get("faits_etablis") or [])
+                    total += len(f.get("established_facts") or [])
                     total += len(f.get("connaissances_privees") or [])
             c["faits_total"] = total
         elif kind == "monde" and isinstance(data, dict):
-            suivi = (((data.get("regles") or {}).get("temps") or {}).get("suivi")) or {}
+            suivi = (((data.get("rules") or {}).get("time") or {}).get("suivi")) or {}
             if isinstance(suivi, dict):
                 c["jour"] = suivi.get("jour_courant")
                 c["heure"] = suivi.get("heure_courante")
@@ -475,7 +475,7 @@ def file_counts(kind, path):
 # ─── CSV traceability ────────────────────────────────────────────────────────
 
 DEFAULT_COLUMNS = [
-    "timestamp", "session", "verbosite", "origine_type", "origine_detail",
+    "timestamp", "session", "verbosity", "origine_type", "origine_detail",
     "action_type", "prompt_resume", "sortie", "consequence", "erreur",
     "type_erreur", "correction_immediate", "exactitude", "completude",
     "conteste", "modele", "notes",
@@ -518,13 +518,13 @@ def _decide_sample(camp, payload, monde, has_error):
     cfg = diagnostic_cfg(monde)
     if has_error:
         return True
-    lvl = verbosite(monde)
-    regles = cfg.get("regles") or {}
-    if lvl in (regles.get("log_systematique") or ["TRACE", "DEBUG"]):
+    lvl = verbosity(monde)
+    rules = cfg.get("rules") or {}
+    if lvl in (rules.get("log_systematique") or ["TRACE", "DEBUG"]):
         return True
-    if lvl in (regles.get("log_erreurs_uniquement") or ["ERROR"]):
+    if lvl in (rules.get("log_erreurs_uniquement") or ["ERROR"]):
         return False
-    freq = int(regles.get("echantillon_frequence", 5) or 5)
+    freq = int(rules.get("echantillon_frequence", 5) or 5)
     if freq <= 1:
         return True
     path = _bq_dir(camp) / "sample.json"
@@ -547,27 +547,27 @@ def _decide_sample(camp, payload, monde, has_error):
 def etat_brief(camp, monde, for_judge=False):
     """Authoritative state summary. Reused by injection and the judge."""
     lines = []
-    suivi = (((monde.get("regles") or {}).get("temps") or {}).get("suivi")) or {}
+    suivi = (((monde.get("rules") or {}).get("time") or {}).get("suivi")) or {}
     if suivi.get("jour_courant") or suivi.get("heure_courante"):
         lines.append("Time: day %s, %s" % (suivi.get("jour_courant", "?"), suivi.get("heure_courante", "?")))
     else:
-        regime = (meta(monde).get("temps") or {}).get("regime", "Narratif")
+        regime = (meta(monde).get("time") or {}).get("regime", "Narratif")
         lines.append("Time: regime %s (estimated durations)" % regime)
-    for _, fiche in iter_personnages(camp):
-        nom = (fiche.get("meta") or {}).get("nom_perso") or "?"
-        sante = fiche.get("sante") or {}
-        inv = fiche.get("inventaire") or []
-        equ = fiche.get("equipement") or []
-        head = "PC %s" % nom
-        if sante.get("pv_actuels") is not None:
-            head += " (❤️ %s/%s PV)" % (sante.get("pv_actuels"), sante.get("pv_max", "?"))
+    for _, fiche in iter_characters(camp):
+        name = (fiche.get("meta") or {}).get("character_name") or "?"
+        health = fiche.get("health") or {}
+        inv = fiche.get("inventory") or []
+        equ = fiche.get("equipment") or []
+        head = "PC %s" % name
+        if health.get("hp_current") is not None:
+            head += " (❤️ %s/%s PV)" % (health.get("hp_current"), health.get("hp_max", "?"))
         lines.append(head)
         objets = [str(x) for x in (list(inv) + list(equ))]
         if objets:
             lines.append("  has: " + truncate(", ".join(objets), 400))
     pnj = load_pnj_list(camp)
     if pnj:
-        noms = [str(f.get("nom")) for f in pnj if isinstance(f, dict) and f.get("nom")]
+        noms = [str(f.get("name")) for f in pnj if isinstance(f, dict) and f.get("name")]
         if noms:
             lines.append("Existing NPCs: " + truncate(", ".join(noms), 300))
     return "\n".join(lines)
@@ -596,9 +596,9 @@ def judge_config(monde):
     h = h if isinstance(h, dict) else {}
     j = h.get("judge")
     j = j if isinstance(j, dict) else {}
-    # Model: explicit (monde.json), otherwise deployment env MJ_JUDGE_MODEL.
+    # Model: explicit (world.json), otherwise deployment env MJ_JUDGE_MODEL.
     modele = j.get("modele") or os.environ.get("MJ_JUDGE_MODEL") or ""
-    # Activation: monde.json takes priority; otherwise deployment env MJ_JUDGE_ACTIF decides.
+    # Activation: world.json takes priority; otherwise deployment env MJ_JUDGE_ACTIF decides.
     actif_env = str(os.environ.get("MJ_JUDGE_ACTIF", "")).lower() in ("1", "true", "yes", "on")
     return {
         "actif": bool(j.get("actif", actif_env)),

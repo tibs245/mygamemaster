@@ -14,4 +14,4 @@
     state: restarted
     scope: user
   environment: "{{ systemd_user_env }}"
-  listen: restart_campagne
+  listen: restart_campaign

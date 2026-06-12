@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """feature_toggle.py — Enables/disables a feature flag (meta.features) AT RUNTIME (hot).
 
-`monde.json` is re-read at EVERY turn by hooks and scripts (each invocation
+`world.json` is re-read at EVERY turn by hooks and scripts (each invocation
 is a fresh process): a toggle here takes effect on the NEXT turn, **without
 redeploying** the container. This is the opposite of the environment variables
 `MJ_FEATURE_*`, which are frozen at startup (= cold).
@@ -13,7 +13,7 @@ Empty list → allowed, with a note "gate inactive". `--list` remains open to al
 The calling skill/hook also verifies identity upstream and passes `--author`.
 
 Two axis families:
-  • "soft" (tracabilite, verbosite, images, tts) — no direct impact on game state:
+  • "soft" (tracabilite, verbosity, images, tts) — no direct impact on game state:
     safe to toggle at any time.
   • "structural" (temporalite, pnj_faction_vivants) — affect the simulation:
     hot toggle is possible, but RECOMMENDED at session boundaries (a change
@@ -49,7 +49,7 @@ try:
     _features_eff = W.features
     _ecrire = W.sauver_json_atomique  # race-safe atomic write (mkstemp+fsync+replace)
 except Exception:  # fail-open: full autonomy if worldlib is unavailable
-    _FEATURES = ("tracabilite", "verbosite", "pnj_faction_vivants", "temporalite", "images", "tts")
+    _FEATURES = ("tracabilite", "verbosity", "pnj_faction_vivants", "temporalite", "images", "tts")
 
     def _charger(path):
         try:
@@ -64,7 +64,7 @@ except Exception:  # fail-open: full autonomy if worldlib is unavailable
         for ax in _FEATURES:
             env = os.environ.get("MJ_FEATURE_" + ax.upper())
             d = True if env is None else str(env).strip().lower() not in _FALSY
-            # We COERCE the monde.json value like the env: a string "off" read
+            # We COERCE the world.json value like the env: a string "off" read
             # via bool() would be True incorrectly — map it through the _FALSY table.
             v = f.get(ax, d)
             out[ax] = d if v is None else (
@@ -74,7 +74,7 @@ except Exception:  # fail-open: full autonomy if worldlib is unavailable
     def _ecrire(path, data):
         """Race-safe fallback WITHOUT worldlib: mkstemp (unique name) + fsync + os.replace.
 
-        Do NOT use a fixed tmp name ("monde.json.tmp"): two concurrent processes
+        Do NOT use a fixed tmp name ("world.json.tmp"): two concurrent processes
         would overwrite each other. mkstemp guarantees a unique name per call.
         """
         p = Path(path)
@@ -94,7 +94,7 @@ except Exception:  # fail-open: full autonomy if worldlib is unavailable
                 pass
             raise
 
-HOT = ("tracabilite", "verbosite", "images", "tts")   # safe to toggle hot
+HOT = ("tracabilite", "verbosity", "images", "tts")   # safe to toggle hot
 STRUCTURAL = ("temporalite", "pnj_faction_vivants")   # preferably toggled between sessions
 
 _ON = ("on", "1", "true", "oui", "yes", "actif")
@@ -114,11 +114,11 @@ def _admins(monde) -> set:
     return ids
 
 
-def _afficher_etat(nom: str, feat: dict, as_json: bool) -> None:
+def _afficher_etat(name: str, feat: dict, as_json: bool) -> None:
     if as_json:
         print(json.dumps({"features": feat}, ensure_ascii=False))
         return
-    print("⚙ Features — %s" % nom)
+    print("⚙ Features — %s" % name)
     for ax in _FEATURES:
         famille = "soft" if ax in HOT else "structural"
         print("   %s %-22s : %-3s  (%s)" % (
@@ -128,7 +128,7 @@ def _afficher_etat(nom: str, feat: dict, as_json: bool) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Enables/disables a feature flag (meta.features) at runtime (hot).")
-    ap.add_argument("campagne", help="campaign folder (contains monde.json)")
+    ap.add_argument("campagne", help="campaign folder (contains world.json)")
     ap.add_argument("axe", nargs="?", help="one of the 6 axes: %s" % ", ".join(_FEATURES))
     ap.add_argument("valeur", nargs="?", help="on | off")
     ap.add_argument("--list", action="store_true", help="display the effective state of all 6 axes")
@@ -139,14 +139,14 @@ def main() -> int:
     a = ap.parse_args()
 
     campagne = Path(a.campagne)
-    monde_path = campagne / "monde.json"
+    monde_path = campagne / "world.json"
     if not monde_path.exists():
         print("🔴 campaign not found: %s" % monde_path, file=sys.stderr)
         return 2
 
     monde = _charger(monde_path)
     if not isinstance(monde, dict):
-        print("🔴 monde.json unreadable: %s" % monde_path, file=sys.stderr)
+        print("🔴 world.json unreadable: %s" % monde_path, file=sys.stderr)
         return 2
     feat = _features_eff(monde)
 

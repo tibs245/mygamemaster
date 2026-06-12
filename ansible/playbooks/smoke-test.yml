@@ -4,7 +4,7 @@
 #   ('-e campagne=<slug>' still works as a legacy alias)
 #   Games are looked up from the games.yml table (exposed by hermes_inventory.py).
 - name: Smoke-test a campaign
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   vars:
     image_ref: "{{ hermes_image_name }}:{{ hermes_image_tag }}"
@@ -36,7 +36,7 @@
       ansible.builtin.command:
         cmd: >-
           podman run --rm --entrypoint sh -v {{ volume_data }}:/d:ro,z {{ image_ref }}
-          -c "test -f /d/{{ campagne_data_dir }}/monde.json && echo OK"
+          -c "test -f /d/{{ campaign_data_dir }}/world.json && echo OK"
       register: _monde
       changed_when: false
       failed_when: "'OK' not in _monde.stdout"

@@ -13,7 +13,7 @@
       "label": "THE VEIL ARRIVES — Thornwick swallowed",
       "session": null,
       "description": "Three nights before the players arrive, the Pale Court's Veil descends on Thornwick without warning. Two villagers disappear in the first night; by morning, mist-shades have taken their shapes. The Veil does not lift at dawn as natural fog does.",
-      "source": "etat_global.chronologie"
+      "source": "global_state.chronologie"
     },
     {
       "t": "2 days before Day 1",
@@ -21,7 +21,7 @@
       "label": "Elder Mosswick seals the Village Hall — begins the count",
       "session": null,
       "description": "Mosswick identifies that the Veil is fae-caused. He locks the Hall, arms the four remaining unaffected villagers with cold-iron tools, and begins counting who is real and who is not. He writes a list of suspected mist-shades.",
-      "source": "pnj.json[Elder Mosswick].faits_etablis"
+      "source": "npcs.json[Elder Mosswick].established_facts"
     },
     {
       "t": "1 day before Day 1",
@@ -29,7 +29,7 @@
       "label": "Mosswick dispatches a runner to Ashveil Crossing",
       "session": null,
       "description": "Mosswick sends a young villager named Wren to Ashveil Crossing with a note for the innkeeper at The Amber Toll: 'Do not enter Thornwick after dark. The old debt has come due. We need cold iron and people who know how to bargain.'",
-      "source": "acteurs.json[acteur:mosswick].plan[intent:recruit-players]"
+      "source": "actors.json[acteur:mosswick].plan[intent:recruit-players]"
     },
     {
       "t": "Day 1, dusk",
@@ -53,7 +53,7 @@
       "label": "The Veil advances — reaches the treeline of Ashveil Crossing",
       "session": 1,
       "description": "Around midnight, the mist creeps to the treeline at Ashveil's eastern edge — closer than Petra has ever seen it. It stops at the chalk line she drew three years ago out of old habit. The cold-iron horseshoe above the inn door is warm to the touch.",
-      "source": "acteurs.json[faction:pale-court].situation"
+      "source": "actors.json[faction:pale-court].situation"
     },
     {
       "t": "Day 2, dawn",
@@ -61,7 +61,7 @@
       "label": "FUTUR — Carro (fog-wraith) attempts to make contact with players",
       "session": null,
       "description": "SCHEDULED WORLD EVENT: If players have entered Thornwick by Day 2, Carro approaches them posing as a frightened villager. If players have not entered, Carro sends a message via Wren ('A miller named Carro says there are others still trapped — he can show you the safe routes.').",
-      "source": "acteurs.json[acteur:carro-wraith].plan[intent:befriend-players]"
+      "source": "actors.json[acteur:carro-wraith].plan[intent:befriend-players]"
     },
     {
       "t": "Day 5",
@@ -69,7 +69,7 @@
       "label": "FUTUR — The Veil's second wave: a third villager disappears",
       "session": null,
       "description": "SCHEDULED WORLD EVENT: Unless the players intervene, a third Thornwick villager is taken by the Pale Court on Day 5. The mist-shade replacement is cruder than Carro — this one cannot speak at all, only nod. Mosswick recognises the pattern and realises his own time is running out.",
-      "source": "acteurs.json[faction:pale-court].plan[intent:collect-third-soul]"
+      "source": "actors.json[faction:pale-court].plan[intent:collect-third-soul]"
     },
     {
       "t": "Day 7",
@@ -77,7 +77,7 @@
       "label": "FUTUR — Last safe window to retrieve the Charter from the Well",
       "session": null,
       "description": "SCHEDULED WORLD EVENT: After Day 7, the Veil density around Thornwick makes it nearly impossible to move through without attracting a fog-wraith. Day 7 is the last day the village well is accessible without a Wisdom save DC 15 to navigate the Veil. Mosswick knows this and will press the players to act.",
-      "source": "acteurs.json[faction:thornwick-wardens].plan[intent:locate-charter]"
+      "source": "actors.json[faction:thornwick-wardens].plan[intent:locate-charter]"
     },
     {
       "t": "Day 14, new moon",
@@ -85,7 +85,7 @@
       "label": "FUTUR — The Warden Tree gateway opens (HARD DEADLINE)",
       "session": null,
       "description": "HARD DEADLINE: At moonrise on Day 14, the gateway inside the Warden Tree opens. If the Charter has not been burned inside the tree by this moment, the gateway becomes permanent. The Pale Court's presence anchors in the mortal world. The Veil over Thornwick never lifts again.",
-      "source": "acteurs.json[faction:pale-court].plan[intent:collect-third-soul] + monde.json.etat_global.artefacts_connus[The Thornwick Charter]"
+      "source": "actors.json[faction:pale-court].plan[intent:collect-third-soul] + world.json.global_state.artefacts_connus[The Thornwick Charter]"
     }
   ]
 }

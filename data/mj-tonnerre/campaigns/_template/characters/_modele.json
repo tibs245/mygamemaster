@@ -1,0 +1,33 @@
+{
+  "_description": "Template de personnage — un fichier par joueur",
+  "meta": {
+    "player_name": "",
+    "discord_id": "",
+    "character_name": "",
+    "race": "",
+    "class_": "",
+    "level": 1,
+    "history": "",
+    "portrait_url": ""
+  },
+  "stats": {},
+  "equipment": [],
+  "inventory": [],
+  "skills": [],
+  "spells": [],
+  "personal_notes": {
+    "goals": [],
+    "relations": {},
+    "secrets": []
+  },
+  "health": {
+    "hp_max": 10,
+    "hp_current": 10,
+    "wounds": [],
+    "conditions": []
+  },
+  "progression": {
+    "xp": 0,
+    "next_level": 100
+  }
+}

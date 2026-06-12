@@ -13,7 +13,7 @@ MANDATORY cases (contract §12):
   * no T earlier than the root.
 
 Also: determinism, atomic append, idempotency, fail-open (campaign without
-acteurs.json), CLI dry-run vs --apply. Data: self-contained INLINE fixture
+actors.json), CLI dry-run vs --apply. Data: self-contained INLINE fixture
 (the real vertical slice — Bande du Corbeau — reproduced in miniature) +
 the real campaign in READ-ONLY mode for fail-open.
 """
@@ -38,12 +38,12 @@ import validate_schema as V           # noqa: E402
 
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 
 def _acteurs_fixture() -> dict:
-    """Miniature acteurs.json: a causal chain long enough to test bounding.
+    """Miniature actors.json: a causal chain long enough to test bounding.
 
     bleville --approvisionnement(part .7, delay 4320)--> tonnerre
     tonnerre --vassalite(.8)--> val-perdu
@@ -56,7 +56,7 @@ def _acteurs_fixture() -> dict:
         "meta": {"campagne": "Fixture", "version": 1, "t_reference": 0},
         "acteurs": [
             {
-                "id": "ville:bleville", "nom": "Bleville", "type": "ville",
+                "id": "ville:bleville", "name": "Bleville", "type": "ville",
                 "lod": "froid", "majeur": True, "but_long_terme": "prospérer",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [],
@@ -66,7 +66,7 @@ def _acteurs_fixture() -> dict:
                 ],
             },
             {
-                "id": "ville:tonnerre", "nom": "Tonnerre", "type": "ville",
+                "id": "ville:tonnerre", "name": "Tonnerre", "type": "ville",
                 "lod": "tiede", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [],
@@ -78,7 +78,7 @@ def _acteurs_fixture() -> dict:
                 ],
             },
             {
-                "id": "comte:val-perdu", "nom": "Val-Perdu", "type": "faction",
+                "id": "comte:val-perdu", "name": "Val-Perdu", "type": "faction",
                 "lod": "froid", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [],
@@ -91,7 +91,7 @@ def _acteurs_fixture() -> dict:
                 ],
             },
             {
-                "id": "faction:royaume", "nom": "Royaume", "type": "faction",
+                "id": "faction:royaume", "name": "Royaume", "type": "faction",
                 "lod": "froid", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [],
@@ -101,20 +101,20 @@ def _acteurs_fixture() -> dict:
                 ],
             },
             {
-                "id": "faction:empire", "nom": "Empire", "type": "faction",
+                "id": "faction:empire", "name": "Empire", "type": "faction",
                 "lod": "froid", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [], "relations": [],
             },
             {
-                "id": "ville:bourg-orme", "nom": "Bourg-de-l'Orme", "type": "ville",
+                "id": "ville:bourg-orme", "name": "Bourg-de-l'Orme", "type": "ville",
                 "lod": "froid", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [], "relations": [],
             },
             # — Real vertical slice (miniature): the Bande du Corbeau ---------
             {
-                "id": "faction:bande-du-corbeau", "nom": "La Bande du Corbeau",
+                "id": "faction:bande-du-corbeau", "name": "La Bande du Corbeau",
                 "type": "faction", "lod": "tiede", "majeur": True,
                 "but_long_terme": "Rester maîtres de la Marche",
                 "situation": "Campée au Gué.", "ressources": {"vivres_jours": 12},
@@ -138,7 +138,7 @@ def _acteurs_fixture() -> dict:
                 ],
             },
             {
-                "id": "acteur:berthe", "nom": "Berthe", "type": "pnj",
+                "id": "acteur:berthe", "name": "Berthe", "type": "pnj",
                 "lod": "chaud", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {}, "trajectoire": [],
                 "plan": [], "relations": [],
@@ -148,13 +148,13 @@ def _acteurs_fixture() -> dict:
 
 
 def _ecrire_campagne_fixture(racine: Path) -> Path:
-    """Creates a throwaway campaign (minimal monde.json + acteurs.json fixture)."""
+    """Creates a throwaway campaign (minimal world.json + actors.json fixture)."""
     racine.mkdir(parents=True, exist_ok=True)
-    (racine / "monde.json").write_text(
-        json.dumps({"meta": {"nom": "Fixture"}}, ensure_ascii=False),
+    (racine / "world.json").write_text(
+        json.dumps({"meta": {"name": "Fixture"}}, ensure_ascii=False),
         encoding="utf-8",
     )
-    (racine / "acteurs.json").write_text(
+    (racine / "actors.json").write_text(
         json.dumps(_acteurs_fixture(), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -346,7 +346,7 @@ class TestPropagation(unittest.TestCase):
     # — Schema: all derivatives validate evenement_programme.schema.json -------
 
     def test_derives_valident_schema(self):
-        schema = V.charger_schema("evenement_programme")
+        schema = V.charger_schema("scheduled_event")
         racine = _evt_incendie()
         derives = C.propager(racine, 0, campagne=self.camp)
         self.assertTrue(derives)
@@ -361,7 +361,7 @@ class TestPropagation(unittest.TestCase):
         derives = C.propager(racine, 0, campagne=self.camp)
         C.appliquer(self.camp, derives)
         data = W.charger_json(self.camp / C.NOM_FICHIER_PROG, {})
-        schema = V.charger_schema("evenement_programme")
+        schema = V.charger_schema("scheduled_event")
         ecarts = V.valider(data, schema, schema)
         self.assertEqual(ecarts, [], f"schema discrepancies in file: {ecarts}")
 
@@ -416,15 +416,15 @@ class TestAppliquer(unittest.TestCase):
         self.assertIn("evt:manuel-0001", ids, "the existing entry is preserved")
 
     def test_n_ecrit_jamais_evenements_json(self):
-        # Non-destructive safeguard: evenements.json must not be touched.
-        (self.camp / "evenements.json").write_text(
+        # Non-destructive safeguard: events.json must not be touched.
+        (self.camp / "events.json").write_text(
             json.dumps({"evenements": [{"id": "ORIGINAL"}]}, ensure_ascii=False),
             encoding="utf-8")
-        avant = (self.camp / "evenements.json").read_text(encoding="utf-8")
+        avant = (self.camp / "events.json").read_text(encoding="utf-8")
         derives = C.propager(_evt_incendie(), 0, campagne=self.camp)
         C.appliquer(self.camp, derives)
-        apres = (self.camp / "evenements.json").read_text(encoding="utf-8")
-        self.assertEqual(avant, apres, "evenements.json must NEVER be modified")
+        apres = (self.camp / "events.json").read_text(encoding="utf-8")
+        self.assertEqual(avant, apres, "events.json must NEVER be modified")
 
     def test_appliquer_liste_vide(self):
         self.assertEqual(C.appliquer(self.camp, []), 0)
@@ -463,17 +463,17 @@ class TestAmorceIntention(unittest.TestCase):
 
 
 class TestFailOpen(unittest.TestCase):
-    """Fail-open: without acteurs.json, propagation does not crash (empty list)."""
+    """Fail-open: without actors.json, propagation does not crash (empty list)."""
 
     def test_sans_acteurs_json(self):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
-            (camp / "monde.json").write_text("{}", encoding="utf-8")
+            (camp / "world.json").write_text("{}", encoding="utf-8")
             derives = C.propager(_evt_incendie(), 0, campagne=camp)
             self.assertEqual(derives, [])
 
     def test_campagne_reelle_lecture_seule(self):
-        # The real campaign may not (yet) have an acteurs.json → fail-open;
+        # The real campaign may not (yet) have an actors.json → fail-open;
         # either way, propager() returns a list WITHOUT ever writing (we
         # do not call appliquer()).
         if not CAMPAGNE_REELLE.is_dir():

@@ -6,7 +6,7 @@
 #   ansible-playbook playbooks/backup.yml                    # all campaigns
 #   ansible-playbook playbooks/backup.yml -e game=<slug> -e backup_label=before-refactor
 - name: Back up campaign(s)
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   roles:
     - hermes_backup

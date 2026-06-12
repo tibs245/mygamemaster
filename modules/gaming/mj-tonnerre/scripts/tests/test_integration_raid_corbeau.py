@@ -3,7 +3,7 @@
 test_integration_raid_corbeau.py — END-TO-END INTEGRATION TEST (contract §10).
 
 Exercise of the VERTICAL SLICE on the REAL DATA of the campaign
-`la-naissance-dun-roi` (geo.json + acteurs.json): the winter raid of the Bande du
+`la-naissance-dun-roi` (geo.json + actors.json): the winter raid of the Bande du
 Corbeau (`intent:raid-hivernal`, frozen deadline 3960) confronted with a PC who passes
 through the Gué du Corbeau, then PREVENTS the raid. This is the "end to end" exercise
 required by contract §10.1 and `07`§3.
@@ -70,7 +70,7 @@ except Exception:             # pragma: no cover - geo_query should be present
 # ── Real campaign + frozen slice ids (contract §2) ──────────────────
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 PREFIXE = "lieu:marche-aux-trois-rivieres/"
@@ -87,11 +87,11 @@ def _campagne_reelle_complete() -> bool:
     return (
         CAMPAGNE_REELLE.is_dir()
         and (CAMPAGNE_REELLE / "geo.json").exists()
-        and (CAMPAGNE_REELLE / "acteurs.json").exists()
+        and (CAMPAGNE_REELLE / "actors.json").exists()
     )
 
 
-_RAISON_SKIP = "real campaign (geo.json + acteurs.json) absent"
+_RAISON_SKIP = "real campaign (geo.json + actors.json) absent"
 
 
 def _copier_campagne(dst: Path) -> Path:
@@ -102,10 +102,10 @@ def _copier_campagne(dst: Path) -> Path:
     """
     camp = dst / "camp"
     (camp / "sessions").mkdir(parents=True, exist_ok=True)
-    for nom in ("geo.json", "acteurs.json", "monde.json", "evenements.json"):
-        src = CAMPAGNE_REELLE / nom
+    for name in ("geo.json", "actors.json", "world.json", "events.json"):
+        src = CAMPAGNE_REELLE / name
         if src.exists():
-            shutil.copy2(src, camp / nom)
+            shutil.copy2(src, camp / name)
     return camp
 
 
@@ -140,7 +140,7 @@ class TestIntegrationPreCroisement(unittest.TestCase):
         AND be promoted to `chaud`. Dry-run: no writes.
         """
         cone = {
-            "lieux": [GUE],
+            "locations": [GUE],
             "fenetre": [0, ECHEANCE_RAID],
             "lieu_joueur": GUE,
             # Explicit trajectory: the player is at the Gué (co-located with the Bande).
@@ -195,21 +195,21 @@ class TestIntegrationPreCroisement(unittest.TestCase):
 
     def test_pre_dry_run_n_ecrit_rien_sur_la_campagne_reelle(self):
         """NON DESTRUCTIVE safeguard: a `pre` dry-run touches no real file."""
-        avant_acteurs = (CAMPAGNE_REELLE / "acteurs.json").read_bytes()
-        prog = CAMPAGNE_REELLE / "evenements_programmes.json"
+        avant_acteurs = (CAMPAGNE_REELLE / "actors.json").read_bytes()
+        prog = CAMPAGNE_REELLE / "scheduled_events.json"
         prog_existait = prog.exists()
         prog_avant = prog.read_bytes() if prog_existait else None
 
-        cone = {"lieux": [GUE], "lieu_joueur": GUE,
+        cone = {"locations": [GUE], "lieu_joueur": GUE,
                 "trajectoire": [{"lieu": GUE, "de": 0, "a": None}]}
         WT.pre(CAMPAGNE_REELLE, t_session=ECHEANCE_RAID, cone=cone, apply=False)
 
-        self.assertEqual((CAMPAGNE_REELLE / "acteurs.json").read_bytes(), avant_acteurs)
+        self.assertEqual((CAMPAGNE_REELLE / "actors.json").read_bytes(), avant_acteurs)
         if prog_existait:
             self.assertEqual(prog.read_bytes(), prog_avant)
         else:
             self.assertFalse(prog.exists(),
-                             "pre dry-run created evenements_programmes.json (forbidden)")
+                             "pre dry-run created scheduled_events.json (forbidden)")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -415,7 +415,7 @@ class TestIntegrationConservation(unittest.TestCase):
             res = WT.pre(camp, t_session=ECHEANCE_RAID, cone=None, apply=True)
             self.assertTrue(res["ecritures"], "the --apply cycle should have written")
 
-            prog_path = camp / "evenements_programmes.json"
+            prog_path = camp / "scheduled_events.json"
             self.assertTrue(prog_path.exists())
             prog = W.charger_json(prog_path, {}).get("evenements", [])
             self.assertTrue(prog, "no scheduled event written")
@@ -436,21 +436,21 @@ class TestIntegrationConservation(unittest.TestCase):
                         f"« {cause} » (T={par_id[cause]})",
                     )
 
-    # --- Non-destructive (apply): evenements.json / monde.json intact ---
+    # --- Non-destructive (apply): events.json / world.json intact ---
 
     def test_apply_non_destructif_sur_fichiers_proteges(self):
-        """PRE+POST --apply cycle: `evenements.json` and `monde.json` remain INTACT.
+        """PRE+POST --apply cycle: `events.json` and `world.json` remain INTACT.
 
         On a COPY: we run a resolved raid (PRE apply) then a propagated player action
         (POST apply) and verify that the PROTECTED files are never rewritten —
-        only `acteurs.json` and `evenements_programmes.json` change.
+        only `actors.json` and `scheduled_events.json` change.
         """
         with tempfile.TemporaryDirectory() as d:
             camp = _copier_campagne(Path(d))
-            ev_avant = (camp / "evenements.json").read_bytes() \
-                if (camp / "evenements.json").exists() else None
-            monde_avant = (camp / "monde.json").read_bytes() \
-                if (camp / "monde.json").exists() else None
+            ev_avant = (camp / "events.json").read_bytes() \
+                if (camp / "events.json").exists() else None
+            monde_avant = (camp / "world.json").read_bytes() \
+                if (camp / "world.json").exists() else None
 
             WT.pre(camp, t_session=ECHEANCE_RAID, cone=None, apply=True)
             session = {
@@ -460,14 +460,14 @@ class TestIntegrationConservation(unittest.TestCase):
             WT.post(camp, session=session, apply=True)
 
             if ev_avant is not None:
-                self.assertEqual((camp / "evenements.json").read_bytes(), ev_avant,
-                                 "evenements.json was modified (forbidden)")
+                self.assertEqual((camp / "events.json").read_bytes(), ev_avant,
+                                 "events.json was modified (forbidden)")
             if monde_avant is not None:
-                self.assertEqual((camp / "monde.json").read_bytes(), monde_avant,
-                                 "monde.json was modified (forbidden)")
+                self.assertEqual((camp / "world.json").read_bytes(), monde_avant,
+                                 "world.json was modified (forbidden)")
             # The ALLOWED files, for their part, must exist.
-            self.assertTrue((camp / "acteurs.json").exists())
-            self.assertTrue((camp / "evenements_programmes.json").exists())
+            self.assertTrue((camp / "actors.json").exists())
+            self.assertTrue((camp / "scheduled_events.json").exists())
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -487,7 +487,7 @@ class TestIntegrationBoutEnBout(unittest.TestCase):
             camp = _copier_campagne(Path(d))
 
             # 1) PRE apply at the deadline: the raid resolves (the Bande acts BEFORE the PC).
-            cone = {"lieux": [GUE], "fenetre": [0, ECHEANCE_RAID], "lieu_joueur": GUE,
+            cone = {"locations": [GUE], "fenetre": [0, ECHEANCE_RAID], "lieu_joueur": GUE,
                     "trajectoire": [{"lieu": GUE, "de": 0, "a": None}]}
             res_pre = WT.pre(camp, t_session=ECHEANCE_RAID, cone=cone, apply=True)
             # The Bande was crossed and the raid resolved (accomplished) → persisted.

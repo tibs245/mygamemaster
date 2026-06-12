@@ -8,18 +8,18 @@
 #   # also purge timestamped snapshots (more aggressive):
 #   ansible-playbook playbooks/reset-banquier.yml -e game=<slug> -e confirm=yes -e purge_snapshots=yes
 - name: Reset the Steward runtime
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   environment: "{{ systemd_user_env }}"
   vars:
     container_name: "hermes-{{ deploy_id }}"
-    _banquier: "{{ container_data_root }}/{{ campagne_data_dir }}/.banquier"
+    _banquier: "{{ container_data_root }}/{{ campaign_data_dir }}/.banquier"
   pre_tasks:
     - name: Safety guard
       ansible.builtin.assert:
         that:
-          - campagne_slug is defined
-          - campagne_data_dir is defined
+          - campaign_slug is defined
+          - campaign_data_dir is defined
           - confirm | default('') == 'yes'
         fail_msg: "Re-run with -e game=<slug> -e confirm=yes."
 

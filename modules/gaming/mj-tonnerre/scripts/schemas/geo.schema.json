@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mj-tonnerre/geo.schema.json",
   "title": "geo.json — graphe spatial 4D d'une campagne (monde vivant)",
-  "description": "Vérité du graphe spatial d'une campagne MJ Tonnerre (contrat §5, doc 01 §2-4). Trois couches : contenance (parent), adjacence (aretes), ancrage (ancrage {x,y}, code-only, JAMAIS exposé au LLM). Généré par geo_query.py build (contenance depuis univers.regions, adjacence depuis regles.temps.deplacements, ancrage par MDS SMACOF stdlib). Les coordonnées d'ancrage sont non métriques (1 unité ~ 1 UT de marche). Fichier non destructif : il n'écrit JAMAIS dans monde.json. Tolérant (additionalProperties:true) : on ne signale que les manques réels.",
+  "description": "Vérité du graphe spatial d'une campagne MJ Tonnerre (contrat §5, doc 01 §2-4). Trois couches : contenance (parent), adjacence (aretes), ancrage (ancrage {x,y}, code-only, JAMAIS exposé au LLM). Généré par geo_query.py build (contenance depuis universe.regions, adjacence depuis rules.temps.movements, ancrage par MDS SMACOF stdlib). Les coordonnées d'ancrage sont non métriques (1 unité ~ 1 UT de marche). Fichier non destructif : il n'écrit JAMAIS dans world.json. Tolérant (additionalProperties:true) : on ne signale que les manques réels.",
   "type": "object",
-  "required": ["meta", "lieux"],
+  "required": ["meta", "locations"],
   "additionalProperties": true,
   "properties": {
     "meta": {
@@ -29,7 +29,7 @@
         }
       }
     },
-    "lieux": {
+    "locations": {
       "type": "array",
       "description": "Nœuds du graphe. Au moins une région racine (parent null).",
       "items": { "$ref": "#/$defs/lieu" }
@@ -39,14 +39,14 @@
     "lieu": {
       "type": "object",
       "description": "Nœud-lieu du graphe (contrat §5.1). id figé hiérarchique 'type:chemin-kebab' (contrat §2.2).",
-      "required": ["id", "nom", "parent", "type", "altitude", "ancrage", "aretes"],
+      "required": ["id", "name", "parent", "type", "altitude", "ancrage", "aretes"],
       "additionalProperties": true,
       "properties": {
         "id": {
           "type": "string",
           "description": "Identifiant figé unique, forme 'type:chemin-kebab' hiérarchique (ex. 'lieu:marche-aux-trois-rivieres/cabane-berthe', 'region:marche-aux-trois-rivieres')."
         },
-        "nom": {
+        "name": {
           "type": "string",
           "description": "Nom libre pour la narration (ex. « Cabane de Berthe »)."
         },
@@ -104,13 +104,13 @@
     },
     "arete": {
       "type": "object",
-      "description": "Arête d'adjacence dirigée (contrat §5.2). temps_ut déduit de regles.temps.deplacements via minutes_vers_ut(parser_duree_minutes).",
+      "description": "Arête d'adjacence dirigée (contrat §5.2). temps_ut déduit de rules.temps.movements via minutes_vers_ut(parser_duree_minutes).",
       "required": ["vers", "dir", "distance_m", "temps_ut"],
       "additionalProperties": true,
       "properties": {
         "vers": {
           "type": "string",
-          "description": "id du lieu cible (doit exister dans 'lieux')."
+          "description": "id du lieu cible (doit exister dans 'locations')."
         },
         "dir": {
           "type": "string",

@@ -7,17 +7,17 @@ discrepancies against the closing checklist, WITHOUT correcting anything. Turns
 the "mental consistency checklist" (forgettable by design) into a factual report.
 
 Discrepancies detected:
-  1. Location in sessions[].lieux_visites absent from univers.regions[].lieux
-  2. NPC in sessions[].pnj_rencontres with no entry in pnj.json
-  3. Faction (etat_global.factions) without objectif_court_terme OR objectif_long_terme
-  4. Faction without an entry in etat_global.faction_actions_horloge
+  1. Location in sessions[].lieux_visites absent from universe.regions[].locations
+  2. NPC in sessions[].pnj_rencontres with no entry in npcs.json
+  3. Faction (global_state.factions) without objectif_court_terme OR objectif_long_terme
+  4. Faction without an entry in global_state.faction_actions_horloge
   5. Clock deadline OVERDUE (day < current day) not marked RÉSOLU
   6. Clock deadline not parsable (informational — the clock cannot be
      advanced by machine, cf. audit 2.3)
   7. Session marked played (has actions/locations) but heure_fin is empty
 
 Compatible with BOTH campaign schemas:
-  - pnj.json can be {"pnj": [...]} (C1) or a bare list [...] (C2)
+  - npcs.json can be {"pnj": [...]} (C1) or a bare list [...] (C2)
   - locations/NPCs matched by NORMALIZED NAME (tolerates punctuation/accents/variants)
 
 Usage:
@@ -40,14 +40,14 @@ from pathlib import Path
 
 # ─── Name normalization (tolerant matching) ───────────────────────────────────
 
-def normaliser(nom: str) -> str:
+def normaliser(name: str) -> str:
     """Normalizes a name for comparison: lowercase, no accents, no
     punctuation, reduced spaces. « Salle bleutée — sous le Cœur » and
     « Salle bleutée (sous le Cœur) » become comparable on their common
     token core."""
-    if not nom:
+    if not name:
         return ""
-    s = unicodedata.normalize("NFKD", nom)
+    s = unicodedata.normalize("NFKD", name)
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s]", " ", s)   # punctuation → space
@@ -108,24 +108,24 @@ def extraire_liste_pnj(pnj_data) -> list[dict]:
 
 
 def collecter_lieux_univers(monde: dict) -> list[str]:
-    """All location names (normalized) from univers.regions[].lieux[]."""
+    """All location names (normalized) from universe.regions[].locations[]."""
     noms = []
-    for region in monde.get("univers", {}).get("regions", []):
+    for region in monde.get("universe", {}).get("regions", []):
         if not isinstance(region, dict):
             continue
-        for lieu in region.get("lieux", []):
-            if isinstance(lieu, dict) and lieu.get("nom"):
-                noms.append(normaliser(lieu["nom"]))
+        for lieu in region.get("locations", []):
+            if isinstance(lieu, dict) and lieu.get("name"):
+                noms.append(normaliser(lieu["name"]))
         # The region name itself is an acceptable location
-        if region.get("nom"):
-            noms.append(normaliser(region["nom"]))
+        if region.get("name"):
+            noms.append(normaliser(region["name"]))
     return noms
 
 
 def nom_de(item):
-    """Extracts a name from an entry (dict with 'nom' or string)."""
+    """Extracts a name from an entry (dict with 'name' or string)."""
     if isinstance(item, dict):
-        return item.get("nom") or item.get("name") or ""
+        return item.get("name") or ""
     if isinstance(item, str):
         return item
     return ""
@@ -172,15 +172,15 @@ def echeance_infos(ech):
 
 def jour_courant(campagne: Path, monde: dict) -> int:
     """Estimates the current in-game day, deterministically:
-      - UT mode: last t from evenements.json → day (units_per_day)
+      - UT mode: last t from events.json → day (units_per_day)
       - otherwise: max « Jour N » mentioned in chronology + sessions
     Returns 1 by default."""
     jours = {1}
 
-    # UT mode: evenements.json
-    temps = monde.get("meta", {}).get("temps", {})
+    # UT mode: events.json
+    temps = monde.get("meta", {}).get("time", {})
     upd = temps.get("units_per_day")
-    evt_path = campagne / "evenements.json"
+    evt_path = campagne / "events.json"
     if upd and evt_path.exists():
         try:
             data = charger_json(evt_path)
@@ -192,7 +192,7 @@ def jour_courant(campagne: Path, monde: dict) -> int:
             pass
 
     # « Jour N » mentions in the chronology
-    chrono = monde.get("etat_global", {}).get("chronologie", "")
+    chrono = monde.get("global_state", {}).get("chronologie", "")
     if isinstance(chrono, str):
         for m in re.findall(r"[Jj]our\s+(\d+)", chrono):
             jours.add(int(m))
@@ -227,10 +227,10 @@ def trouver_derniere_session(sessions_dir: Path) -> Path | None:
 
 def analyser(campagne: Path, num_session: int | None) -> dict:
     """Returns a discrepancy report (dict)."""
-    monde = charger_json(campagne / "monde.json")
+    monde = charger_json(campagne / "world.json")
 
     # Load NPCs (tolerant)
-    pnj_path = campagne / "pnj.json"
+    pnj_path = campagne / "npcs.json"
     pnj_liste = extraire_liste_pnj(charger_json(pnj_path)) if pnj_path.exists() else []
     pnj_connus_norm = [normaliser(nom_de(p)) for p in pnj_liste if nom_de(p)]
 
@@ -250,28 +250,28 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
 
     session = charger_json(session_path)
 
-    ecarts = []  # each discrepancy: {"niveau": "bloquant"|"info", "regle": str, "message": str}
+    ecarts = []  # each discrepancy: {"level": "bloquant"|"info", "regle": str, "message": str}
 
-    def ajouter(niveau, regle, message):
-        ecarts.append({"niveau": niveau, "regle": regle, "message": message})
+    def ajouter(level, regle, message):
+        ecarts.append({"level": level, "regle": regle, "message": message})
 
     # 1. Visited locations absent from the world
     for lv in session.get("lieux_visites", []):
-        nom = nom_de(lv)
-        if nom and not lieu_present(nom, lieux_connus_norm):
+        name = nom_de(lv)
+        if name and not lieu_present(name, lieux_connus_norm):
             ajouter("bloquant", "lieu_absent",
-                    f"Visited location « {nom} » absent from univers.regions[].lieux")
+                    f"Visited location « {name} » absent from universe.regions[].locations")
 
     # 2. NPCs encountered with no entry
     for pr in session.get("pnj_rencontres", []):
-        nom = nom_de(pr)
-        if nom and not pnj_present(nom, pnj_connus_norm):
+        name = nom_de(pr)
+        if name and not pnj_present(name, pnj_connus_norm):
             ajouter("bloquant", "pnj_sans_fiche",
-                    f"Encountered NPC « {nom} » has no entry in pnj.json")
+                    f"Encountered NPC « {name} » has no entry in npcs.json")
 
     # 3 & 4. Factions: ST+LT objectives and presence in the clock
-    factions = monde.get("etat_global", {}).get("factions", [])
-    horloge = monde.get("etat_global", {}).get("faction_actions_horloge", {})
+    factions = monde.get("global_state", {}).get("factions", [])
+    horloge = monde.get("global_state", {}).get("faction_actions_horloge", {})
     horloge_actions = horloge.get("actions", []) if isinstance(horloge, dict) else []
     factions_horloge = {normaliser(a.get("faction", "")) for a in horloge_actions
                         if isinstance(a, dict)}
@@ -279,7 +279,7 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
     for f in factions:
         if not isinstance(f, dict):
             continue
-        fnom = f.get("nom", "(sans nom)")
+        fnom = f.get("name", "(sans name)")
         if not f.get("objectif_court_terme"):
             ajouter("bloquant", "faction_sans_ct",
                     f"Faction « {fnom} » missing objectif_court_terme")
@@ -334,8 +334,8 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
         "session_num": session.get("session"),
         "jour_courant_estime": jc,
         "ecarts": ecarts,
-        "n_bloquants": sum(1 for e in ecarts if e["niveau"] == "bloquant"),
-        "n_info": sum(1 for e in ecarts if e["niveau"] == "info"),
+        "n_bloquants": sum(1 for e in ecarts if e["level"] == "bloquant"),
+        "n_info": sum(1 for e in ecarts if e["level"] == "info"),
     }
 
 
@@ -348,7 +348,7 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 check_session.py .hermes/mj-tonnerre/campagnes/la-naissance-dun-roi\n"
+            "  python3 check_session.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
             "  python3 check_session.py <campagne> --session 4 --json\n"
         ),
     )
@@ -363,8 +363,8 @@ def main(argv=None) -> int:
     if not campagne.is_dir():
         print(f"❌ Campaign not found: {campagne}", file=sys.stderr)
         return 2
-    if not (campagne / "monde.json").exists():
-        print(f"❌ monde.json not found in {campagne}", file=sys.stderr)
+    if not (campagne / "world.json").exists():
+        print(f"❌ world.json not found in {campagne}", file=sys.stderr)
         return 2
 
     try:
@@ -388,7 +388,7 @@ def main(argv=None) -> int:
         return 0
 
     for e in rapport["ecarts"]:
-        marqueur = "❌" if e["niveau"] == "bloquant" else "ℹ"
+        marqueur = "❌" if e["level"] == "bloquant" else "ℹ"
         print(f"{marqueur} [{e['regle']}] {e['message']}")
 
     print()

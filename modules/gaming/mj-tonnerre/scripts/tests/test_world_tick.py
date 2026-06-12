@@ -13,7 +13,7 @@ MANDATORY cases (contract §12):
 
 Also: Steward (refusal of negative resource), preconditions (fail-open),
 post reconciliation (PC action → disrupted plan → renewal), isolated seam
-without network, crossing, fail-open (campaign without acteurs.json), CLI exit
+without network, crossing, fail-open (campaign without actors.json), CLI exit
 codes. Data: self-contained INLINE fixtures (the real vertical slice — Bande du
 Corbeau — reproduced in miniature) + the real campaign in READ-ONLY mode.
 """
@@ -44,7 +44,7 @@ except Exception:                 # pragma: no cover
 
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 _PREFIXE = "lieu:marche-aux-trois-rivieres/"
@@ -61,18 +61,18 @@ def _geo_fixture() -> dict:
     """Small graph: region + cabane-berthe — bois-des-charmes — gue (gue isolated)."""
     return {
         "meta": {"campagne": "Fixture", "version": 1},
-        "lieux": [
-            {"id": "region:marche-aux-trois-rivieres", "nom": "Marche", "parent": None,
+        "locations": [
+            {"id": "region:marche-aux-trois-rivieres", "name": "Marche", "parent": None,
              "type": "region", "altitude": None, "ancrage": {"x": 0, "y": 0}, "aretes": []},
-            {"id": _CABANE, "nom": "Cabane de Berthe",
+            {"id": _CABANE, "name": "Cabane de Berthe",
              "parent": "region:marche-aux-trois-rivieres", "type": "habitation",
              "altitude": None, "ancrage": {"x": 0, "y": 0},
              "aretes": [{"vers": _BOIS, "dir": "O", "distance_m": None, "temps_ut": 4}]},
-            {"id": _BOIS, "nom": "Bois des charmes",
+            {"id": _BOIS, "name": "Bois des charmes",
              "parent": "region:marche-aux-trois-rivieres", "type": "foret",
              "altitude": None, "ancrage": {"x": -40, "y": 0},
              "aretes": [{"vers": _CABANE, "dir": "E", "distance_m": None, "temps_ut": 4}]},
-            {"id": _GUE, "nom": "Gué du Corbeau",
+            {"id": _GUE, "name": "Gué du Corbeau",
              "parent": "region:marche-aux-trois-rivieres", "type": "riviere",
              "altitude": None, "ancrage": {"x": 200, "y": 200}, "aretes": []},
         ],
@@ -82,7 +82,7 @@ def _geo_fixture() -> dict:
 def _acteur_bande() -> dict:
     """La Bande du Corbeau — vertical slice (winter raid dated T=3960)."""
     return {
-        "id": "faction:bande-du-corbeau", "nom": "La Bande du Corbeau",
+        "id": "faction:bande-du-corbeau", "name": "La Bande du Corbeau",
         "type": "faction", "lod": "tiede", "majeur": True,
         "but_long_terme": "Rester maîtres de la Marche",
         "motivations": ["survie hivernale"],
@@ -115,7 +115,7 @@ def _acteur_bande() -> dict:
 
 def _acteur_berthe() -> dict:
     return {
-        "id": "acteur:berthe", "nom": "Berthe", "type": "pnj",
+        "id": "acteur:berthe", "name": "Berthe", "type": "pnj",
         "lod": "chaud", "majeur": True,
         "but_long_terme": "Que la Marche reste libre",
         "situation": "À la cabane.", "ressources": {"vivres_jours": 6},
@@ -140,18 +140,18 @@ def _acteurs_fixture() -> dict:
 
 
 def _ecrire_campagne_temp(tmp: Path, *, avec_acteurs: bool = True) -> Path:
-    """Creates a mini campaign on disk (geo.json + acteurs.json + sessions/)."""
+    """Creates a mini campaign on disk (geo.json + actors.json + sessions/)."""
     camp = tmp
     (camp / "sessions").mkdir(parents=True, exist_ok=True)
     W.sauver_json_atomique(camp / "geo.json", _geo_fixture())
     if avec_acteurs:
-        W.sauver_json_atomique(camp / "acteurs.json", _acteurs_fixture())
-    # Minimal monde.json (for t_courant: sets the "Jour N"). meta.pj_ids declares
+        W.sauver_json_atomique(camp / "actors.json", _acteurs_fixture())
+    # Minimal world.json (for t_courant: sets the "Jour N"). meta.pj_ids declares
     # the PC(s) generically and CANONICALLY (list; the engine no longer hard-codes
     # "acteur:rubis" and tolerates multiple PCs).
-    W.sauver_json_atomique(camp / "monde.json", {
-        "meta": {"nom": "Fixture", "pj_ids": ["acteur:rubis"]},
-        "etat_global": {"chronologie": "Jour 7 : la campagne commence."},
+    W.sauver_json_atomique(camp / "world.json", {
+        "meta": {"name": "Fixture", "pj_ids": ["acteur:rubis"]},
+        "global_state": {"chronologie": "Jour 7 : la campagne commence."},
     })
     return camp
 
@@ -168,7 +168,7 @@ class TestClasserLOD(unittest.TestCase):
     def test_chaud_co_localise(self):
         """Actor at the player's current location → hot."""
         bande = _acteur_bande()
-        ctx = {"cone": {"lieux": []}, "T_de": 3960, "T_a": 3960,
+        ctx = {"cone": {"locations": []}, "T_de": 3960, "T_a": 3960,
                "lieu_joueur": _GUE, "croisements_ids": set()}
         self.assertEqual(WT.classer_LOD(bande, ctx, self.geo, 3960), "chaud")
 
@@ -190,7 +190,7 @@ class TestClasserLOD(unittest.TestCase):
         """Actor at <= SEUIL_TIEDE_UT from the cone → warm."""
         berthe = _acteur_berthe()
         # Cone over the woods (4 UT from the cabin, well < 864).
-        ctx = {"cone": {"lieux": [_BOIS]}, "T_de": 500, "T_a": 600,
+        ctx = {"cone": {"locations": [_BOIS]}, "T_de": 500, "T_a": 600,
                "lieu_joueur": None, "croisements_ids": set()}
         self.assertEqual(WT.classer_LOD(berthe, ctx, self.geo, 600), "tiede")
 
@@ -405,17 +405,17 @@ class TestPre(unittest.TestCase):
 
     def test_dry_run_n_ecrit_rien(self):
         """Contract §12: `pre` dry-run writes nothing."""
-        avant = (self.camp / "acteurs.json").read_bytes()
+        avant = (self.camp / "actors.json").read_bytes()
         res = WT.pre(self.camp, t_session=3960, cone=None, apply=False)
-        apres = (self.camp / "acteurs.json").read_bytes()
-        self.assertEqual(avant, apres)                       # acteurs.json intact
-        self.assertFalse((self.camp / "evenements_programmes.json").exists())
+        apres = (self.camp / "actors.json").read_bytes()
+        self.assertEqual(avant, apres)                       # actors.json intact
+        self.assertFalse((self.camp / "scheduled_events.json").exists())
         self.assertEqual(res["ecritures"], [])
 
     def test_apply_ecrit_acteurs_et_programmes(self):
-        """--apply persists acteurs.json (raid accomplished) + evenements_programmes.json."""
+        """--apply persists actors.json (raid accomplished) + scheduled_events.json."""
         res = WT.pre(self.camp, t_session=3960, cone=None, apply=True)
-        self.assertTrue((self.camp / "evenements_programmes.json").exists())
+        self.assertTrue((self.camp / "scheduled_events.json").exists())
         acteurs = W.charger_acteurs(self.camp)
         idx = W.index_acteurs(acteurs)
         raid = next(i for i in idx["faction:bande-du-corbeau"]["plan"]
@@ -445,9 +445,9 @@ class TestPre(unittest.TestCase):
         ]
         out = dict(acteurs)
         out["acteurs"] = list(idx.values())
-        W.sauver_json_atomique(self.camp / "acteurs.json", out)
+        W.sauver_json_atomique(self.camp / "actors.json", out)
 
-        cone = {"lieux": [_BOIS], "fenetre": [0, 300], "lieu_joueur": _BOIS}
+        cone = {"locations": [_BOIS], "fenetre": [0, 300], "lieu_joueur": _BOIS}
         res = WT.pre(self.camp, t_session=300, cone=cone, apply=False)
         # Berthe must be crossed (she ends up in the woods, where the player is).
         acteurs_croises = {c["acteur"] for c in res["croisements"]}
@@ -521,7 +521,7 @@ class TestPost(unittest.TestCase):
             "etat_fin": {"lieu_actuel": "Gué"},
         })
         res = WT.post(self.camp, session="053", apply=True)
-        self.assertTrue((self.camp / "acteurs.json").exists())
+        self.assertTrue((self.camp / "actors.json").exists())
         self.assertTrue(res["ecritures"])
 
 
@@ -532,7 +532,7 @@ class TestPost(unittest.TestCase):
 class TestFailOpen(unittest.TestCase):
 
     def test_pre_campagne_sans_acteurs(self):
-        """Campaign without acteurs.json → pre does not crash (degraded briefing)."""
+        """Campaign without actors.json → pre does not crash (degraded briefing)."""
         with tempfile.TemporaryDirectory() as d:
             camp = _ecrire_campagne_temp(Path(d), avec_acteurs=False)
             res = WT.pre(camp, t_session=3960, cone=None, apply=False)
@@ -545,12 +545,12 @@ class TestFailOpen(unittest.TestCase):
             camp = _ecrire_campagne_temp(Path(d))
             acteurs = W.charger_acteurs(camp)
             acteurs["acteurs"].append({
-                "id": "acteur:rubis", "nom": "Rubis", "type": "pnj", "lod": "chaud",
+                "id": "acteur:rubis", "name": "Rubis", "type": "pnj", "lod": "chaud",
                 "majeur": True, "but_long_terme": "—", "situation": "—",
                 "ressources": {}, "trajectoire": [{"lieu": _CABANE, "de": 0, "a": None}],
                 "plan": [], "relations": [],
             })
-            W.sauver_json_atomique(camp / "acteurs.json", acteurs)
+            W.sauver_json_atomique(camp / "actors.json", acteurs)
             res = WT.pre(camp, t_session=3960, cone=None, apply=False)
             ids = {t["acteur"] for t in res["ticks"]}
             self.assertNotIn("acteur:rubis", ids)
@@ -560,19 +560,19 @@ class TestFailOpen(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             camp = _ecrire_campagne_temp(Path(d))
             # Campaign with two PCs (e.g. Oscar AND Cendre) declared in canonical list.
-            W.sauver_json_atomique(camp / "monde.json", {
-                "meta": {"nom": "Fixture", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
-                "etat_global": {"chronologie": "Jour 7 : la campagne commence."},
+            W.sauver_json_atomique(camp / "world.json", {
+                "meta": {"name": "Fixture", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
+                "global_state": {"chronologie": "Jour 7 : la campagne commence."},
             })
             acteurs = W.charger_acteurs(camp)
-            for pid, nom in (("acteur:oscar", "Oscar"), ("acteur:cendre", "Cendre")):
+            for pid, name in (("acteur:oscar", "Oscar"), ("acteur:cendre", "Cendre")):
                 acteurs["acteurs"].append({
-                    "id": pid, "nom": nom, "type": "pnj", "lod": "chaud",
+                    "id": pid, "name": name, "type": "pnj", "lod": "chaud",
                     "majeur": True, "but_long_terme": "—", "situation": "—",
                     "ressources": {}, "trajectoire": [{"lieu": _CABANE, "de": 0, "a": None}],
                     "plan": [], "relations": [],
                 })
-            W.sauver_json_atomique(camp / "acteurs.json", acteurs)
+            W.sauver_json_atomique(camp / "actors.json", acteurs)
             res = WT.pre(camp, t_session=3960, cone=None, apply=False)
             ids = {t["acteur"] for t in res["ticks"]}
             self.assertNotIn("acteur:oscar", ids)
@@ -581,11 +581,11 @@ class TestFailOpen(unittest.TestCase):
             self.assertIn("faction:bande-du-corbeau", ids)
 
     def test_ne_touche_pas_evenements_json(self):
-        """--apply NEVER writes to evenements.json (non-destructive)."""
+        """--apply NEVER writes to events.json (non-destructive)."""
         with tempfile.TemporaryDirectory() as d:
             camp = _ecrire_campagne_temp(Path(d))
-            # Pre-existing evenements.json (legacy format): must remain intact.
-            ev_path = camp / "evenements.json"
+            # Pre-existing events.json (legacy format): must remain intact.
+            ev_path = camp / "events.json"
             contenu_origine = {"evenements": [{"id": "legacy", "t": "Jour 7"}]}
             W.sauver_json_atomique(ev_path, contenu_origine)
             avant = ev_path.read_bytes()
@@ -632,8 +632,8 @@ class TestCampagneReelle(unittest.TestCase):
     @unittest.skipUnless(CAMPAGNE_REELLE.is_dir(), "real campaign absent")
     def test_pre_reel_dry_run_ne_plante_pas(self):
         """pre dry-run on the real campaign: no crash, no writes."""
-        if not (CAMPAGNE_REELLE / "acteurs.json").exists():
-            self.skipTest("real acteurs.json absent")
+        if not (CAMPAGNE_REELLE / "actors.json").exists():
+            self.skipTest("real actors.json absent")
         res = WT.pre(CAMPAGNE_REELLE, t_session=3960, cone=None, apply=False)
         self.assertIn("briefing", res)
         self.assertEqual(res["ecritures"], [])

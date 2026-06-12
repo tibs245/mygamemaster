@@ -87,15 +87,15 @@ def compute_deltas(kind, b, a, rel):
             d("🏁", "Session closed (%s)" % rel)
 
     elif kind == "personnage":
-        nom = a.get("nom") or b.get("nom") or "PJ"
-        if "inventaire" in a and "inventaire" in b and a["inventaire"] != b["inventaire"]:
-            d("🎒", "Inventory of %s: %s → %s item(s)" % (nom, b["inventaire"], a["inventaire"]), "inventaire")
-        elif "inventaire" in a and "inventaire" not in b:
-            d("🎒", "Inventory of %s modified (%s item(s))" % (nom, a["inventaire"]), "inventaire")
+        name = a.get("name") or b.get("name") or "PJ"
+        if "inventory" in a and "inventory" in b and a["inventory"] != b["inventory"]:
+            d("🎒", "Inventory of %s: %s → %s item(s)" % (name, b["inventory"], a["inventory"]), "inventory")
+        elif "inventory" in a and "inventory" not in b:
+            d("🎒", "Inventory of %s modified (%s item(s))" % (name, a["inventory"]), "inventory")
         if "pv" in a and "pv" in b and a["pv"] != b["pv"]:
-            d("❤️", "%s — PV : %s → %s" % (nom, b["pv"], a["pv"]), "sante")
-        if "equipement" in a and "equipement" in b and a["equipement"] != b["equipement"]:
-            d("⚔️", "Equipment of %s: %s → %s" % (nom, b["equipement"], a["equipement"]), "inventaire")
+            d("❤️", "%s — PV : %s → %s" % (name, b["pv"], a["pv"]), "health")
+        if "equipment" in a and "equipment" in b and a["equipment"] != b["equipment"]:
+            d("⚔️", "Equipment of %s: %s → %s" % (name, b["equipment"], a["equipment"]), "inventory")
 
     elif kind == "pnj":
         df = (a.get("faits_total") or 0) - (b.get("faits_total") or 0)
@@ -106,9 +106,9 @@ def compute_deltas(kind, b, a, rel):
 
     elif kind == "monde":
         if a.get("jour") is not None and a.get("jour") != b.get("jour"):
-            d("🕒", "Day: %s → %s" % (b.get("jour"), a.get("jour")), "temps")
+            d("🕒", "Day: %s → %s" % (b.get("jour"), a.get("jour")), "time")
         if a.get("heure") is not None and a.get("heure") != b.get("heure"):
-            d("🕒", "Time: %s → %s" % (b.get("heure"), a.get("heure")), "temps")
+            d("🕒", "Time: %s → %s" % (b.get("heure"), a.get("heure")), "time")
 
     # Fallback: change detected but untyped → generic mention.
     if not out and a != b:

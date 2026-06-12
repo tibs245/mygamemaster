@@ -41,7 +41,7 @@ def build_prompt(brief, contexte):
     
     RÈGLES ABSOLUES :
     - Tu n'inventes JAMAIS un fait qui n'est pas dans ton brief.
-    - Tu ne connais PAS les intentions, secrets, ou pensées des autres personnages.
+    - Tu ne connais PAS les intentions, secrets, ou pensées des autres characters.
     - Tu restes cohérent avec ta personnalité décrite dans le brief.
     - Tu n'agis pas à la place des joueurs.
     """)

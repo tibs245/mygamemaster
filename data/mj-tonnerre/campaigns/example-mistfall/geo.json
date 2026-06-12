@@ -2,15 +2,15 @@
   "meta": {
     "campagne": "Mistfall",
     "version": 1,
-    "genere_par": "manual (example campaign — run geo_query.py build to regenerate from monde.json)",
+    "genere_par": "manual (example campaign — run geo_query.py build to regenerate from world.json)",
     "date": "2026-06-12T00:00:00Z",
     "echelle": "1 unit ~ 1 minute of travel on foot (non-metric, code use only)",
     "mds_stress_normalise": null
   },
-  "lieux": [
+  "locations": [
     {
       "id": "region:ashveil-region",
-      "nom": "The Ashveil Region",
+      "name": "The Ashveil Region",
       "parent": null,
       "type": "region",
       "altitude": null,
@@ -20,7 +20,7 @@
     },
     {
       "id": "lieu:ashveil-region/ashveil-crossing",
-      "nom": "Ashveil Crossing",
+      "name": "Ashveil Crossing",
       "parent": "region:ashveil-region",
       "type": "hamlet",
       "altitude": null,
@@ -41,7 +41,7 @@
     },
     {
       "id": "lieu:ashveil-region/mire-of-sighs",
-      "nom": "The Mire of Sighs",
+      "name": "The Mire of Sighs",
       "parent": "region:ashveil-region",
       "type": "wetland",
       "altitude": null,
@@ -62,7 +62,7 @@
     },
     {
       "id": "region:thornwick",
-      "nom": "Thornwick",
+      "name": "Thornwick",
       "parent": null,
       "type": "region",
       "altitude": null,
@@ -72,7 +72,7 @@
     },
     {
       "id": "lieu:thornwick/village-hall",
-      "nom": "Thornwick Village Hall",
+      "name": "Thornwick Village Hall",
       "parent": "region:thornwick",
       "type": "civic_building",
       "altitude": null,
@@ -98,7 +98,7 @@
     },
     {
       "id": "lieu:thornwick/village-well",
-      "nom": "The Village Well",
+      "name": "The Village Well",
       "parent": "region:thornwick",
       "type": "landmark",
       "altitude": null,
@@ -119,7 +119,7 @@
     },
     {
       "id": "lieu:thornwick/the-warden-tree",
-      "nom": "The Warden Tree",
+      "name": "The Warden Tree",
       "parent": "region:thornwick",
       "type": "fae_anchor",
       "altitude": null,
@@ -140,7 +140,7 @@
     },
     {
       "id": "lieu:ashveil-region/the-pale-court",
-      "nom": "The Pale Court",
+      "name": "The Pale Court",
       "parent": "region:ashveil-region",
       "type": "fae_realm",
       "altitude": null,

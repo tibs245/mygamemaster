@@ -8,8 +8,8 @@
 # Copies:
 #   skills/gaming/mj-tonnerre*           -> modules/gaming/
 #   home/.hermes/mj-tonnerre/base_items.yaml         -> data/mj-tonnerre/
-#   home/.hermes/mj-tonnerre/campagnes/_template     -> data/mj-tonnerre/campagnes/
-#   .hermes/mj-tonnerre/campagnes/<campagne>         -> data/mj-tonnerre/campagnes/
+#   home/.hermes/mj-tonnerre/campaigns/_template     -> data/mj-tonnerre/campaigns/
+#   .hermes/mj-tonnerre/campaigns/<campagne>         -> data/mj-tonnerre/campaigns/
 #
 # Purged on copy: macOS ._* files, nested .git folders, __pycache__.
 # ───────────────────────────────────────────────────────────────────────────
@@ -19,11 +19,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCHIVE="${REPO_ROOT}/archive_hermes"
 SRC_SKILLS="${ARCHIVE}/skills/gaming"
 SRC_HOME_MJ="${ARCHIVE}/home/.hermes/mj-tonnerre"
-SRC_CAMP="${ARCHIVE}/.hermes/mj-tonnerre/campagnes"
+SRC_CAMP="${ARCHIVE}/.hermes/mj-tonnerre/campaigns"
 
 DST_MODULES="${REPO_ROOT}/modules/gaming"
 DST_DATA="${REPO_ROOT}/data/mj-tonnerre"
-DST_CAMP="${DST_DATA}/campagnes"
+DST_CAMP="${DST_DATA}/campaigns"
 
 # Common exclusions (macOS artifacts, nested git, caches, runtime state)
 EXCLUDES=(
@@ -57,16 +57,16 @@ if [[ -f "${SRC_HOME_MJ}/base_items.yaml" ]]; then
 fi
 
 # 3. Campaign template ---------------------------------------------------
-echo "  • data/mj-tonnerre/campagnes/_template/"
-if [[ -d "${SRC_HOME_MJ}/campagnes/_template" ]]; then
-  rsync -a --delete "${EXCLUDES[@]}" "${SRC_HOME_MJ}/campagnes/_template/" "${DST_CAMP}/_template/"
+echo "  • data/mj-tonnerre/campaigns/_template/"
+if [[ -d "${SRC_HOME_MJ}/campaigns/_template" ]]; then
+  rsync -a --delete "${EXCLUDES[@]}" "${SRC_HOME_MJ}/campaigns/_template/" "${DST_CAMP}/_template/"
 fi
 
 # 4. Campaigns (authoritative game data) -------------------------------
 for c in "${SRC_CAMP}"/*/; do
   [[ -d "$c" ]] || continue
   name="$(basename "$c")"
-  echo "  • data/mj-tonnerre/campagnes/${name}/"
+  echo "  • data/mj-tonnerre/campaigns/${name}/"
   rsync -a --delete "${EXCLUDES[@]}" "$c" "${DST_CAMP}/${name}/"
 done
 

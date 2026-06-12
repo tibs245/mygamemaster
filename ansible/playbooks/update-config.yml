@@ -5,7 +5,7 @@
 #   ansible-playbook playbooks/update-config.yml -e game=mistfall
 #   ('-e campagne=<slug>' still works as a legacy alias)
 - name: Update the configuration
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   tasks:
     - name: Re-render the campaign configuration

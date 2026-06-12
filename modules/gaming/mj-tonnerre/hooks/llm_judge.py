@@ -29,7 +29,7 @@ import _lib as L  # noqa: E402
 
 RUBRIC = """RÈGLES BANQUIER (cohérence transactionnelle — sois SOUPLE) :
 - B1 RESSOURCE : si le MJ fait utiliser/consommer/donner un objet par un PJ, ce PJ doit le
-  posséder. TOLÈRE les variations de nom et de format (« saucisson » = « un saucisson sec »,
+  posséder. TOLÈRE les variations de name et de format (« saucisson » = « un saucisson sec »,
   « couronnes » = « 15 couronnes d'argent »). Ne refuse QUE si la ressource est clairement
   absente. En cas de doute → VALIDE.
 - B2 CONNAISSANCE : un PNJ ne peut révéler/affirmer que ce qu'il sait réellement (faits établis).
@@ -48,7 +48,7 @@ RÈGLES CONDUITE (inviolables — sois STRICT) :
 - EMOTION_PNJ : ne pas affirmer l'émotion interne d'un PNJ comme un fait ; seulement les signes
   extérieurs.
 - MECANIQUE_CACHEE : ne pas exposer les mécaniques dans la narration (DD, modificateurs, seuils,
-  jets de rencontre, « Update pnj.json », « Sync Monde »).
+  jets de rencontre, « Update npcs.json », « Sync Monde »).
 - POSSESSIF : ne pas attribuer au PJ une autorité/propriété qu'il n'a pas (« ta cabane, tes
   gens ») ; ne pas écraser les relations entre PNJ pour recentrer sur le PJ.
 - COMPARTIMENTATION : ne jamais révéler à un joueur une info qu'il ne doit pas connaître."""

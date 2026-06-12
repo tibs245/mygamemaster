@@ -48,7 +48,7 @@ import worldlib as W  # noqa: E402
 
 CAMPAGNE_REELLE = Path(os.environ.get(
     "MJ_TEST_CAMPAIGN",
-    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campagnes" / "la-naissance-dun-roi"),
+    str(Path(__file__).resolve().parents[5] / "data" / "mj-tonnerre" / "campaigns" / "la-naissance-dun-roi"),
 ))
 
 
@@ -67,23 +67,23 @@ def _geo_jouet() -> dict:
     """
     return {
         "meta": {"campagne": "Jouet", "version": 1},
-        "lieux": [
-            {"id": "region:test", "nom": "Région test", "parent": None,
+        "locations": [
+            {"id": "region:test", "name": "Région test", "parent": None,
              "type": "region", "altitude": None, "ancrage": {"x": 0, "y": 0},
              "aretes": []},
-            {"id": "A", "nom": "Lieu A", "parent": "region:test", "type": "lieu",
+            {"id": "A", "name": "Lieu A", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 0, "y": 0},
              "aretes": [{"vers": "B", "dir": "E", "distance_m": 100, "temps_ut": 6,
                          "voie": "sentier"}]},
-            {"id": "B", "nom": "Lieu B", "parent": "region:test", "type": "lieu",
+            {"id": "B", "name": "Lieu B", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 60, "y": 0},
              "aretes": [{"vers": "C", "dir": "E", "distance_m": 100, "temps_ut": 6,
                          "voie": "sentier"}]},
-            {"id": "C", "nom": "Lieu C", "parent": "region:test", "type": "lieu",
+            {"id": "C", "name": "Lieu C", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 120, "y": 0}, "aretes": []},
-            {"id": "B_INT", "nom": "Salle de B", "parent": "B", "type": "lieu",
+            {"id": "B_INT", "name": "Salle de B", "parent": "B", "type": "lieu",
              "altitude": None, "ancrage": {"x": 60, "y": 0}, "aretes": []},
-            {"id": "D", "nom": "Lieu isolé", "parent": "region:test", "type": "lieu",
+            {"id": "D", "name": "Lieu isolé", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 999, "y": 999}, "aretes": []},
         ],
     }
@@ -94,7 +94,7 @@ def _acteurs_jouet() -> dict:
         "meta": {"campagne": "Jouet", "version": 1, "t_reference": 0},
         "acteurs": [
             {
-                "id": "acteur:alpha", "nom": "Alpha", "type": "pnj",
+                "id": "acteur:alpha", "name": "Alpha", "type": "pnj",
                 "lod": "tiede", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {},
                 "trajectoire": [{"lieu": "A", "de": 0, "a": None}],
@@ -105,7 +105,7 @@ def _acteurs_jouet() -> dict:
                 ],
             },
             {
-                "id": "acteur:beta", "nom": "Beta", "type": "pnj",
+                "id": "acteur:beta", "name": "Beta", "type": "pnj",
                 "lod": "froid", "majeur": True, "but_long_terme": "—",
                 "situation": "—", "ressources": {},
                 # No 'trajectoire': only localisation_id (backward-compat).
@@ -369,7 +369,7 @@ class TestJsonSur(unittest.TestCase):
             self.assertEqual(restants, [], f"residual tmp: {restants}")
 
     def test_chemin_campagne_absolu(self):
-        res = W.chemin_campagne("data/mj-tonnerre/campagnes/la-naissance-dun-roi")
+        res = W.chemin_campagne("data/mj-tonnerre/campaigns/la-naissance-dun-roi")
         self.assertTrue(res.is_absolute(), "chemin_campagne doit rendre un Path absolu")
 
 
@@ -386,7 +386,7 @@ class TestContenance(unittest.TestCase):
         idx = W.index_lieux(self.geo)
         self.assertIn("A", idx)
         self.assertIn("region:test", idx)
-        self.assertEqual(idx["B"]["nom"], "Lieu B")
+        self.assertEqual(idx["B"]["name"], "Lieu B")
 
     def test_parents_chaine_ascendante(self):
         # B_INT ⊂ B ⊂ region:test (B's parent is the region).
@@ -531,12 +531,12 @@ class TestMDS(unittest.TestCase):
     def test_stress_normalise_matrice_reelle_sous_seuil(self):
         # MANDATORY CASE (§12): on the REAL campaign matrix, the normalised stress
         # of a coarse anchor must remain below 0.30.
-        if not (CAMPAGNE_REELLE / "monde.json").exists():
+        if not (CAMPAGNE_REELLE / "world.json").exists():
             self.skipTest("real campaign absent")
-        monde = W.charger_json(CAMPAGNE_REELLE / "monde.json", {})
-        dep = monde.get("regles", {}).get("temps", {}).get("deplacements")
-        self.assertTrue(dep, "regles.temps.deplacements not found in monde.json")
-        # The labels→id index is built FROM monde.json (names + aliases).
+        monde = W.charger_json(CAMPAGNE_REELLE / "world.json", {})
+        dep = monde.get("rules", {}).get("time", {}).get("movements")
+        self.assertTrue(dep, "rules.temps.movements not found in world.json")
+        # The labels→id index is built FROM world.json (names + aliases).
         idx = W.index_labels(monde)
         ids, D = W.matrice_durees(dep, idx)
         self.assertGreaterEqual(len(ids), 10, "too few locations extracted")
@@ -557,7 +557,7 @@ class TestMDS(unittest.TestCase):
         # explicitly "non-metric", code-only use, cf. §3.6); the sole
         # numerical milestone in the contract is the real matrix (test above).
         geo = {
-            "lieux": [
+            "locations": [
                 {"id": "P0", "parent": None, "ancrage": {"x": 0, "y": 0},
                  "aretes": [{"vers": "P1", "dir": "E", "temps_ut": 10,
                              "distance_m": None}]},
@@ -813,7 +813,7 @@ class TestTCourant(unittest.TestCase):
             self.assertEqual(W.t_courant(Path(d)), 0)
 
     def test_t_courant_priorite_evenements_programmes(self):
-        # Rule 1 (§3.3): the max of integer T values in evenements_programmes.json wins.
+        # Rule 1 (§3.3): the max of integer T values in scheduled_events.json wins.
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
             prog = {"meta": {}, "evenements": [
@@ -822,11 +822,11 @@ class TestTCourant(unittest.TestCase):
                 {"id": "e2", "T": 7200, "type": "x", "cible": "y", "cause": "—",
                  "significativite": 0.5, "statut": "resolu"},
             ]}
-            W.sauver_json_atomique(camp / "evenements_programmes.json", prog)
+            W.sauver_json_atomique(camp / "scheduled_events.json", prog)
             # Even with a "Day 3" world present, the integer T values win.
             W.sauver_json_atomique(
-                camp / "monde.json",
-                {"etat_global": {"chronologie": "On en est au Jour 3."}})
+                camp / "world.json",
+                {"global_state": {"chronologie": "On en est au Jour 3."}})
             self.assertEqual(W.t_courant(camp), 7200)
 
     def test_t_courant_derive_jour_narratif(self):
@@ -834,8 +834,8 @@ class TestTCourant(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d)
             W.sauver_json_atomique(
-                camp / "monde.json",
-                {"etat_global": {"chronologie": "Jour 1 ... puis Jour 9 enfin."}})
+                camp / "world.json",
+                {"global_state": {"chronologie": "Jour 1 ... puis Jour 9 enfin."}})
             self.assertEqual(W.t_courant(camp), W.jour_heure_vers_t(9, 12, 0))
 
     def test_t_courant_campagne_reelle_coherent(self):

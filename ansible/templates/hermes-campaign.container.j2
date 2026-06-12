@@ -1,7 +1,7 @@
-# Quadlet — Podman systemd (user) unit for the campaign "{{ campagne_titre }}"
+# Quadlet — Podman systemd (user) unit for the campaign "{{ campaign_title }}"
 # Rendered to ~/.config/containers/systemd/hermes-{{ deploy_id }}.container
 [Unit]
-Description=Hermes MJ Tonnerre — {{ campagne_titre }}
+Description=Hermes MJ Tonnerre — {{ campaign_title }}
 After=network-online.target
 Wants=network-online.target
 
@@ -40,19 +40,19 @@ Environment=PATH=/opt/hermes/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/
 EnvironmentFile={{ host_env_dir }}/{{ deploy_id }}.env
 {% if mj_judge_actif | default(false) | bool %}
 # LLM Judge (rules checker) — enabled at deployment level.
-# monde.json > meta.hooks.judge can override per campaign (at runtime).
+# world.json > meta.hooks.judge can override per campaign (at runtime).
 Environment=MJ_JUDGE_ACTIF=1
 Environment=MJ_JUDGE_MODEL={{ mj_judge_model | default('') }}
 {% endif %}
-# Feature flags — INSTANCE defaults (cascade: monde.json > MJ_FEATURE_<AXE> > True).
+# Feature flags — INSTANCE defaults (cascade: world.json > MJ_FEATURE_<AXE> > True).
 # A variable is injected ONLY if the Ansible var mj_feature_<axe> is defined; otherwise
-# the runtime falls back to its default of True. monde.json > meta.features takes priority
+# the runtime falls back to its default of True. world.json > meta.features takes priority
 # (per-campaign override, at runtime). See docs/monde-vivant/10-features.md.
 {% if mj_feature_tracabilite is defined %}
 Environment=MJ_FEATURE_TRACABILITE={{ '1' if (mj_feature_tracabilite | bool) else '0' }}
 {% endif %}
-{% if mj_feature_verbosite is defined %}
-Environment=MJ_FEATURE_VERBOSITE={{ '1' if (mj_feature_verbosite | bool) else '0' }}
+{% if mj_feature_verbosity is defined %}
+Environment=MJ_FEATURE_VERBOSITY={{ '1' if (mj_feature_verbosity | bool) else '0' }}
 {% endif %}
 {% if mj_feature_pnj_faction_vivants is defined %}
 Environment=MJ_FEATURE_PNJ_FACTION_VIVANTS={{ '1' if (mj_feature_pnj_faction_vivants | bool) else '0' }}

@@ -35,7 +35,7 @@
     },
     "deplacement": {
       "type": "object",
-      "description": "Déplacement : l'entité parcourt 'chemin' (suite d'ids de lieux, arêtes réelles consécutives) de 'de' à 'a'. La durée (a-de) doit être ≥ somme des temps_ut du chemin (pas de téléportation).",
+      "description": "Déplacement : l'entité parcourt 'chemin' (suite d'ids de locations, arêtes réelles consécutives) de 'de' à 'a'. La durée (a-de) doit être ≥ somme des temps_ut du chemin (pas de téléportation).",
       "required": ["type", "de", "a", "chemin"],
       "additionalProperties": true,
       "properties": {
@@ -54,7 +54,7 @@
         },
         "chemin": {
           "type": "array",
-          "description": "Suite ordonnée d'ids de lieux suivant des arêtes existantes consécutives.",
+          "description": "Suite ordonnée d'ids de locations suivant des arêtes existantes consécutives.",
           "items": { "type": "string" }
         },
         "motif": {

@@ -2,7 +2,7 @@
 """faction_slice.py — Write coordinator (SINGLE writer) anti-concurrency.
 
 Guarantees Level 2 concurrency (cf. audit/06-niveau2-factions.md §7):
-the SOURCE OF TRUTH remains the campaign files (monde.json / pnj.json).
+the SOURCE OF TRUTH remains the campaign files (world.json / npcs.json).
 An agent (NPC/Faction) NEVER edits a file directly: it receives a SLICE extracted
 from its sheet, modifies it in its session, and the coordinator (this script) REINTEGRATES
 the slice into the source file — serialized writer, validation before write,
@@ -103,67 +103,67 @@ def _valider_json_fichier(path: Path) -> bool:
     return res.returncode == 0
 
 
-# ─── Container access (tolerates both pnj.json formats) ─────────────────────
+# ─── Container access (tolerates both npcs.json formats) ─────────────────────
 
 def _pnj_charger(campagne: Path):
-    """Load pnj.json → (raw_data, list). Tolerates bare list OR {"pnj":[...]}."""
-    data = _lire_json(campagne / "pnj.json")
+    """Load npcs.json → (raw_data, list). Tolerates bare list OR {"pnj":[...]}."""
+    data = _lire_json(campagne / "npcs.json")
     if isinstance(data, list):
         return data, data
     if isinstance(data, dict):
         liste = data.get("pnj")
         if isinstance(liste, list):
             return data, liste
-    print("❌ pnj.json: unrecognized container (expected list OR {\"pnj\":[...]}).",
+    print("❌ npcs.json: unrecognized container (expected list OR {\"pnj\":[...]}).",
           file=sys.stderr)
     sys.exit(2)
 
 
-def _index_par_nom(liste, nom: str):
-    """Return the index of the entry whose 'nom'/'faction' field matches, or -1."""
-    cible = _fold(nom)
+def _index_par_nom(liste, name: str):
+    """Return the index of the entry whose 'name'/'faction' field matches, or -1."""
+    cible = _fold(name)
     for i, item in enumerate(liste):
         if not isinstance(item, dict):
             continue
-        clef = item.get("nom") or item.get("faction") or ""
+        clef = item.get("name") or item.get("faction") or ""
         if _fold(clef) == cible:
             return i
     # fallback: partial match
     for i, item in enumerate(liste):
         if not isinstance(item, dict):
             continue
-        clef = item.get("nom") or item.get("faction") or ""
+        clef = item.get("name") or item.get("faction") or ""
         if cible in _fold(clef):
             return i
     return -1
 
 
 def _factions_liste(monde: dict):
-    return monde.get("etat_global", {}).get("factions", []) or []
+    return monde.get("global_state", {}).get("factions", []) or []
 
 
 def _horloge_actions(monde: dict):
-    return (monde.get("etat_global", {})
+    return (monde.get("global_state", {})
             .get("faction_actions_horloge", {})
             .get("actions", []) or [])
 
 
 # ─── EXTRACT ──────────────────────────────────────────────────────────────────
 
-def _tranche_faction(monde: dict, nom: str):
+def _tranche_faction(monde: dict, name: str):
     """Build the slice of a faction: its sheet + its clock entries.
 
     Returns (slice_state, error_str|None). The slice_state is the exact object
     that will be re-hashed for divergence detection (sheet + clock linked).
     """
     factions = _factions_liste(monde)
-    idx = _index_par_nom(factions, nom)
+    idx = _index_par_nom(factions, name)
     if idx < 0:
-        noms = ", ".join(f.get("nom", "?") for f in factions
+        noms = ", ".join(f.get("name", "?") for f in factions
                          if isinstance(f, dict))
-        return None, (f"Faction «{nom}» not found. Available: {noms}")
+        return None, (f"Faction «{name}» not found. Available: {noms}")
     fiche = factions[idx]
-    nom_reel = fiche.get("nom", nom)
+    nom_reel = fiche.get("name", name)
 
     # clock entries linked to this faction (matched on the 'faction' field)
     horloge_liee = [a for a in _horloge_actions(monde)
@@ -174,13 +174,13 @@ def _tranche_faction(monde: dict, nom: str):
     return etat, None
 
 
-def _tranche_pnj(campagne: Path, nom: str):
+def _tranche_pnj(campagne: Path, name: str):
     """Build the slice of an NPC: its sheet. Returns (state, error|None)."""
     _, liste = _pnj_charger(campagne)
-    idx = _index_par_nom(liste, nom)
+    idx = _index_par_nom(liste, name)
     if idx < 0:
-        noms = ", ".join(p.get("nom", "?") for p in liste if isinstance(p, dict))
-        return None, (f"NPC «{nom}» not found. Available: {noms}")
+        noms = ", ".join(p.get("name", "?") for p in liste if isinstance(p, dict))
+        return None, (f"NPC «{name}» not found. Available: {noms}")
     return {"fiche": liste[idx]}, None
 
 
@@ -192,25 +192,25 @@ def cmd_extract(args) -> int:
         return 2
 
     if args.faction is not None:
-        monde = _lire_json(campagne / "monde.json")
+        monde = _lire_json(campagne / "world.json")
         etat, err = _tranche_faction(monde, args.faction)
         cible_type, cible_nom = "faction", args.faction
-        source_fichier = "monde.json"
+        source_fichier = "world.json"
     else:
         etat, err = _tranche_pnj(campagne, args.pnj)
         cible_type, cible_nom = "pnj", args.pnj
-        source_fichier = "pnj.json"
+        source_fichier = "npcs.json"
 
     if err:
         print(f"❌ {err}", file=sys.stderr)
         return 1
 
-    nom_reel = etat["fiche"].get("nom", cible_nom)
+    nom_reel = etat["fiche"].get("name", cible_nom)
     slice_obj = {
         "_slice_version": SLICE_VERSION,
         "type": cible_type,
         "campagne": campagne.name,
-        "nom": nom_reel,
+        "name": nom_reel,
         "source_fichier": source_fichier,
         "extrait_le": _maintenant(),
         "empreinte_source": _empreinte(etat),
@@ -231,35 +231,35 @@ def cmd_extract(args) -> int:
 
 # ─── REINTEGRATE ──────────────────────────────────────────────────────────────
 
-def _etat_source_actuel(args_type: str, monde, campagne: Path, nom: str):
+def _etat_source_actuel(args_type: str, monde, campagne: Path, name: str):
     """Recompute the CURRENT source state of a slice (for re-hashing)."""
     if args_type == "faction":
-        return _tranche_faction(monde, nom)
-    return _tranche_pnj(campagne, nom)
+        return _tranche_faction(monde, name)
+    return _tranche_pnj(campagne, name)
 
 
 def cmd_reintegrate(args) -> int:
     campagne = Path(args.campagne)
     slice_obj = _lire_json(Path(args.slice))
 
-    for clef in ("type", "nom", "etat", "empreinte_source"):
+    for clef in ("type", "name", "etat", "empreinte_source"):
         if clef not in slice_obj:
             print(f"❌ Invalid slice: field «{clef}» missing.",
                   file=sys.stderr)
             return 2
 
     cible_type = slice_obj["type"]
-    nom = slice_obj["nom"]
+    name = slice_obj["name"]
     if cible_type not in ("faction", "pnj"):
         print(f"❌ Unknown slice type: {cible_type!r}.", file=sys.stderr)
         return 2
 
-    monde_path = campagne / "monde.json"
-    pnj_path = campagne / "pnj.json"
+    monde_path = campagne / "world.json"
+    pnj_path = campagne / "npcs.json"
     monde = _lire_json(monde_path) if cible_type == "faction" else None
 
     # ── FINGERPRINT PRE-CHECK: has the source state diverged since extract? ──
-    etat_actuel, err = _etat_source_actuel(cible_type, monde, campagne, nom)
+    etat_actuel, err = _etat_source_actuel(cible_type, monde, campagne, name)
     if err:
         print(f"❌ {err}", file=sys.stderr)
         return 1
@@ -308,25 +308,25 @@ def _diff_lisible(avant: dict, apres: dict, titre: str) -> None:
 def _reintegrate_faction(args, campagne, monde_path, monde, slice_obj) -> int:
     nouvelle_fiche = slice_obj["etat"]["fiche"]
     nouvelle_horloge = slice_obj["etat"].get("faction_actions_horloge", [])
-    nom = slice_obj["nom"]
+    name = slice_obj["name"]
 
     factions = _factions_liste(monde)
-    idx = _index_par_nom(factions, nom)
+    idx = _index_par_nom(factions, name)
     if idx < 0:
-        print(f"❌ Faction «{nom}» has disappeared from monde.json.", file=sys.stderr)
+        print(f"❌ Faction «{name}» has disappeared from world.json.", file=sys.stderr)
         return 1
 
     ancienne = factions[idx]
-    _diff_lisible(ancienne, nouvelle_fiche, f"Fiche faction « {nom} »")
+    _diff_lisible(ancienne, nouvelle_fiche, f"Fiche faction « {name} »")
 
     # Clock: replace the entries of THIS faction with those from the slice.
-    horloge = (monde.setdefault("etat_global", {})
+    horloge = (monde.setdefault("global_state", {})
                .setdefault("faction_actions_horloge", {})
                .setdefault("actions", []))
     avant_horloge = [a for a in horloge if isinstance(a, dict)
-                     and _fold(a.get("faction", "")) == _fold(nom)]
+                     and _fold(a.get("faction", "")) == _fold(name)]
     if avant_horloge != nouvelle_horloge:
-        print(f"  ── Faction clock «{nom}»: "
+        print(f"  ── Faction clock «{name}»: "
               f"{len(avant_horloge)} entry/entries → {len(nouvelle_horloge)} ──",
               file=sys.stderr)
 
@@ -338,24 +338,24 @@ def _reintegrate_faction(args, campagne, monde_path, monde, slice_obj) -> int:
     # Apply: sheet + clock
     factions[idx] = nouvelle_fiche
     autres = [a for a in horloge if not (isinstance(a, dict)
-              and _fold(a.get("faction", "")) == _fold(nom))]
-    monde["etat_global"]["faction_actions_horloge"]["actions"] = \
+              and _fold(a.get("faction", "")) == _fold(name))]
+    monde["global_state"]["faction_actions_horloge"]["actions"] = \
         autres + nouvelle_horloge
 
-    return _ecrire_et_valider(monde_path, monde, f"faction « {nom} »")
+    return _ecrire_et_valider(monde_path, monde, f"faction « {name} »")
 
 
 def _reintegrate_pnj(args, campagne, pnj_path, slice_obj) -> int:
     nouvelle_fiche = slice_obj["etat"]["fiche"]
-    nom = slice_obj["nom"]
+    name = slice_obj["name"]
 
     data, liste = _pnj_charger(campagne)
-    idx = _index_par_nom(liste, nom)
+    idx = _index_par_nom(liste, name)
     if idx < 0:
-        print(f"❌ NPC «{nom}» has disappeared from pnj.json.", file=sys.stderr)
+        print(f"❌ NPC «{name}» has disappeared from npcs.json.", file=sys.stderr)
         return 1
 
-    _diff_lisible(liste[idx], nouvelle_fiche, f"Fiche PNJ « {nom} »")
+    _diff_lisible(liste[idx], nouvelle_fiche, f"Fiche PNJ « {name} »")
 
     if not args.apply:
         print("ℹ️  DRY-RUN — no write performed (use --apply to write).",
@@ -364,7 +364,7 @@ def _reintegrate_pnj(args, campagne, pnj_path, slice_obj) -> int:
 
     liste[idx] = nouvelle_fiche
     # data is EITHER the list itself (mutated in place) OR {"pnj": liste}.
-    return _ecrire_et_valider(pnj_path, data, f"PNJ « {nom} »")
+    return _ecrire_et_valider(pnj_path, data, f"PNJ « {name} »")
 
 
 def _ecrire_et_valider(path: Path, data, libelle: str) -> int:
@@ -398,17 +398,17 @@ def cmd_add_note(args) -> int:
     if args.pnj is not None:
         data, liste = _pnj_charger(campagne)
         idx = _index_par_nom(liste, args.pnj)
-        path, cible = campagne / "pnj.json", args.pnj
+        path, cible = campagne / "npcs.json", args.pnj
         conteneur, racine = liste, data
     else:
-        monde = _lire_json(campagne / "monde.json")
+        monde = _lire_json(campagne / "world.json")
         liste = _factions_liste(monde)
         idx = _index_par_nom(liste, args.faction)
-        path, cible = campagne / "monde.json", args.faction
+        path, cible = campagne / "world.json", args.faction
         conteneur, racine = liste, monde
 
     if idx < 0:
-        noms = ", ".join(x.get("nom", "?") for x in conteneur
+        noms = ", ".join(x.get("name", "?") for x in conteneur
                          if isinstance(x, dict))
         print(f"❌ Target «{cible}» not found. Available: {noms}",
               file=sys.stderr)

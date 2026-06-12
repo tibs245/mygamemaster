@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mj-tonnerre/monde.schema.json",
-  "title": "monde.json — état du monde d'une campagne MJ Tonnerre",
+  "title": "world.json — état du monde d'une campagne MJ Tonnerre",
   "type": "object",
-  "required": ["meta", "modules", "etat_global", "univers"],
+  "required": ["meta", "modules", "global_state", "universe"],
   "additionalProperties": true,
   "properties": {
     "meta": {
       "type": "object",
-      "required": ["nom", "temps"],
+      "required": ["name", "time"],
       "additionalProperties": true,
       "properties": {
-        "nom": { "type": "string" },
-        "temps": {
+        "name": { "type": "string" },
+        "time": {
           "type": "object",
           "required": ["regime"],
           "additionalProperties": true,
@@ -38,7 +38,7 @@
         }
       }
     },
-    "etat_global": {
+    "global_state": {
       "type": "object",
       "required": ["factions", "faction_actions_horloge", "chronologie"],
       "additionalProperties": true,
@@ -48,10 +48,10 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["nom", "objectif_court_terme", "objectif_long_terme", "attitude_actuelle"],
+            "required": ["name", "objectif_court_terme", "objectif_long_terme", "attitude_actuelle"],
             "additionalProperties": true,
             "properties": {
-              "nom": { "type": "string" },
+              "name": { "type": "string" },
               "objectif_court_terme": { "type": "string" },
               "objectif_long_terme": { "type": "string" },
               "attitude_actuelle": { "type": "string" },
@@ -112,7 +112,7 @@
         }
       }
     },
-    "univers": {
+    "universe": {
       "type": "object",
       "required": ["regions"],
       "additionalProperties": true,
@@ -121,18 +121,18 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["nom"],
+            "required": ["name"],
             "additionalProperties": true,
             "properties": {
-              "nom": { "type": "string" },
-              "lieux": {
+              "name": { "type": "string" },
+              "locations": {
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["nom"],
+                  "required": ["name"],
                   "additionalProperties": true,
                   "properties": {
-                    "nom": { "type": "string" }
+                    "name": { "type": "string" }
                   }
                 }
               }

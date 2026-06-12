@@ -10,7 +10,7 @@
 #   ./install-hooks.sh <path/campaign> --force      # overwrite an existing hook
 #
 # Examples:
-#   ./install-hooks.sh ../../../../.hermes/mj-tonnerre/campagnes/la-naissance-dun-roi
+#   ./install-hooks.sh ../../../../.hermes/mj-tonnerre/campaigns/la-naissance-dun-roi
 #   ./install-hooks.sh /absolute/path/to/campaign --force
 #
 # The installed hook blocks the commit if a JSON file is broken (see pre-commit.hook).

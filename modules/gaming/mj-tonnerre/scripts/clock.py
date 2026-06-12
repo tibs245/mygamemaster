@@ -2,7 +2,7 @@
 """
 clock.py — Faction clock advancer for MJ Tonnerre.
 
-Reads `etat_global.faction_actions_horloge`, computes the CURRENT GAME TIME
+Reads `global_state.faction_actions_horloge`, computes the CURRENT GAME TIME
 deterministically, and for each action in PINNED DEADLINE format marks its
 status:
 
@@ -25,7 +25,7 @@ PINNED deadline format consumed EXACTLY (cf. mission):
   }
 
 Current game time (reuses the heuristic from check_session.py):
-  - UT regime      → last `t` from evenements.json (in UT)
+  - UT regime      → last `t` from events.json (in UT)
   - narrative regime → max "Jour N" mentioned (chronology + sessions)
 The `echeance.unite` field determines the comparison scale:
   - "ut"   → compare to current `t` (UT)
@@ -36,7 +36,7 @@ FLAGGED (they cannot be advanced by machine).
 
 Usage:
   python3 clock.py <path/campaign>                 # --dry-run (default): report only
-  python3 clock.py <path/campaign> --apply         # writes status to monde.json
+  python3 clock.py <path/campaign> --apply         # writes status to world.json
   python3 clock.py <path/campaign> --json          # machine report
   python3 clock.py <path/campaign> --faction NAME  # filter one faction
 
@@ -56,10 +56,10 @@ from pathlib import Path
 
 # ─── Normalisation (consistent with check_session.py) ───────────────────────
 
-def normaliser(nom: str) -> str:
-    if not nom:
+def normaliser(name: str) -> str:
+    if not name:
         return ""
-    s = unicodedata.normalize("NFKD", nom)
+    s = unicodedata.normalize("NFKD", name)
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s]", " ", s)
@@ -76,7 +76,7 @@ def charger_json(chemin: Path):
 
 def est_regime_ut(monde: dict) -> bool:
     """True if the campaign is running in UT regime (Time Units)."""
-    temps = monde.get("meta", {}).get("temps", {})
+    temps = monde.get("meta", {}).get("time", {})
     regime = str(temps.get("regime", "")).lower()
     if "ut" in regime:
         return True
@@ -90,9 +90,9 @@ def unite_attendue(monde: dict) -> str:
 
 
 def t_courant_ut(campagne: Path, monde: dict) -> int:
-    """Current game time in UT: last `t` from evenements.json.
+    """Current game time in UT: last `t` from events.json.
     Fallback: meta.temps suivi.t_actuel, then 0."""
-    evt_path = campagne / "evenements.json"
+    evt_path = campagne / "events.json"
     if evt_path.exists():
         try:
             data = charger_json(evt_path)
@@ -105,7 +105,7 @@ def t_courant_ut(campagne: Path, monde: dict) -> int:
                 return meta_t
         except (OSError, json.JSONDecodeError, KeyError):
             pass
-    suivi = monde.get("regles", {}).get("temps", {}).get("suivi", {})
+    suivi = monde.get("rules", {}).get("time", {}).get("suivi", {})
     if isinstance(suivi.get("t_actuel"), int):
         return suivi["t_actuel"]
     return 0
@@ -117,13 +117,13 @@ def jour_courant(campagne: Path, monde: dict) -> int:
     in UT regime, derived from current t / units_per_day. Min 1."""
     jours = {1}
 
-    temps = monde.get("meta", {}).get("temps", {})
+    temps = monde.get("meta", {}).get("time", {})
     upd = temps.get("units_per_day")
     if upd:
         t = t_courant_ut(campagne, monde)
         jours.add(t // upd + 1)
 
-    chrono = monde.get("etat_global", {}).get("chronologie", "")
+    chrono = monde.get("global_state", {}).get("chronologie", "")
     if isinstance(chrono, str):
         for m in re.findall(r"[Jj]our\s+(\d+)", chrono):
             jours.add(int(m))
@@ -202,11 +202,11 @@ def evaluer_echeance(ech: dict, courant: dict) -> dict:
 # ─── Full analysis ───────────────────────────────────────────────────────────
 
 def analyser(campagne: Path, filtre_faction: str | None) -> dict:
-    monde = charger_json(campagne / "monde.json")
+    monde = charger_json(campagne / "world.json")
     courant = temps_courant(campagne, monde)
     unite_camp = unite_attendue(monde)
 
-    horloge = monde.get("etat_global", {}).get("faction_actions_horloge", {})
+    horloge = monde.get("global_state", {}).get("faction_actions_horloge", {})
     entrees = horloge.get("actions", []) if isinstance(horloge, dict) else []
 
     filtre = normaliser(filtre_faction) if filtre_faction else None
@@ -270,7 +270,7 @@ def analyser(campagne: Path, filtre_faction: str | None) -> dict:
 def appliquer(rapport: dict, campagne: Path) -> int:
     """Writes the computed status to echeance.statut (--apply mode).
     Does not touch deadlines already 'resolue'. Returns the number of
-    statuses modified. Rewrites monde.json (atomic via temporary file)."""
+    statuses modified. Rewrites world.json (atomic via temporary file)."""
     n_modif = 0
     for it in rapport["items"]:
         ref = it.get("_ref")
@@ -288,7 +288,7 @@ def appliquer(rapport: dict, campagne: Path) -> int:
 
     if n_modif:
         monde = rapport["_monde"]
-        chemin = campagne / "monde.json"
+        chemin = campagne / "world.json"
         tmp = chemin.with_suffix(".json.tmp")
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(monde, f, ensure_ascii=False, indent=2)
@@ -314,7 +314,7 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 clock.py .hermes/mj-tonnerre/campagnes/la-naissance-dun-roi\n"
+            "  python3 clock.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
             "  python3 clock.py <campagne> --apply\n"
             "  python3 clock.py <campagne> --faction 'La Bande du Corbeau' --json\n"
         ),
@@ -324,7 +324,7 @@ def main(argv=None) -> int:
     mode.add_argument("--dry-run", action="store_true", default=True,
                       help="Report only, write nothing (DEFAULT).")
     mode.add_argument("--apply", action="store_true",
-                      help="Writes echeance.statut to monde.json.")
+                      help="Writes echeance.statut to world.json.")
     parser.add_argument("--faction", default=None,
                         help="Filter on one faction (name).")
     parser.add_argument("--json", action="store_true", dest="as_json",
@@ -337,8 +337,8 @@ def main(argv=None) -> int:
     if not campagne.is_dir():
         print(f"❌ Campaign not found: {campagne}", file=sys.stderr)
         return 2
-    if not (campagne / "monde.json").exists():
-        print(f"❌ monde.json not found in {campagne}", file=sys.stderr)
+    if not (campagne / "world.json").exists():
+        print(f"❌ world.json not found in {campagne}", file=sys.stderr)
         return 2
 
     try:
@@ -396,7 +396,7 @@ def main(argv=None) -> int:
              f"{rapport['n_approche']} approaching, "
              f"{rapport['n_chaines']} unparsable string(s).")
     if args.apply:
-        bilan += f" {n_modif} status(es) written to monde.json."
+        bilan += f" {n_modif} status(es) written to world.json."
     print(bilan)
 
     return 1 if rapport["n_echue"] else 0
