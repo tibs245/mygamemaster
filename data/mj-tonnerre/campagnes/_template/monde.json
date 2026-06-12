@@ -6,6 +6,7 @@
     "ton": "",
     "mj": "MJ Tonnerre",
     "date_creation": "",
+    "langue": "",
     "inspirations": [],
     "temps": {
       "_note": "regime = nature du suivi temporel. 'Narratif' (le MJ estime les durées) OU 'UT' (Unités de Temps strictes, ex. 1 UT = 10 min, 144 UT/jour). 'suivi' porte le point de départ (jour/heure) — voir aussi regles.temps.suivi.",

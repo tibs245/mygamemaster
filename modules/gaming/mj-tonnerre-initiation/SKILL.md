@@ -49,6 +49,23 @@ Guide the GM (or the group) through a structured questionnaire to create a new c
 
 Ask questions in order, one by one or in logical blocks. Let the group answer. Be enthusiastic — a new campaign is an exciting moment!
 
+#### Block 0: Table Language (ask FIRST, before anything else)
+
+**Before the first narrative question, establish the table language.** This setting persists in
+`monde.json > meta.langue` and controls the language the GM will use for all player-facing output.
+
+Ask:
+
+> "What language should I use at this table? (e.g. English, French, Spanish…)
+> This will be the language of all narration, NPC dialogue, and questions throughout the campaign."
+
+- If the game was configured with a `language` in `games.yml`, **confirm** it rather than asking
+  from scratch: *"I see this game is configured for [language] — confirm, or tell me if you'd like
+  a different one."*
+- Accept any answer and record it verbatim in `meta.langue` (see Step 4 below).
+- From this point on, **switch to that language for all player-facing content** in the onboarding
+  and throughout the campaign.
+
 #### Block 1: Campaign Identity
 
 1. **Campaign name** — A title that pops. "The Shadows of Eryndor", "Chrome & Sacrifices", "The Last Tavern Before the Apocalypse"...
@@ -211,7 +228,10 @@ For each character, generate:
 Create the files:
 
 1. Copy template → `campaigns/<campaign-name>/world.json`
-2. Fill `world.json` with questionnaire answers + generated world
+2. Fill `world.json` with questionnaire answers + generated world, including `meta.langue` set to
+   the language confirmed in Block 0 (e.g. `"langue": "en"` or `"langue": "fr"`). This field
+   documents the table language in the campaign file so it is visible to any agent or script that
+   reads `monde.json`.
 2bis. **Write the `modules` block** at the root of `world.json` (at the same level as `meta`, `system`, `rules`, `global_state`, `world`), based on choices from question 10bis. Repeat the `_schema` from the template below **word for word** (it documents the contract for the main skill), and set `active: true/false` according to what the GM requested. Empty `params: {}` = module defaults.
 
    ```json
