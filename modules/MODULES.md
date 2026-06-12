@@ -59,6 +59,28 @@ narrative clock (`clock.py`), validation (`validate_schema.py`, `validate_json.p
 > `/opt/hermes/.venv/bin`). NPC/Faction agents ("level 2") will be deployed as additional
 > containers in a later phase (see `specs/profiles-vers-conteneurs.md`).
 
+## UI strings localization (runtime i18n)
+
+The GM's **narration** comes from the LLM in the player's language. The engine's
+**fixed scaffolding strings** (scene-brief column labels, the Steward "Persisted"
+block, pause/resume notes, scoreboard headers, the compact state labels) are
+localized at runtime by the dependency-free helper `mj-tonnerre/scripts/i18n.py`:
+
+- `t(key, lang=None, **kwargs)` looks up a translation table. The **default and
+  fallback locale is English** (`en`): an unknown key, an unknown language, or a
+  locale lacking the key all degrade to the English string — **fail-open**, so
+  the output is byte-identical when the language is `en` or unresolved.
+- The active language is resolved by `resolve_lang(monde)` from a **single
+  cascade**: env `MJ_LANGUAGE` > `monde.json > meta.langue` > `en`. Hooks reach
+  it through `_lib.lang(monde)` and `_lib.t(...)`.
+- Locales shipped: `en` (reference) and `fr` (first additional locale).
+
+**Adding a locale**: in `scripts/i18n.py`, add a `<code>` dict to `TABLES`
+mapping the same keys as the `en` table (translate only what you need — missing
+keys fall back to English). Then expose the language via `monde.json > meta.langue`
+(e.g. `"de"`) or the `MJ_LANGUAGE` env var. Tag normalization is tolerant
+(`fr-FR`, `FR`, `fr_FR` → `fr`). Covered by `scripts/tests/test_i18n.py`.
+
 ## Runtime hooks (systematic mechanisms)
 
 `mj-tonnerre/hooks/` contains the **Hermes runtime hooks** — scripts executed by the gateway

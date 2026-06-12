@@ -47,6 +47,7 @@ def _player_asked_internals(payload):
 def handle(payload):
     camp = L.campaign_dir(payload)
     monde = L.load_monde(camp)
+    lg = L.lang(monde)                              # active UI language (fail-open → 'en')
     cfg = L.hooks_cfg(monde)
     bypass = L.is_bypassed(payload, monde, camp)   # pause OR admin → scrub / block / CSV
     paused = L.pause_active(payload, monde, camp)   # pause ONLY → judge gate (decoupled from admin)
@@ -128,7 +129,7 @@ def handle(payload):
     # ── Response augmentation (Steward "Persisted" block) ──
     block = ""
     if not bypass and cfg["banquier_persiste"] and original is not None:
-        block = render_block(lvl, persisted, errors)
+        block = render_block(lvl, persisted, errors, lg)
         # Judge feedback is NOT shown to the player (transparency) — except in debug.
         if violations and lvl in ("DEBUG", "TRACE"):
             note = J.format_feedback(violations, prefix="🔧 Juge (interne)")
@@ -144,9 +145,9 @@ def handle(payload):
     pause_note = ""
     if original is not None:
         if paused:
-            pause_note = "⏸️ *Pause active — the game is suspended. Send ▶️ (or `!reprise`) to resume.*"
+            pause_note = L.t("pause.active", lg)
         elif just_resumed:
-            pause_note = "▶️ *Game resumed.*"
+            pause_note = L.t("pause.resumed", lg)
 
     # INVARIANT: {"response": …} is only emitted if the original was retrieved.
     if original is None:
@@ -222,7 +223,7 @@ def _judge_sample(camp, payload, n):
     return c % n == 0
 
 
-def render_block(lvl, persisted, errors):
+def render_block(lvl, persisted, errors, lang=None):
     err_lines = [e.get("phrase") for e in errors if e.get("phrase")]
     # The "Persisted" block is INTERNAL by default (player channel consistency, R4):
     # only DEBUG/TRACE expose deltas in the thread. At other levels, only
@@ -233,10 +234,8 @@ def render_block(lvl, persisted, errors):
     body.extend(err_lines)
     if not body:
         return ""
-    header = {
-        "DEBUG": "💾 Persisted:",
-        "TRACE": "🔎 Persistence trace:",
-    }.get(lvl, "💾 Persisted:")
+    header = (L.t("persisted.trace_header", lang) if lvl == "TRACE"
+              else L.t("persisted.header", lang))
     return header + "\n" + "\n".join(body)
 
 

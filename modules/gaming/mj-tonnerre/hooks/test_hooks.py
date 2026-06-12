@@ -494,6 +494,41 @@ def main():
         check("no auto-commit on broken JSON",
               not os.path.isdir(os.path.join(campb, ".git")))
 
+        # ── 13. i18n — UI strings localized at runtime (en default, fr locale) ──
+        print("\n[13] i18n — runtime localization of UI strings")
+        sys.path.insert(0, HOOKS_DIR)
+        import _lib as L  # noqa: E402
+
+        # English (default): byte-identical to historical output.
+        check("t() default = English", L.t("pause.resumed") == "▶️ *Game resumed.*")
+        check("t() fr returns French", L.t("pause.resumed", "fr") == "▶️ *Partie reprise.*")
+        check("t() unknown lang → English fallback", L.t("brief.stakes", "de") == "STAKES")
+
+        # lang() cascade: meta.langue resolves the campaign language.
+        check("lang() reads meta.langue", L.lang({"meta": {"langue": "fr"}}) == "fr")
+        check("lang() default en", L.lang({}) == "en")
+
+        # etat_brief localized: FR campaign → French labels, EN unchanged.
+        campfr = build_fixture(os.path.join(root, "fr"))
+        write_json(os.path.join(campfr, "monde.json"), {
+            "meta": {"nom": "Test", "temps": {"regime": "Narratif"},
+                     "verbosite": "INFO", "langue": "fr"},
+            "modules": {}, "etat_global": {}, "univers": {"regions": []},
+        })
+        mfr = L.load_monde(L.campaign_dir({"cwd": campfr}))
+        eb_fr = L.etat_brief(L.campaign_dir({"cwd": campfr}), mfr)
+        check("etat_brief FR labels", "Temps :" in eb_fr and "PJ Rubis" in eb_fr, eb_fr[:60])
+        mfr["meta"]["langue"] = "en"
+        eb_en = L.etat_brief(L.campaign_dir({"cwd": campfr}), mfr)
+        check("etat_brief EN labels unchanged", "Time:" in eb_en and "PC Rubis" in eb_en, eb_en[:60])
+
+        # transform_llm_output: FR pause banner end-to-end (subprocess).
+        outfr, _ = run_hook("transform_llm_output.py", {
+            "cwd": campfr, "session_id": "sfr", "message": "⏸️ aparté",
+            "response": "Une longue narration." * 5, "extra": {"model": "m"}})
+        check("FR pause banner via transform", "Pause active — la partie" in outfr.get("response", ""),
+              json.dumps(outfr)[:120])
+
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

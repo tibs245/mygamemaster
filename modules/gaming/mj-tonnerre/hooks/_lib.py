@@ -22,6 +22,30 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+# ─── i18n (UI strings localization, fail-open → English) ─────────────────────
+# The shared helper lives in ../scripts. Importing it here exposes `t()` and the
+# active-language resolver to every hook through this lib. If (improbably) it is
+# unavailable, we degrade to an English-only identity shim (strict fail-open).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "scripts"))
+try:
+    import i18n as _i18n  # noqa: E402
+
+    def t(key, lang=None, **kwargs):
+        return _i18n.t(key, lang, **kwargs)
+except Exception:  # pragma: no cover - safety net if scripts/ is detached
+    _i18n = None
+
+    def t(key, lang=None, **kwargs):
+        return key
+
+
+def lang(monde):
+    """Active UI language for this campaign (env MJ_LANGUAGE > meta.langue > 'en')."""
+    if _i18n is not None:
+        return _i18n.resolve_lang(monde)
+    return "en"
+
 # ─── Payload & output ────────────────────────────────────────────────────────
 
 
@@ -545,31 +569,37 @@ def _decide_sample(camp, payload, monde, has_error):
 
 
 def etat_brief(camp, monde, for_judge=False):
-    """Authoritative state summary. Reused by injection and the judge."""
+    """Authoritative state summary. Reused by injection and the judge.
+
+    Player-facing labels are localized via t(); English (default/fallback) keeps
+    the output byte-identical to before."""
+    lg = lang(monde)
     lines = []
     suivi = (((monde.get("regles") or {}).get("temps") or {}).get("suivi")) or {}
     if suivi.get("jour_courant") or suivi.get("heure_courante"):
-        lines.append("Time: day %s, %s" % (suivi.get("jour_courant", "?"), suivi.get("heure_courante", "?")))
+        lines.append(t("etat.time_dated", lg,
+                       day=suivi.get("jour_courant", "?"),
+                       hour=suivi.get("heure_courante", "?")))
     else:
         regime = (meta(monde).get("temps") or {}).get("regime", "Narratif")
-        lines.append("Time: regime %s (estimated durations)" % regime)
+        lines.append(t("etat.time_regime", lg, regime=regime))
     for _, fiche in iter_personnages(camp):
         nom = (fiche.get("meta") or {}).get("nom_perso") or "?"
         sante = fiche.get("sante") or {}
         inv = fiche.get("inventaire") or []
         equ = fiche.get("equipement") or []
-        head = "PC %s" % nom
+        head = t("etat.pc", lg, name=nom)
         if sante.get("pv_actuels") is not None:
             head += " (❤️ %s/%s PV)" % (sante.get("pv_actuels"), sante.get("pv_max", "?"))
         lines.append(head)
         objets = [str(x) for x in (list(inv) + list(equ))]
         if objets:
-            lines.append("  has: " + truncate(", ".join(objets), 400))
+            lines.append(t("etat.has", lg) + truncate(", ".join(objets), 400))
     pnj = load_pnj_list(camp)
     if pnj:
         noms = [str(f.get("nom")) for f in pnj if isinstance(f, dict) and f.get("nom")]
         if noms:
-            lines.append("Existing NPCs: " + truncate(", ".join(noms), 300))
+            lines.append(t("etat.existing_npcs", lg) + truncate(", ".join(noms), 300))
     return "\n".join(lines)
 
 

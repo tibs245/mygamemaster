@@ -48,6 +48,7 @@ import unicodedata
 from pathlib import Path
 
 import worldlib as W
+from i18n import t, resolve_lang
 
 # geo_query is imported best-effort: if (improbably) unavailable, we
 # degrade to worldlib directly rather than crashing (strict fail-open).
@@ -523,11 +524,15 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
     # Campaign PCs (generic, fail-open): meta.pj_ids > meta.pj_id >
     # env MJ_PJ_ID > []. A campaign can have MULTIPLE PCs. Empty list ⇒ the
     # relational "toward the player" section is simply empty.
+    # Active UI language (fail-open → 'en'): env MJ_LANGUAGE > meta.langue > 'en'.
     try:
-        pj_set = set(W.pj_ids(W.charger_json(campagne / "monde.json", {}) or {}))
+        _monde = W.charger_json(campagne / "monde.json", {}) or {}
+        pj_set = set(W.pj_ids(_monde))
+        lang = resolve_lang(_monde)
     except Exception as e:
         _log(f"ℹ scene_brief : pj_ids unavailable ({e}) — no PC targeted.")
         pj_set = set()
+        lang = resolve_lang(None)
 
     try:
         geo = W.charger_geo(campagne)
@@ -569,10 +574,10 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
 
     # Text rendering (always, even minimal).
     try:
-        brief["texte"] = _rendre_texte(brief, acteurs)
+        brief["texte"] = _rendre_texte(brief, acteurs, lang)
     except Exception as e:
         _log(f"ℹ scene_brief : text rendering degraded ({e}).")
-        brief["texte"] = _rendre_texte_minimal(brief)
+        brief["texte"] = _rendre_texte_minimal(brief, lang)
 
     return brief
 
@@ -593,8 +598,12 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
 _ETIQ = 10
 
 
-def _rendre_texte(brief: dict, acteurs: dict) -> str:
-    """Renders the framed block of the SCENE BRIEF (frozen template §9.2)."""
+def _rendre_texte(brief: dict, acteurs: dict, lang: str | None = None) -> str:
+    """Renders the framed block of the SCENE BRIEF (frozen template §9.2).
+
+    All player-facing labels go through the i18n helper `t(..., lang)`; with the
+    default/fallback locale (English) the output is byte-identical to before.
+    """
     idx_act = W.index_acteurs(acteurs) if isinstance(acteurs, dict) else {}
     T = brief.get("T", 0)
     narr = W.t_vers_narratif(T)
@@ -604,11 +613,11 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
     # LIEU (always present).
     nom = brief.get("_nom_lieu")
     desc = brief.get("_desc_lieu")
-    lieu_txt = brief.get("lieu") or "(unknown location)"
+    lieu_txt = brief.get("lieu") or t("brief.unknown_location", lang)
     if nom:
         suffixe = f" — « {_compacter(desc, 60)} »" if desc else f" — « {nom} »"
         lieu_txt = f"{brief.get('lieu')}{suffixe}"
-    lignes.append(["LOCATION", lieu_txt])
+    lignes.append([t("brief.location", lang), lieu_txt])
 
     # AUTOUR: "DIR → name (duration) · …" (closest first).
     autour = brief.get("autour", [])
@@ -620,7 +629,7 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
             nom_v = _nom_lieu_court(a.get("vers"), idx_act)
             duree = _duree_narr(a.get("temps_ut"))
             morceaux.append(f"{a.get('dir', '?')} → {nom_v} ({duree})")
-        lignes.append(["AROUND", _joindre(morceaux, " · ", reste)])
+        lignes.append([t("brief.around", lang), _joindre(morceaux, " · ", reste, lang)])
 
     # PRÉSENTS: "id (name) · …".
     presents = brief.get("presents", [])
@@ -631,7 +640,7 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
             nom_p = p.get("nom")
             etiq = p.get("id")
             morceaux.append(f"{etiq} ({nom_p})" if nom_p and nom_p != etiq else f"{etiq}")
-        lignes.append(["PRESENT", _joindre(morceaux, " · ", reste)])
+        lignes.append([t("brief.present", lang), _joindre(morceaux, " · ", reste, lang)])
 
     # MOUVEMENT: actors in motion who cross (narrative, never raw T).
     mouvement = brief.get("mouvement", [])
@@ -642,8 +651,8 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
             nom_m = _nom_acteur_court(m.get("acteur"), idx_act)
             lieu_m = _nom_lieu_court(m.get("lieu"), idx_act)
             quand = m.get("narratif") or W.t_vers_narratif(m.get("T", T))
-            morceaux.append(f"{nom_m} crosses {lieu_m} ({quand})")
-        lignes.append(["MOVEMENT", _joindre(morceaux, " ; ", reste)])
+            morceaux.append(f"{nom_m} {t('brief.crosses', lang)} {lieu_m} ({quand})")
+        lignes.append([t("brief.movement", lang), _joindre(morceaux, " ; ", reste, lang)])
 
     # RÉCENT: "JN <label> ; …" (most recent first).
     recent = brief.get("recent", [])
@@ -651,14 +660,14 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
         ordonne = sorted(recent, key=lambda x: x.get("T", 0), reverse=True)
         gardes, reste = _plafonner(ordonne, MAX_RECENT)
         morceaux = [f"{_jour_court(r.get('T'))} {r.get('label')}" for r in gardes]
-        lignes.append(["RECENT", _joindre(morceaux, " ; ", reste)])
+        lignes.append([t("brief.recent", lang), _joindre(morceaux, " ; ", reste, lang)])
 
     # IMMINENT: "⏰ <label> JN ; …" (nearest first).
     imminent = brief.get("imminent", [])
     if imminent:
         gardes, reste = _plafonner(imminent, MAX_IMMINENT)
         morceaux = [f"⏰ {i.get('label')} {_jour_court(i.get('T'))}" for i in gardes]
-        lignes.append(["IMMINENT", _joindre(morceaux, " ; ", reste)])
+        lignes.append([t("brief.imminent", lang), _joindre(morceaux, " ; ", reste, lang)])
 
     # ENJEUX: "actor (type .X) [toward the player] ; …".
     enjeux = brief.get("enjeux", [])
@@ -670,22 +679,23 @@ def _rendre_texte(brief: dict, acteurs: dict) -> str:
             typ = e.get("type", "?")
             inten = e.get("intensite")
             inten_txt = f" {_intensite_courte(inten)}" if inten is not None else ""
-            cible = " (toward the player)" if e.get("_vers_pj") else ""
+            cible = t("brief.toward_player", lang) if e.get("_vers_pj") else ""
             morceaux.append(f"{nom_e} ({typ}{inten_txt}){cible}")
-        lignes.append(["STAKES", _joindre(morceaux, " ; ", reste)])
+        lignes.append([t("brief.stakes", lang), _joindre(morceaux, " ; ", reste, lang)])
 
-    return _encadrer(f"SCENE BRIEF ─ T={T} ({narr})", lignes)
+    return _encadrer(f"{t('brief.title', lang)} ─ T={T} ({narr})", lignes)
 
 
-def _rendre_texte_minimal(brief: dict) -> str:
+def _rendre_texte_minimal(brief: dict, lang: str | None = None) -> str:
     """Ultra-robust fallback rendering (if _rendre_texte raises): LOCATION only."""
     T = brief.get("T", 0)
     try:
         narr = W.t_vers_narratif(T)
     except Exception:
         narr = "?"
-    lignes = [["LOCATION", str(brief.get("lieu") or "(unknown location)")]]
-    return _encadrer(f"SCENE BRIEF ─ T={T} ({narr})", lignes)
+    lignes = [[t("brief.location", lang),
+               str(brief.get("lieu") or t("brief.unknown_location", lang))]]
+    return _encadrer(f"{t('brief.title', lang)} ─ T={T} ({narr})", lignes)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -845,11 +855,13 @@ def _plafonner(items: list, maximum: int) -> tuple[list, int]:
     return list(items[:maximum]), len(items) - maximum
 
 
-def _joindre(morceaux: list[str], sep: str, reste: int) -> str:
-    """Joins pieces with `sep` and appends "(+N autres)" if `reste` > 0."""
+def _joindre(morceaux: list[str], sep: str, reste: int,
+             lang: str | None = None) -> str:
+    """Joins pieces with `sep` and appends "(+N more)" if `reste` > 0."""
     texte = sep.join(morceaux)
     if reste > 0:
-        texte = f"{texte}{sep}(+{reste} more)" if texte else f"(+{reste} more)"
+        more = t("brief.more", lang, n=reste)
+        texte = f"{texte}{sep}{more}" if texte else more
     return texte
 
 
