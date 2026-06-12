@@ -50,6 +50,10 @@ def handle(payload):
         brief = build_scene_brief(camp, payload, monde)  # fail-open: "" if unavailable
         if brief:
             parts.append(brief)
+    if cfg.get("pnj_faction_vivants"):  # gated by features.pnj_faction_vivants
+        emo = build_emotions_brief(camp)  # fail-open: "" if unavailable
+        if emo:
+            parts.append(emo)
     ctx = "\n\n".join(p for p in parts if p)
     return {"context": ctx} if ctx else {}
 
@@ -98,6 +102,28 @@ def build_scene_brief(camp, payload, monde):
         )
         # scene_brief.py: code 0 ALWAYS (fail-open), 2 if campaign not found.
         if proc.returncode != 0:
+            return ""
+        return (proc.stdout or "").strip()
+    except Exception:
+        return ""  # never break a turn for a branch
+
+
+def build_emotions_brief(camp):
+    """Compact NPC emotional summary (skill mj-tonnerre-emotions) — calls
+    emotions.py `summary`, which prints one line per NPC carrying an
+    `emotions` object (capped, no context bloat) so the GM portrays them
+    consistently: show through behavior, never state feelings to players.
+    Absolute FAIL-OPEN: no emotions data / missing script / timeout → ""
+    (the turn proceeds without the block)."""
+    try:
+        script = _scripts_dir() / "emotions.py"
+        if not script.exists():
+            return ""
+        proc = subprocess.run(
+            [sys.executable, str(script), "summary", str(camp)],
+            capture_output=True, text=True, timeout=8,
+        )
+        if proc.returncode != 0:  # emotions.py summary: code 0 ALWAYS (fail-open)
             return ""
         return (proc.stdout or "").strip()
     except Exception:

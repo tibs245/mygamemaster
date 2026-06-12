@@ -69,6 +69,38 @@
         "Wants to see Thornwick safe even at personal cost — guilt has accumulated for a century",
         "Hopes the players will find a loophole he has been unable to see, being too close to the problem"
       ]
+    },
+    "emotions": {
+      "etat": {
+        "joie": 0.3,
+        "confiance": 0.4,
+        "peur": 0.5,
+        "colere": 0.1,
+        "tristesse": 0.6,
+        "surprise": 0.15
+      },
+      "temperament": {
+        "joie": 0.2,
+        "confiance": 0.25,
+        "peur": 0.35,
+        "colere": 0.1,
+        "tristesse": 0.4,
+        "surprise": 0.0
+      },
+      "historique": [
+        {
+          "evenement": "bad_news",
+          "deltas": { "tristesse": 0.2, "peur": 0.15, "surprise": 0.15 },
+          "raison": "The Veil took two more villagers — the Court is close to its count",
+          "session": 1
+        },
+        {
+          "evenement": "kindness",
+          "deltas": { "confiance": 0.15, "joie": 0.1 },
+          "raison": "The newcomers agreed to help Thornwick without demanding payment",
+          "session": 1
+        }
+      ]
     }
   },
   {
@@ -141,6 +173,25 @@
         "Complete the century debt cleanly and establish the permanent gateway — her Court requires it",
         "Acquire the bargain on terms both sides will remember as fair — she values reputation"
       ]
+    },
+    "emotions": {
+      "etat": {
+        "joie": 0.1,
+        "confiance": 0.2,
+        "peur": 0.0,
+        "colere": 0.0,
+        "tristesse": 0.0,
+        "surprise": 0.0
+      },
+      "temperament": {
+        "joie": 0.1,
+        "confiance": 0.2,
+        "peur": 0.0,
+        "colere": 0.0,
+        "tristesse": 0.0,
+        "surprise": 0.0
+      },
+      "historique": []
     }
   },
   {
@@ -214,6 +265,38 @@
         "Wants the Veil gone permanently — she is tired of sleeping with one eye open",
         "Will help anyone who seems genuinely able to end it, even at personal risk"
       ]
+    },
+    "emotions": {
+      "etat": {
+        "joie": 0.45,
+        "confiance": 0.55,
+        "peur": 0.45,
+        "colere": 0.15,
+        "tristesse": 0.3,
+        "surprise": 0.0
+      },
+      "temperament": {
+        "joie": 0.35,
+        "confiance": 0.3,
+        "peur": 0.3,
+        "colere": 0.15,
+        "tristesse": 0.3,
+        "surprise": 0.0
+      },
+      "historique": [
+        {
+          "evenement": "adjust",
+          "deltas": { "peur": 0.15 },
+          "raison": "The mist gathers closer to the inn's treeline each night",
+          "session": 1
+        },
+        {
+          "evenement": "promise_kept",
+          "deltas": { "confiance": 0.25, "joie": 0.1 },
+          "raison": "The newcomers swore on cold iron not to lead the Veil to her inn",
+          "session": 1
+        }
+      ]
     }
   },
   {
@@ -276,6 +359,32 @@
       ],
       "motivations_personnelles": [
         "Obey the Lady of Sighs — observe, report, guide players toward the Veil"
+      ]
+    },
+    "emotions": {
+      "etat": {
+        "joie": 0.05,
+        "confiance": 0.0,
+        "peur": 0.5,
+        "colere": 0.2,
+        "tristesse": 0.0,
+        "surprise": 0.0
+      },
+      "temperament": {
+        "joie": 0.05,
+        "confiance": 0.1,
+        "peur": 0.2,
+        "colere": 0.05,
+        "tristesse": 0.0,
+        "surprise": 0.0
+      },
+      "historique": [
+        {
+          "evenement": "threat",
+          "deltas": { "peur": 0.3, "colere": 0.15, "confiance": -0.1 },
+          "raison": "The newcomers carry cold iron openly — getting close will hurt",
+          "session": 1
+        }
       ]
     }
   }

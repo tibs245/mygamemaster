@@ -370,6 +370,37 @@ python3 $SCRIPTS/voir_pnj.py $CAMP --list
 
 ---
 
+## 12. `emotions.py` — Character Emotions (skill `mj-tonnerre-emotions`)
+
+Tracks a character's emotional state (6 emotions 0..1: `joie`, `confiance`,
+`peur`, `colere`, `tristesse`, `surprise`) and makes it **evolve logically**:
+named events map to a fixed delta table (`list-events`), free-form `adjust`
+requires a reason, `decay` pulls the state back toward the character's
+`temperament` baseline. Every shift is journaled (event, effective deltas,
+reason, session) — **explainable, never arbitrary**. Persists into the sheet
+itself: `pnj.json` (NPCs, canonical) or `personnages/*.json` (opt-in PCs).
+`summary` prints the compact GM block injected by `pre_llm_call` (fail-open:
+no data → empty output, **always exit 0**).
+
+**Signature**
+```
+python3 emotions.py get     <campaign> <name> [--json]
+python3 emotions.py init    <campaign> <name> [emotion=val ...] [--force]
+python3 emotions.py apply   <campaign> <name> --event E [--intensity F] [--reason TXT] [--session N]
+python3 emotions.py adjust  <campaign> <name> emotion=±delta [...] --reason TXT [--session N]
+python3 emotions.py decay   <campaign> [<name>] [--rate F]
+python3 emotions.py summary <campaign> [--max N]
+python3 emotions.py list-events
+```
+
+```
+python3 $SCRIPTS/emotions.py apply $CAMP "Petra" --event promise_kept \
+        --reason "The players swore on cold iron" --session 1
+python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
+```
+
+---
+
 ## Summary of New Exit Codes
 
 | Script | Exit 0 | Exit 1 | Exit 2 |
@@ -379,3 +410,4 @@ python3 $SCRIPTS/voir_pnj.py $CAMP --list
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |
 | `voir_pnj.py` | NPC found / `--list` | not found or ambiguous | pnj.json not found/usage |
+| `emotions.py` | OK (`summary` ALWAYS 0 — fail-open) | not found / ambiguous / unknown event | campaign not found / bad pair syntax |

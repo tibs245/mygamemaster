@@ -494,6 +494,54 @@ def main():
         check("no auto-commit on broken JSON",
               not os.path.isdir(os.path.join(campb, ".git")))
 
+        # ── 13. NPC emotions injection (skill mj-tonnerre-emotions) ─────────
+        print("\n[13] pre_llm_call — NPC emotions brief (fail-open)")
+        campm = build_fixture(os.path.join(root, "emotions"))
+        # 13a — no emotions data → no block (absent emotions = no behavior change).
+        out, _ = run_hook("pre_llm_call.py", {
+            "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
+        check("no emotions data → no NPC EMOTIONS block",
+              "NPC EMOTIONS" not in out.get("context", ""))
+        # 13b — Berthe carries an `emotions` object → one concise line injected.
+        pnjm = os.path.join(campm, "pnj.json")
+        datam = json.load(open(pnjm, encoding="utf-8"))
+        datam[0]["emotions"] = {
+            "etat": {"joie": 0.3, "confiance": 0.1, "peur": 0.7,
+                     "colere": 0.2, "tristesse": 0.2, "surprise": 0.0},
+            "temperament": {"joie": 0.3, "confiance": 0.3, "peur": 0.2,
+                            "colere": 0.1, "tristesse": 0.2, "surprise": 0.0},
+            "historique": [{"evenement": "threat", "deltas": {"peur": 0.3},
+                            "raison": "bandits at the mill", "session": 9}],
+        }
+        write_json(pnjm, datam)
+        out, _ = run_hook("pre_llm_call.py", {
+            "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
+        ctxm = out.get("context", "")
+        check("emotions block injected", "NPC EMOTIONS" in ctxm, ctxm[:120])
+        check("emotional Berthe listed with reason",
+              "Berthe" in ctxm and "bandits at the mill (S9)" in ctxm)
+        check("NPC without emotions data not listed in the block",
+              "Firmin" not in ctxm.split("NPC EMOTIONS")[-1])
+        # 13c — axis pnj_faction_vivants OFF → block gated off.
+        mondem = json.load(open(os.path.join(campm, "monde.json"), encoding="utf-8"))
+        mondem["meta"]["features"] = {"pnj_faction_vivants": False}
+        write_json(os.path.join(campm, "monde.json"), mondem)
+        out, _ = run_hook("pre_llm_call.py", {
+            "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
+        check("axis OFF → no emotions block, turn intact",
+              "NPC EMOTIONS" not in out.get("context", "")
+              and "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""))
+        # 13d — broken pnj.json → fail-open (state injection survives, no block).
+        mondem["meta"]["features"] = {}
+        write_json(os.path.join(campm, "monde.json"), mondem)
+        with open(pnjm, "w", encoding="utf-8") as fh:
+            fh.write("{ pas du json")
+        out, _ = run_hook("pre_llm_call.py", {
+            "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
+        check("broken pnj.json → fail-open (no block, no crash)",
+              "NPC EMOTIONS" not in out.get("context", "")
+              and "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""))
+
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

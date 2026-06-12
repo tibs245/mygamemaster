@@ -34,6 +34,7 @@ dev mode, see `docs/04-ameliorer-les-modules.md`).
 |---|---|
 | **mj-tonnerre-pnj** | Persistent NPC agent (level 2): embodies ONE non-player character with limited vision, acts like a player toward the GM. |
 | **mj-tonnerre-faction** | Persistent Faction agent (level 2): embodies ONE faction as collective intelligence with limited vision. |
+| **mj-tonnerre-emotions** | Character emotions (primarily NPCs): compact model (6 emotions 0..1 + temperament baseline + explainable history) that evolves via deterministic event rules and decays toward temperament; concise summary injected into the GM context (`pre_llm_call`, fail-open) so portrayal stays consistent — shown through behavior, never told as stats. |
 | **mj-tonnerre-images** | Image generation (scenes, portraits, maps) via pipeline style → templates → instances (OpenRouter / ComfyUI). |
 | **mj-tonnerre-tts** | Qualitative narrative voice: synthesis of ONLY the narration (Minimax T2A v2, `speech-2.8-turbo`, voice `French_Female_Speech_New`). Auto (axis `tts`, hook `transform_llm_output`) + manual (`!raconte`). Two-stage pipeline that offloads the GM model. |
 
@@ -51,8 +52,8 @@ dev mode, see `docs/04-ameliorer-les-modules.md`).
 The umbrella skill `mj-tonnerre/scripts/` provides Python/Bash tooling: dice rolls (`roll.py`),
 narrative clock (`clock.py`), validation (`validate_schema.py`, `validate_json.py`,
 `check_session.py`), wrap-up (`close_session.py`), briefs (`build_brief.py`), campaign loading
-(`load_campaign.py`), faction slices (`faction_slice.py`), orchestration
-(`run_turn.sh`, `ensure_agent.sh`). JSON schemas under `scripts/schemas/`.
+(`load_campaign.py`), faction slices (`faction_slice.py`), character emotions (`emotions.py`),
+orchestration (`run_turn.sh`, `ensure_agent.sh`). JSON schemas under `scripts/schemas/`.
 
 > **Portability note**: `ensure_agent.sh` contains a fallback `/opt/hermes/bin/hermes`;
 > it prefers `HERMES_BIN`/`$PATH`, so it works in the container (binary under

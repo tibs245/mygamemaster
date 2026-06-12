@@ -21,6 +21,44 @@
     }
   ],
   "$defs": {
+    "emotions": {
+      "type": "object",
+      "description": "OPTIONNEL (skill mj-tonnerre-emotions). État émotionnel du personnage : 6 émotions 0..1 (joie, confiance, peur, colere, tristesse, surprise). `etat` = intensités courantes ; `temperament` = ligne de base vers laquelle l'état décroît avec le temps ; `historique` = journal plafonné (20) des variations (évènement, deltas effectifs, raison, session) — chaque changement est EXPLICABLE, jamais arbitraire. Géré par scripts/emotions.py (fail-open : objet absent = aucun changement de comportement).",
+      "additionalProperties": true,
+      "properties": {
+        "etat": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "temperament": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "historique": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["evenement"],
+            "additionalProperties": true,
+            "properties": {
+              "evenement": { "type": "string" },
+              "deltas": { "type": "object" },
+              "raison": { "type": "string" },
+              "session": { "type": ["integer", "string", "null"] },
+              "ts": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "fiche_pnj": {
       "type": "object",
       "required": ["nom", "faits_etablis", "hypotheses_mj"],
@@ -49,7 +87,8 @@
           "type": "array",
           "description": "OPTIONNEL (Niveau 2). For intérieur de l'agent : réflexions, plans, soupçons accumulés tour après tour. Appended par le coordinateur (écrivain unique) via faction_slice.py add-note. Invisible à tous les autres.",
           "items": { "type": "string" }
-        }
+        },
+        "emotions": { "$ref": "#/$defs/emotions" }
       }
     }
   }
