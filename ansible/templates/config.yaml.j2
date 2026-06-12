@@ -1,0 +1,93 @@
+# config.yaml — campaign « {{ campagne_titre }} »  (rendered by Ansible, do not edit by hand)
+# Source of truth: ansible/templates/config.yaml.j2 + the games.yml table
+
+model:
+  default: {{ model | default(default_model) }}
+  provider: {{ provider | default(default_provider) }}
+  base_url: {{ base_url | default(default_base_url) }}
+  api_mode: chat_completions
+
+# Our modules in addition to the stock skills.
+# Point to the folder that DIRECTLY CONTAINS the skills (each skill = a sub-folder
+# with SKILL.md). Our modules live under gaming/ → list gaming/, not the
+# root /opt/modules (the Hermes loader does not recurse: it looks for <dir>/<skill>/SKILL.md).
+skills:
+  external_dirs:
+    - {{ container_modules }}/gaming
+  template_vars: true
+
+# The agent runs its skill scripts in its own container; cwd = campaign data
+terminal:
+  backend: local
+  cwd: {{ container_data_root }}/{{ campagne_data_dir }}
+  persistent_shell: true
+  auto_source_bashrc: true
+
+agent:
+  max_turns: 90
+  reasoning_effort: medium
+  tool_use_enforcement: auto
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 2200
+  user_char_limit: 1375
+
+display:
+  interface: cli
+  language: {{ language | default(default_language) }}
+  streaming: true
+  platforms:
+    discord:
+      streaming: false
+
+discord:
+  require_mention: true
+  auto_thread: true
+  thread_require_mention: false
+  history_backfill: true
+  history_backfill_limit: 50
+  reactions: true
+
+security:
+  redact_secrets: true
+
+logging:
+  level: INFO
+
+# ── MJ Tonnerre runtime hooks (Steward / verbosity / systematic traceability) ──
+# Scripts baked into the image (COPY modules/), invoked via explicit interpreter.
+# Per-campaign fine-tuning in monde.json > meta.{verbosite,diagnostic,admins,hooks}.
+# Global disable: set hooks_enabled: false in the games.yml table.
+# Spec: specs/hooks-runtime.md — Doc: docs/09-hooks-runtime.md
+{% if hooks_enabled | default(true) %}
+{% set hooks_py = hooks_python | default('/opt/hermes/venv/bin/python3') %}
+{% set hooks_dir = container_modules ~ '/gaming/mj-tonnerre/hooks' %}
+hooks:
+  pre_llm_call:
+    - command: "{{ hooks_py }} {{ hooks_dir }}/pre_llm_call.py"
+      timeout: 10
+  pre_tool_call:
+    - matcher: "write_file|patch|edit|apply_patch|str_replace"
+      command: "{{ hooks_py }} {{ hooks_dir }}/pre_tool_call.py"
+      timeout: 10
+  post_tool_call:
+    - matcher: "write_file|patch|edit|apply_patch|str_replace"
+      command: "{{ hooks_py }} {{ hooks_dir }}/post_tool_call.py"
+      timeout: 10
+  transform_llm_output:
+    - command: "{{ hooks_py }} {{ hooks_dir }}/transform_llm_output.py"
+      # 45 s: headroom for auto-TTS (format + Minimax synthesis + ambient mix) when
+      # the `tts` axis is ON and the key is present. Without TTS, the hook stays under ~150 ms.
+      # Generation itself is capped by MJ_TTS_TIMEOUT (default 40 s) on the hook side.
+      timeout: 45
+  on_session_end:
+    - command: "{{ hooks_py }} {{ hooks_dir }}/on_session_end.py"
+      timeout: 30
+# Non-interactive in container (otherwise a consent prompt appears on the first run of each hook).
+hooks_auto_accept: true
+{% else %}
+hooks: {}
+hooks_auto_accept: false
+{% endif %}

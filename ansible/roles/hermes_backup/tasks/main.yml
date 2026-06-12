@@ -1,0 +1,259 @@
+---
+# HYBRID backup of a campaign, with integrity checks (sha256 + archive test) and a manifest.
+#   • HERMES_HOME (memory/sessions/agent state): `hermes backup` → consistent zip HOT
+#     (SQLite backup() API). Falls back to volume export if the container is stopped / frozen.
+#   • Game data (/opt/data, outside HERMES_HOME): volume data export → tar.gz.
+# Artifacts produced on the deployment host, retrieved to the CONTROLLER (Mac), verified, then rotated.
+
+- name: Verify the campaign variable
+  ansible.builtin.assert:
+    that:
+      - campagne_slug is defined
+    fail_msg: "Run with -e game=<slug> (legacy alias -e campagne=<slug> also accepted)."
+
+- name: Create the backup directory (controller)
+  ansible.builtin.file:
+    path: "{{ backup_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+
+- name: Create the working directory (deployment host)
+  ansible.builtin.file:
+    path: "{{ pi_backup_tmp }}"
+    state: directory
+    mode: "0700"
+
+- name: Check that volumes exist
+  ansible.builtin.command:
+    cmd: "podman volume exists {{ item }}"
+  register: _bvol
+  changed_when: false
+  failed_when: false
+  loop:
+    - "{{ volume_data }}"
+    - "{{ volume_home }}"
+
+- name: Fail if a volume is missing
+  ansible.builtin.fail:
+    msg: "Volume {{ item.item }} not found — is the campaign deployed (on the new volume architecture)?"
+  when: item.rc != 0
+  loop: "{{ _bvol.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Is the container running?
+  ansible.builtin.command:
+    cmd: "podman ps --filter name=^{{ container_name }}$ --filter status=running --format {% raw %}'{{.Names}}'{% endraw %}"
+  register: _run
+  changed_when: false
+  failed_when: false
+
+- name: Decide the HERMES_HOME backup method
+  ansible.builtin.set_fact:
+    _running: "{{ (_run.stdout | default('') | trim) | length > 0 }}"
+    _freeze: "{{ backup_freeze | default(false) | bool }}"
+
+- name: Method + file names
+  ansible.builtin.set_fact:
+    # hermes backup (zip, hot) if the container is running AND we are not freezing; otherwise volume export.
+    _home_method: "{{ 'hermes' if (_running and not _freeze) else 'export' }}"
+    _data_file: "{{ backup_set }}-data.tar.gz"
+    _home_file: "{{ backup_set }}-home.{{ 'zip' if (_running and not _freeze) else 'tar.gz' }}"
+
+- name: Warn if HERMES_HOME will be exported cold (fallback method)
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: HERMES_HOME backed up via volume export ({{ 'freeze requested' if _freeze else 'container stopped' }})
+      instead of `hermes backup`. Consistent but includes SQLite WAL/journals.
+  when: _home_method == 'export'
+
+# --- Optional freeze (fully static snapshot) ---
+- name: Freeze the container (stop) before export
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: stopped
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  failed_when: false
+  when: _freeze
+
+# --- Game data: export the data volume ---
+- name: Export the data volume (game)
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman volume export {{ volume_data }} | gzip > {{ pi_backup_tmp }}/{{ _data_file }}
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+# --- HERMES_HOME: hermes backup (hot) OR volume export (cold) ---
+- name: "HERMES_HOME — hermes backup (consistent hot zip)"
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman exec {{ container_name }} hermes backup -o /tmp/{{ _home_file }} --label {{ backup_set }} &&
+      podman cp {{ container_name }}:/tmp/{{ _home_file }} {{ pi_backup_tmp }}/{{ _home_file }} &&
+      podman exec {{ container_name }} rm -f /tmp/{{ _home_file }}
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: _home_method == 'hermes'
+
+- name: "HERMES_HOME — volume export (cold fallback)"
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman volume export {{ volume_home }} | gzip > {{ pi_backup_tmp }}/{{ _home_file }}
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: _home_method == 'export'
+
+# --- Immediate unfreeze (minimize downtime) ---
+- name: Restart the container after the freeze
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: started
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  failed_when: false
+  when: _freeze
+
+# --- Integrity on the deployment host: test each archive BEFORE considering it valid ---
+- name: Test the integrity of the data archive (gzip -t)
+  ansible.builtin.command:
+    cmd: "gzip -t {{ pi_backup_tmp }}/{{ _data_file }}"
+  changed_when: false
+
+- name: Test the integrity of the HERMES_HOME archive
+  ansible.builtin.command:
+    cmd: >-
+      {{ ('python3 -c "import zipfile,sys; bad=zipfile.ZipFile(sys.argv[1]).testzip(); sys.exit(1 if bad else 0)" '
+          ~ pi_backup_tmp ~ '/' ~ _home_file)
+         if _home_method == 'hermes'
+         else ('gzip -t ' ~ pi_backup_tmp ~ '/' ~ _home_file) }}
+  changed_when: false
+
+- name: Compute sha256 checksums (deployment host)
+  ansible.builtin.command:
+    cmd: "sha256sum {{ pi_backup_tmp }}/{{ item }}"
+  register: _pi_sha
+  changed_when: false
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+
+# --- Retrieve artifacts to the controller ---
+- name: Fetch artifacts to the controller
+  ansible.builtin.fetch:
+    src: "{{ pi_backup_tmp }}/{{ item }}"
+    dest: "{{ backup_dir }}/{{ item }}"
+    flat: true
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+
+- name: Recompute sha256 checksums after transfer (controller)
+  ansible.builtin.shell:
+    cmd: "openssl dgst -sha256 {{ backup_dir }}/{{ item }} | awk '{print $NF}'"
+  args:
+    executable: /bin/bash
+  register: _local_sha
+  changed_when: false
+  delegate_to: localhost
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+
+- name: Verify that the transfer did not corrupt the archives
+  ansible.builtin.assert:
+    that:
+      - (_pi_sha.results[idx].stdout.split() | first) == (_local_sha.results[idx].stdout | trim)
+    fail_msg: >-
+      ERROR: sha256 checksum mismatch after transfer for {{ item }} —
+      remote={{ _pi_sha.results[idx].stdout.split() | first }} vs
+      local={{ _local_sha.results[idx].stdout | trim }}. Backup NOT reliable.
+    success_msg: "Integrity OK: {{ item }}"
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+  loop_control:
+    index_var: idx
+
+- name: Archive sizes (controller)
+  ansible.builtin.stat:
+    path: "{{ backup_dir }}/{{ item }}"
+  register: _sizes
+  delegate_to: localhost
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+
+# --- Manifest: ties both archives from the same point in time + checksums + image version ---
+- name: Build the manifest
+  ansible.builtin.set_fact:
+    _manifest:
+      schema: 1
+      deploy_id: "{{ deploy_id }}"
+      campagne_slug: "{{ campagne_slug }}"
+      campagne_titre: "{{ campagne_titre | default(campagne_slug) }}"
+      instance: "{{ instance | default('main') }}"
+      stamp: "{{ backup_stamp }}"
+      label: "{{ backup_label }}"
+      set: "{{ backup_set }}"
+      image: "{{ hermes_image_name }}:{{ hermes_image_tag }}"
+      frozen: "{{ _freeze }}"
+      files:
+        - role: data
+          name: "{{ _data_file }}"
+          format: "tar.gz"
+          bytes: "{{ _sizes.results[0].stat.size }}"
+          sha256: "{{ _local_sha.results[0].stdout | trim }}"
+        - role: home
+          name: "{{ _home_file }}"
+          format: "{{ 'zip' if _home_method == 'hermes' else 'tar.gz' }}"
+          method: "{{ 'hermes-backup' if _home_method == 'hermes' else 'volume-export' }}"
+          bytes: "{{ _sizes.results[1].stat.size }}"
+          sha256: "{{ _local_sha.results[1].stdout | trim }}"
+
+- name: Write the manifest (controller)
+  ansible.builtin.copy:
+    dest: "{{ backup_dir }}/{{ backup_set }}-manifest.json"
+    content: "{{ _manifest | to_nice_json }}\n"
+    mode: "0644"
+  delegate_to: localhost
+
+# --- Rotation: keep only the last backup_keep manifests + their archives ---
+- name: Rotate backups (controller)
+  ansible.builtin.shell:
+    cmd: >-
+      cd {{ backup_dir }} &&
+      ls -1t *-manifest.json 2>/dev/null | tail -n +{{ (backup_keep | int) + 1 }} | while read m; do
+        set="${m%-manifest.json}";
+        echo "rotation: removing set $set";
+        rm -f "$set-manifest.json" "$set-data.tar.gz" "$set-home.zip" "$set-home.tar.gz";
+      done
+  args:
+    executable: /bin/bash
+  register: _rotate
+  changed_when: "'rotation:' in _rotate.stdout"
+  delegate_to: localhost
+
+# --- Clean up the deployment host staging area ---
+- name: Clean up the deployment host staging area
+  ansible.builtin.file:
+    path: "{{ pi_backup_tmp }}/{{ item }}"
+    state: absent
+  loop:
+    - "{{ _data_file }}"
+    - "{{ _home_file }}"
+
+- name: Summary
+  ansible.builtin.debug:
+    msg:
+      - "Backup {{ deploy_id }} — game set {{ backup_set }}  →  {{ backup_dir }}/"
+      - "  data : {{ _data_file }}  ({{ (_sizes.results[0].stat.size / 1048576) | round(2) }} MB)"
+      - "  home : {{ _home_file }}  ({{ (_sizes.results[1].stat.size / 1048576) | round(2) }} MB, {{ _home_method }})"
+      - "  manifest + sha256 verified. Retention: {{ backup_keep }} sets."

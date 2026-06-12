@@ -1,0 +1,76 @@
+---
+# Resets the MEMORY / STATE of the Hermes agent (HERMES_HOME volume) back to a clean slate.
+# WARNING: GAME DATA (data volume: world.json, npcs, sessions, .steward, images...) is
+#    PRESERVED. Only the agent state (state.db, memories/, Hermes sessions, kanban...) is wiped.
+# A HYBRID safety-backup is taken BEFORE the reset (unless -e restore_safety_backup=false) -> reversible.
+#
+#   ansible-playbook playbooks/reset-memory.yml -e game=<slug> -e confirm=yes
+#   (-e campagne=<slug> still works as a legacy alias)
+#   Example: ansible-playbook playbooks/reset-memory.yml -e game=mistfall -e confirm=yes
+#
+# To restore the memory afterwards: restore.yml -e set=<the pre-reset-memory set> -e restore_what=home.
+- name: Reset Hermes agent memory (game data preserved)
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  environment: "{{ systemd_user_env }}"
+  vars:
+    quadlet_unit: "hermes-{{ deploy_id }}"
+    container_name: "hermes-{{ deploy_id }}"
+    volume_home: "hermes-{{ deploy_id }}-home"
+  pre_tasks:
+    - name: Safety guard
+      ansible.builtin.assert:
+        that:
+          - campagne_slug is defined
+          - confirm | default('') == 'yes'
+        fail_msg: >-
+          This reset OVERWRITES the agent memory (game data stays intact).
+          Re-run with -e game=<slug> -e confirm=yes.
+
+    - name: Safety-backup before reset
+      ansible.builtin.include_role:
+        name: hermes_backup
+      vars:
+        backup_label: "pre-reset-memory"
+      when: restore_safety_backup | default(true) | bool
+
+  tasks:
+    - name: Stop the campaign
+      ansible.builtin.systemd:
+        name: "{{ quadlet_unit }}.service"
+        state: stopped
+        scope: user
+      failed_when: false
+
+    - name: Wipe the HERMES_HOME volume (recreate)
+      ansible.builtin.command:
+        cmd: "{{ item }}"
+      loop:
+        - "podman volume rm -f {{ volume_home }}"
+        - "podman volume create {{ volume_home }}"
+      changed_when: true
+
+    - name: Restart the campaign
+      ansible.builtin.systemd:
+        name: "{{ quadlet_unit }}.service"
+        state: started
+        scope: user
+      failed_when: false
+
+    - name: Wait for the container to start
+      ansible.builtin.pause:
+        seconds: 8
+
+    - name: Health check
+      ansible.builtin.command:
+        cmd: "podman ps --filter name=^{{ container_name }}$ --filter status=running --format {% raw %}'{{.Names}}'{% endraw %}"
+      register: _h
+      changed_when: false
+      failed_when: false
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: >-
+          {{ '✅ Agent memory reset (game intact), container running.'
+             if (_h.stdout | default('') | trim) | length > 0
+             else '❌ Reset done but container NOT started — check: podman logs ' ~ container_name }}

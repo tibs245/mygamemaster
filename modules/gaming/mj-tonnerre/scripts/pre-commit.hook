@@ -1,0 +1,87 @@
+#!/bin/sh
+# pre-commit.hook — Garde-fou de commit pour les campagnes MJ Tonnerre.
+#
+# REFUSE le commit si un JSON de campagne est syntaxiquement invalide.
+# Avertit (sans bloquer) si le validateur de distances signale une incohérence.
+#
+# Ce fichier est un MODÈLE. Il est installé dans <repo>/.git/hooks/pre-commit
+# par install-hooks.sh, qui y injecte le chemin absolu du dossier scripts.
+# (Le placeholder __MJ_SCRIPTS_DIR__ est remplacé à l'installation.)
+#
+# Variables d'environnement reconnues :
+#   MJ_TONNERRE_SCRIPTS   surcharge le chemin du dossier scripts
+#   MJ_SKIP_HOOK=1        bypass complet du hook (urgence)
+
+set -eu
+
+if [ "${MJ_SKIP_HOOK:-0}" = "1" ]; then
+    echo "pre-commit MJ Tonnerre : IGNORÉ (MJ_SKIP_HOOK=1)"
+    exit 0
+fi
+
+# Dossier scripts : variable d'env > valeur injectée à l'installation.
+SCRIPTS_DIR="${MJ_TONNERRE_SCRIPTS:-__MJ_SCRIPTS_DIR__}"
+
+VALIDATE_JSON="$SCRIPTS_DIR/validate_json.py"
+VALIDATE_DIST="$SCRIPTS_DIR/validator-distances.py"
+
+if [ ! -f "$VALIDATE_JSON" ]; then
+    echo "❌ pre-commit MJ Tonnerre : validate_json.py introuvable dans $SCRIPTS_DIR" >&2
+    echo "   Définis MJ_TONNERRE_SCRIPTS ou réinstalle le hook (install-hooks.sh)." >&2
+    exit 1
+fi
+
+PYTHON="$(command -v python3 || true)"
+if [ -z "$PYTHON" ]; then
+    echo "❌ pre-commit MJ Tonnerre : python3 introuvable." >&2
+    exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Récupère la liste des fichiers JSON ajoutés/modifiés dans ce commit.
+STAGED_JSON="$(git diff --cached --name-only --diff-filter=ACM | grep '\.json$' || true)"
+
+if [ -z "$STAGED_JSON" ]; then
+    echo "pre-commit MJ Tonnerre : aucun JSON modifié — OK."
+    exit 0
+fi
+
+echo "pre-commit MJ Tonnerre : validation des JSON modifiés…"
+
+STATUS=0
+
+# 1. Valider chaque JSON staged (syntaxe). BLOQUANT.
+for f in $STAGED_JSON; do
+    abs="$REPO_ROOT/$f"
+    [ -f "$abs" ] || continue
+    if ! "$PYTHON" "$VALIDATE_JSON" "$abs" >/dev/null 2>&1; then
+        echo "❌ JSON invalide : $f"
+        "$PYTHON" "$VALIDATE_JSON" "$abs" || true
+        STATUS=1
+    fi
+done
+
+if [ "$STATUS" -ne 0 ]; then
+    echo "" >&2
+    echo "❌ Commit REFUSÉ : au moins un JSON est cassé. Corrige-le puis recommence." >&2
+    echo "   (Bypass d'urgence : MJ_SKIP_HOOK=1 git commit …)" >&2
+    exit 1
+fi
+
+# 2. Validateur de distances sur chaque monde.json staged. NON BLOQUANT (warn).
+for f in $STAGED_JSON; do
+    case "$f" in
+        */monde.json|monde.json)
+            abs="$REPO_ROOT/$f"
+            [ -f "$abs" ] || continue
+            echo "pre-commit MJ Tonnerre : vérification des distances ($f)…"
+            if ! "$PYTHON" "$VALIDATE_DIST" "$abs"; then
+                echo "⚠ validator-distances a signalé des incohérences (non bloquant)."
+            fi
+            ;;
+    esac
+done
+
+echo "✅ pre-commit MJ Tonnerre : JSON valides — commit autorisé."
+exit 0

@@ -1,0 +1,64 @@
+# ════════════════════════════════════════════════════════════════════════════
+# games.example.yml — the single declarative table of game instances.
+#
+# This is the ONLY file you edit to manage your games. To add a new game,
+# append ONE entry under `games:` and add its Discord token to the vault.
+# Nothing else to touch: the dynamic inventory (hermes_inventory.py) turns each
+# entry into an Ansible host of the `campagnes` group automatically.
+#
+# Getting started (do this ONCE):
+#   cd ansible/inventory
+#   cp games.example.yml games.yml        # your real table (git-ignored)
+#   # edit games.yml: set the `connection:` block + your game(s)
+#
+# Then deploy:
+#   ansible-playbook playbooks/deploy.yml                       # all games
+#   ansible-playbook playbooks/deploy.yml -e game=mistfall      # one game
+#   (the legacy `-e campagne=<slug>` still works as an alias)
+# ════════════════════════════════════════════════════════════════════════════
+
+# ── Connection to the host that runs the containers (shared by all games) ────
+# A single physical host (e.g. a Raspberry Pi or a small VPS) runs every game as
+# an isolated rootless-Podman container. These values feed Ansible's SSH facts.
+connection:
+  host: your-server.example.com   # IP or hostname of the deployment host
+  port: 22                        # SSH port
+  user: youruser                  # SSH user (rootless podman runs as this user)
+  ssh_key: ~/.ssh/id_ed25519      # private key used to reach the host
+  python: /usr/bin/python3        # remote python interpreter
+
+# ── The games (0..n entries — add one to create a new game) ──────────────────
+games:
+  - slug: mistfall                # short id: names the container/volumes/unit + SSH host
+    data_dir: example-mistfall    # folder under data/mj-tonnerre/campagnes/
+    title: "Mistfall"             # human-readable name
+    model: minimax/minimax-m3     # LLM the GM runs on (OpenRouter id)
+    provider: openrouter
+    language: en                  # language the GM speaks to players (en, fr, …)
+    discord_secret_key: discord_token_mistfall   # key to look up in vault.yml
+    # Persona block appended to the base SOUL.md (defines THIS instance's voice):
+    soul_extra: |
+      ## Persona of this instance
+
+      You are **MJ Tonnerre the Veiled**: patient, wry, sparing with words. Your
+      menace never shouts — it seeps in through sensory detail: what the character
+      hears in the fog, the smell of wet stone, a rope that hums a little wrong.
+      You speak in perceptions, never declarations.
+
+      **Inspirations**: gothic mystery, slow-burn dread, fae bargains.
+      **System**: generic d20 — Crunch 3/5.
+      **Tone**: eerie, atmospheric, mysterious.
+
+  # Add another game by copying the block above and changing the values.
+  # Remember to add its `discord_token_<slug>` to vault.yml.
+  #
+  # - slug: emberfall
+  #   data_dir: example-emberfall
+  #   title: "Emberfall"
+  #   model: minimax/minimax-m3
+  #   provider: openrouter
+  #   language: en
+  #   discord_secret_key: discord_token_emberfall
+  #   soul_extra: |
+  #     ## Persona of this instance
+  #     ...

@@ -1,0 +1,111 @@
+---
+# ─── Global defaults (non-secret) ─────────────────────────────────────────
+
+# Mono-repo root (from ansible/playbooks/*.yml → goes up 2 levels)
+repo_root: "{{ playbook_dir | dirname | dirname }}"
+
+# OCI image
+hermes_image_name: hermes-mj
+hermes_image_tag: latest
+hermes_base_image: docker.io/nikolaik/python-nodejs:python3.11-nodejs20
+
+# Paths INSIDE the container
+container_home: /opt/hermes-home
+container_modules: /opt/modules
+container_data_root: /opt/data/mj-tonnerre/campagnes
+container_base_items: /opt/data/mj-tonnerre/base_items.yaml
+
+# Paths ON the host
+backups_dir: "{{ repo_root }}/backups"
+rendered_root: "{{ ansible_env.HOME }}/.config/hermes-mj/rendered"  # on the TARGET host
+# ↑ Rendered configs (config.yaml/SOUL.md) are written ON the target and bind-mounted by the
+#   quadlet → they MUST live on the deployment host (ansible_env.HOME = /home/rocky), not in the Mac repo.
+host_env_dir: "{{ ansible_env.HOME }}/.config/hermes-mj"
+quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+
+# Agent defaults (overridable via the games.yml table)
+default_model: minimax/minimax-m3
+default_provider: openrouter
+default_base_url: https://openrouter.ai/api/v1
+default_language: fr
+
+# Dev mode: bind-mount modules/ instead of the baked image (fast iteration)
+dev_modules: false
+
+# ─── systemd --user: bus access in non-interactive SSH ───────────────────────
+# Every `systemctl --user` / quadlet operation over SSH needs XDG_RUNTIME_DIR (and,
+# depending on the distro, the DBus bus address) to reach the user bus. The UID is
+# resolved DYNAMICALLY from facts (gather_facts: true) — no more hardcoded 1000 that
+# broke when the rocky UID != 1000. Linger (see deploy role) keeps /run/user/<uid> alive.
+runtime_uid: "{{ ansible_user_uid | default(1000) }}"
+xdg_runtime_dir: "/run/user/{{ runtime_uid }}"
+systemd_user_env:
+  XDG_RUNTIME_DIR: "{{ xdg_runtime_dir }}"
+  DBUS_SESSION_BUS_ADDRESS: "unix:path={{ xdg_runtime_dir }}/bus"
+
+# ─── Per-container resource limits (protects the deployment host from a runaway run) ────
+# Applied in the quadlet [Service] section (cgroup v2). MemoryMax works for --user
+# services without extra config; CPUQuota requires the cpu controller to be delegated
+# to user slices (otherwise silently ignored — see docs). Empty ('') = no limit set.
+container_memory_max: "1536M"
+container_cpu_quota: ""          # e.g. "150%" (1.5 cores) — leave empty if cpu not delegated
+
+# ─── Backup / restore ────────────────────────────────────────────────────────
+# Hybrid engine: `hermes backup` (hot-consistent zip) for HERMES_HOME + data volume
+# export (tar.gz) for game data. See docs/03-backup-et-restauration.md.
+backup_keep: 14                  # number of backup sets retained per campaign (rotation)
+backup_freeze: false             # true = stop the container during export (100% frozen snapshot,
+                                 # ~10s offline). Unnecessary in hybrid mode: hermes backup is
+                                 # hot-consistent and game files are written as atomic JSON.
+restore_safety_backup: true      # take a safety net (volume export) BEFORE any restore/reset
+
+# ─── Host connection ─────────────────────────────────────────────────────────
+# The deployment host (SSH address, port, user, key) is defined ONCE in the
+# `connection:` block of inventory/games.yml and exposed by the dynamic
+# inventory (hermes_inventory.py). Nothing host-specific lives in this committed
+# file. Override ad hoc if needed: -e ansible_host=10.0.0.7
+
+# ─── Hermes version (image reproducibility) ───────────────────────────────────
+# Passed to the installer (best-effort: depends on --version support in install.sh).
+# The true reproducibility anchor remains the semantic image TAG (see hermes_image).
+# 'latest' = latest published version. Pin a known version to freeze/rollback.
+hermes_version: "latest"
+
+# ─── LLM Judge (rule checker: flexible Steward + strict conduct) ──────────────
+# Injected into the container via MJ_JUDGE_ACTIF / MJ_JUDGE_MODEL (see quadlet).
+# monde.json > meta.hooks.judge takes precedence over these values (per-campaign live override).
+# ⚠️ Choose a DIFFERENT model from the GM (avoids correlated blind spots) and
+#    VERIFY the exact ID on your OpenRouter dashboard before enabling.
+# See docs/09-hooks-runtime.md and specs/hooks-runtime.md §10.
+mj_judge_actif: true
+mj_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM — correlated blind spots possible; alt: google/gemma-4-31b-it
+
+# ─── Feature flags — INSTANCE defaults (six game engine axes) ─────────────────
+# Cascade: monde.json > meta.features.<axis>  >  MJ_FEATURE_<AXIS> (these vars)  >  True.
+# ALL ON by default, and fail-open: leaving everything ON is safe (an axis with missing
+# data is a simple no-op). These vars are only defined to HARDEN an instance default
+# (e.g. disable images everywhere); a campaign can always re-enable an axis via monde.json
+# (the world has the final say).
+# NOT DEFINED below → no Environment= injected → runtime defaults to True.
+# See docs/monde-vivant/10-features.md.
+#   mj_feature_tracabilite: true         # CSV journal + auto git-commit + session snapshots
+#   mj_feature_verbosite: true           # Steward "Persisted" block + meta.verbosite level
+#   mj_feature_pnj_faction_vivants: true # factions/proactivite_pnj modules + actors that "think"
+#   mj_feature_temporalite: true         # living world engine (world_tick pre/post, scene brief, propagation)
+#   mj_feature_images: true              # skill mj-tonnerre-images
+
+# ─── Narrative voice (tts axis) — ENABLED by default on this instance ─────────
+# Explicit instance default + auto-voice length threshold. Fail-open on
+# MINIMAX_API_KEY: without a key (see vault.example.yml) the axis is a silent no-op.
+# To disable auto-voice while keeping !raconte: set meta.hooks.tts_auto=false (monde.json).
+mj_feature_tts: true                     # Minimax narrative voice (skill mj-tonnerre-tts + auto-TTS)
+mj_tts_min_chars: 100                    # narration >= 100 chars → auto-voice (short turns stay silent)
+
+# ─── Instance: deploy the SAME campaign multiple times (e.g. for testing) ────
+# instance=main  → deploy_id = <campagne_slug>            (production, backwards-compatible)
+# instance=test1 → deploy_id = <campagne_slug>-test1      (isolated copy for testing)
+# deploy_id names the container / volumes / systemd unit / env / rendered configs.
+# The SEED always comes from the campaign data (campagne_data_dir) → each
+# instance has its own isolated data copy and its own memory.
+instance: main
+deploy_id: "{{ campagne_slug if (instance | string) in ['main', ''] else (campagne_slug ~ '-' ~ instance) }}"

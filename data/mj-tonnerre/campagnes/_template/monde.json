@@ -1,0 +1,165 @@
+{
+  "_description": "TEMPLATE de campagne MJ Tonnerre — COPIER ce dossier (_template) pour chaque nouvelle campagne, puis remplir les champs vides. Structure alignée sur les vraies campagnes (jusquau-bout-de-mon-monde, la-naissance-dun-roi) et conforme à scripts/schemas/monde.schema.json. Sections clés : meta (identité + temps + features), systeme (règles de base), modules (toggles thématiques), regles (temps/déplacements), etat_global (factions vivantes), univers (régions + lieux). Convention d'ids des lieux : 'lieu:<region-slug>/<lieu-slug>' (sous-lieu : 'lieu:<region-slug>/<parent-slug>/<lieu-slug>') — c'est de cet id hiérarchique que geo_query.py dérive la contenance. Un 'geo_query build' sur ce template doit réussir (au pire 0 arête) : ne jamais committer de geo.json dans _template.",
+  "meta": {
+    "nom": "",
+    "theme": "",
+    "ton": "",
+    "mj": "MJ Tonnerre",
+    "date_creation": "",
+    "inspirations": [],
+    "temps": {
+      "_note": "regime = nature du suivi temporel. 'Narratif' (le MJ estime les durées) OU 'UT' (Unités de Temps strictes, ex. 1 UT = 10 min, 144 UT/jour). 'suivi' porte le point de départ (jour/heure) — voir aussi regles.temps.suivi.",
+      "regime": "Narratif",
+      "suivi": {
+        "jour": 1,
+        "heure": "matin"
+      }
+    },
+    "verbosite": "INFO",
+    "cloture_auto": true,
+    "delai_inactivite_minutes": 120,
+    "diagnostic": {
+      "actif": true,
+      "fichier": "collecte.csv",
+      "colonnes": [
+        "timestamp",
+        "session",
+        "verbosite",
+        "origine_type",
+        "origine_detail",
+        "action_type",
+        "prompt_resume",
+        "sortie",
+        "consequence",
+        "erreur",
+        "type_erreur",
+        "correction_immediate",
+        "exactitude",
+        "completude",
+        "conteste",
+        "modele",
+        "notes"
+      ],
+      "regles": {
+        "log_systematique": ["TRACE", "DEBUG"],
+        "log_erreurs_uniquement": ["ERROR"],
+        "log_erreurs_plus_echantillon": ["INFO", "WARN"],
+        "echantillon_frequence": 5
+      }
+    },
+    "features": {
+      "_schema": "Cinq grands axes ON/OFF du moteur de jeu, TOUS à true par défaut. Cascade de résolution : meta.features.<axe> (ici) > env MJ_FEATURE_<AXE> (défaut d'instance au déploiement) > true. Le monde.json a le dernier mot. Tout effet est fail-open : un axe ON dont les données manquent (ex. temporalite sans geo.json/acteurs.json) est un no-op, jamais une erreur. Détail : docs/monde-vivant/10-features.md. — tracabilite : journal CSV collecte.csv + auto-commit git + snapshots de session. verbosite : bloc « Persisté » du Banquier + niveau meta.verbosite. pnj_faction_vivants : modules factions/proactivite_pnj + acteurs qui « pensent » (world_tick). temporalite : moteur monde vivant (world_tick pre/post, brief de scène, propagation causale). images : skill mj-tonnerre-images.",
+      "tracabilite": true,
+      "verbosite": true,
+      "pnj_faction_vivants": true,
+      "temporalite": true,
+      "images": true
+    },
+    "_pj_ids": "ids d'acteur des PJ, ex. [\"acteur:nom\"] ; le moteur relie les relations 'envers le joueur' à ces ids. Laisser [] tant qu'aucun PJ n'est créé.",
+    "pj_ids": [],
+    "style_visuel": {
+      "technique": "",
+      "palette": "",
+      "ambiance": "",
+      "description_complete": ""
+    },
+    "audio": {
+      "profils": [],
+      "moments": []
+    }
+  },
+  "systeme": {
+    "_note": "Système de jeu minimal — adapter stats/résolution à la campagne. crunch 1 (très léger) à 5 (très technique).",
+    "nom": "d20 narratif",
+    "crunch": 2,
+    "stats": [
+      "Force",
+      "Dextérité",
+      "Constitution",
+      "Intelligence",
+      "Sagesse",
+      "Charisme"
+    ],
+    "resolution": "d20 + modificateur de stat (+ bonus de compétence si applicable) ≥ DD (10 facile, 15 moyen, 20 difficile)",
+    "nat20": "Réussite critique — le meilleur résultat possible pour la situation",
+    "nat1": "Échec critique — le pire résultat possible pour la situation",
+    "competences": "Bonus de +3 (maîtrisé) au d20 selon la spécialisation",
+    "sante": "Points de Vie (PV) — PV = 10 + modificateur de Constitution au niveau 1",
+    "combat": "Simple et narratif — pas de grille, l'accent sur le choix et la conséquence"
+  },
+  "modules": {
+    "_schema": "Chaque module est chargé/appliqué par le skill chapeau uniquement si actif==true (pattern repris de meta.temps.regime). params={} = valeurs par défaut du module ; surcharger ici pour ajuster sans toucher au skill. Voir skills/gaming/mj-tonnerre/references/modules/README.md",
+    "voyage": { "actif": true, "params": {} },
+    "factions": { "actif": true, "params": {} },
+    "proactivite_pnj": { "actif": true, "params": {} },
+    "artefacts": { "actif": true, "params": {} },
+    "politique": { "actif": false, "params": {} },
+    "meteo": { "actif": true, "params": {} },
+    "worldbuilding_lieux": { "actif": true, "params": {} },
+    "construction_royaume": { "actif": false, "params": {} }
+  },
+  "regles": {
+    "temps": {
+      "principe": "Temps narratif — le MJ annonce les durées et fait avancer le chrono par blocs. Adapter si la campagne passe en UT strictes (voir meta.temps.regime).",
+      "deplacements": {
+        "gouvernance": {
+          "regles": [
+            "Ces durées sont fixes — modifier une route = casser la cohérence de toute la carte",
+            "Toute nouvelle route doit être cohérente avec les existantes : indirect ≥ direct",
+            "Les durées sont des allers simples (A/R = durée × 2). 1 journée de marche = 12h de jour",
+            "Un point lointain ne peut pas être accessible en moins de temps qu'un point proche voisin"
+          ],
+          "verification": "Avant d'ajouter une route : vérifier les 4 règles ci-dessus + comparer avec les routes voisines",
+          "procedure": "À chaque fois que je décris un nouveau trajet dans la narration (distance ou durée estimée), je l'enregistre IMMÉDIATEMENT dans monde.json → regles.temps.deplacements AVANT d'écrire la suite. Ne jamais fermer la réponse narrative sans que la route soit commitée."
+        },
+        "_exemple_route": "EXEMPLE de route à copier (clé puis valeur) : \"depuis_<lieu-a>_vers\": { \"<lieu-b>\": \"40min — à l'ouest, suivre le ruisseau jusqu'au talus, remonter le talus\" }. geo_query lit la durée (40min) et la direction (ouest) depuis cette description et en déduit une arête. Les libellés (<lieu-a>, <lieu-b>) sont résolus en ids via le nom/alias des lieux d'univers.regions."
+      },
+      "suivi": {
+        "_note": "Point d'avancement du chrono de jeu — mettre à jour à chaque session.",
+        "jour_courant": 1,
+        "heure_courante": "matin",
+        "jalons_temporels": []
+      }
+    }
+  },
+  "etat_global": {
+    "quete_active": "",
+    "chronologie": "",
+    "factions": [],
+    "faction_actions_horloge": {
+      "gouvernance": {
+        "regles": [
+          "Chaque faction a TOUJOURS au moins 1 action court terme (échéance ≤ 7 jours) et 1 action long terme (échéance ≥ 14 jours) dans ses actions_en_cours",
+          "Les objectifs (court et long termes dans la section 'factions') sont INDÉPENDANTS des PJ — ils existent et évoluent même si les PJ n'interviennent jamais",
+          "Quand un objectif court terme est atteint, dépassé ou supplanté → le renouveler immédiatement avec un nouvel objectif, cohérent avec le long terme",
+          "Les PJ peuvent croiser ces actions (les subir, les observer, les influencer) mais PAS les annuler — une action qui devient impossible se transforme, ne disparaît pas"
+        ],
+        "renouvellement": "À chaque session, avant de commencer : vérifier chaque faction. Si son objectif court terme est caduc → le remplacer."
+      },
+      "actions": []
+    },
+    "secrets_mj": [],
+    "artefacts_connus": []
+  },
+  "univers": {
+    "description": "",
+    "regions": [
+      {
+        "id": "region:exemple",
+        "nom": "Région d'exemple",
+        "type": "Région",
+        "description": "Région-exemple à remplacer. L'id 'region:<slug>' est la racine de contenance : tous les lieux qui lui appartiennent encodent son slug dans leur propre id ('lieu:exemple/...').",
+        "ambiance": "",
+        "lieux": [
+          {
+            "id": "lieu:exemple/lieu-dexemple",
+            "nom": "Lieu d'exemple",
+            "type": "habitation",
+            "alias": [],
+            "description": "Lieu-exemple à remplacer. Convention d'id : 'lieu:<region-slug>/<lieu-slug>' (ici region-slug='exemple'). Pour un sous-lieu (une salle dans ce lieu) : 'lieu:exemple/lieu-dexemple/<sous-lieu-slug>'. Le champ 'alias' liste les noms courts utilisés dans regles.temps.deplacements pour relier les routes à ce lieu."
+          }
+        ]
+      }
+    ]
+  }
+}

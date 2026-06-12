@@ -1,0 +1,10 @@
+---
+# Updates MODULES: rebuilds the image (modules baked in) then recreates the
+# container(s) on the new image. Explicit alias for redeploy.yml — data + memory
+# volumes are PRESERVED. Inherits redeploy safeguards: confirmation
+# (-e confirm=yes) + safety backup (skippable with -e skip_backup=true).
+# For the full chain (backup → update → smoke-test → status), see update.yml.
+#   ansible-playbook playbooks/update-modules.yml -e game=mistfall -e confirm=yes --ask-vault-pass
+#   (-e campagne= still works as a legacy alias)
+- name: Update modules (rebuild + recreate)
+  ansible.builtin.import_playbook: redeploy.yml

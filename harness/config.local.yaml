@@ -1,0 +1,55 @@
+# Harness E2E config.yaml — fixed render (Ansible-free equivalent of config.yaml.j2).
+# model.base_url points to the local mock LLM; hooks wired as in prod.
+model:
+  default: mock
+  provider: openrouter
+  base_url: http://harness-mock:8080/v1
+  api_mode: chat_completions
+
+skills:
+  external_dirs:
+    - /opt/modules/gaming
+  template_vars: true
+
+terminal:
+  backend: local
+  cwd: /data/campagne
+  persistent_shell: true
+  auto_source_bashrc: true
+
+agent:
+  max_turns: 4
+  reasoning_effort: medium
+  tool_use_enforcement: auto
+
+display:
+  interface: cli
+  language: fr
+  streaming: false
+
+security:
+  redact_secrets: true
+
+logging:
+  level: INFO
+
+# Runtime hooks — identical to prod (cf. ansible/templates/config.yaml.j2).
+hooks:
+  pre_llm_call:
+    - command: "/opt/hermes/venv/bin/python3 /opt/modules/gaming/mj-tonnerre/hooks/pre_llm_call.py"
+      timeout: 10
+  pre_tool_call:
+    - matcher: "write_file|patch|edit|apply_patch|str_replace"
+      command: "/opt/hermes/venv/bin/python3 /opt/modules/gaming/mj-tonnerre/hooks/pre_tool_call.py"
+      timeout: 10
+  post_tool_call:
+    - matcher: "write_file|patch|edit|apply_patch|str_replace"
+      command: "/opt/hermes/venv/bin/python3 /opt/modules/gaming/mj-tonnerre/hooks/post_tool_call.py"
+      timeout: 10
+  transform_llm_output:
+    - command: "/opt/hermes/venv/bin/python3 /opt/modules/gaming/mj-tonnerre/hooks/transform_llm_output.py"
+      timeout: 45
+  on_session_end:
+    - command: "/opt/hermes/venv/bin/python3 /opt/modules/gaming/mj-tonnerre/hooks/on_session_end.py"
+      timeout: 30
+hooks_auto_accept: true

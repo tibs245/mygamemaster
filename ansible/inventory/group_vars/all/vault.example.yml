@@ -1,0 +1,37 @@
+---
+# ════════════════════════════════════════════════════════════════════════════
+# vault EXAMPLE — plaintext template, for documentation, committed to the repo.
+# NEVER put real keys here. Real keys go ONLY in vault.yml
+# (encrypted, git-ignored). Creation workflow (starting from scratch):
+#
+#   cd ansible/inventory/group_vars/all
+#   cp vault.example.yml vault.yml          # 1. create the real file
+#   # 2. edit vault.yml: replace the values marked "REPLACE_ME"
+#   ansible-vault encrypt vault.yml         # 3. encrypt it (BEFORE any git add)
+#   head -1 vault.yml                        # 4. verify: should print $ANSIBLE_VAULT;…
+#   # to edit later: ansible-vault edit vault.yml
+#
+# A SINGLE shared vault (group_vars/all) serves all game instances: shared keys
+# (OpenRouter, MiniMax) + ONE Discord token per instance.
+# ════════════════════════════════════════════════════════════════════════════
+
+# ── Shared keys (common to all instances) ───────────────────────────────────
+
+# Model access (openrouter provider): GM + voice formatting step (TTS).
+openrouter_api_key: "sk-or-v1-REPLACE_ME"
+
+# Narrative voice (axis `tts`, skill mj-tonnerre-tts) — MiniMax T2A v2, speech-2.8-turbo.
+# Fail-open: ABSENT/commented out → voice is a silent no-op (nothing breaks).
+# Present → audio generation is enabled (axis `tts` ON by default, threshold 100 characters).
+minimax_api_key: "REPLACE_ME-minimax-key"
+
+# ── One Discord bot token PER game instance ──────────────────────────────────
+# The key name is referenced from the games.yml table → discord_secret_key.
+# Each token = a distinct Discord application/bot (Discord developer portal).
+# To add a game: add ONE entry to games.yml and ONE token line here.
+
+# Game "mistfall" (games.yml → discord_secret_key: discord_token_mistfall)
+discord_token_mistfall: "REPLACE_ME-discord-bot-token"
+
+# Add more games below, one token each:
+# discord_token_emberfall: "REPLACE_ME-discord-bot-token"

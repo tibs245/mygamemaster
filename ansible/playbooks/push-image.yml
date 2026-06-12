@@ -1,0 +1,75 @@
+---
+# Ships the hermes-mj image (built LOCALLY on the build machine) to the deployment host.
+# Both the build machine (Apple Silicon) and the deployment host are aarch64 → the image is compatible.
+# This avoids building on the deployment host (which has no repository / build context).
+#
+#   ansible-playbook playbooks/build-image.yml   # 1. local build → hermes-mj:latest
+#   ansible-playbook playbooks/push-image.yml    # 2. save → rsync transfer → load (deployment host)
+#
+# Pattern: tradbot/deployment (local build + podman save/load).
+
+- name: "Step 1/2 — Save the image as a tarball (local build machine)"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    image_archive: "{{ repo_root }}/.build/{{ hermes_image_name }}-{{ hermes_image_tag }}.tar"
+  tasks:
+    - name: Check that the local image exists
+      ansible.builtin.command:
+        cmd: "podman image exists {{ hermes_image_name }}:{{ hermes_image_tag }}"
+      changed_when: false
+      register: _img_local
+      failed_when: false
+
+    - name: Fail if the local image is missing
+      ansible.builtin.fail:
+        msg: >-
+          Local image {{ hermes_image_name }}:{{ hermes_image_tag }} not found.
+          Run first: ansible-playbook playbooks/build-image.yml
+      when: _img_local.rc != 0
+
+    - name: Ensure the .build directory exists
+      ansible.builtin.file:
+        path: "{{ image_archive | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: "podman save → {{ image_archive | basename }}"
+      ansible.builtin.command:
+        cmd: "podman save -o {{ image_archive }} {{ hermes_image_name }}:{{ hermes_image_tag }}"
+      changed_when: true
+
+- name: "Step 2/2 — Transfer and load the image on the deployment host"
+  hosts: campagnes
+  gather_facts: true
+  run_once: true   # single physical deployment host shared by all campaigns
+  vars:
+    image_archive: "{{ repo_root }}/.build/{{ hermes_image_name }}-{{ hermes_image_tag }}.tar"
+    remote_archive: "{{ ansible_env.HOME }}/.cache/hermes-image/{{ hermes_image_name }}-{{ hermes_image_tag }}.tar"
+  tasks:
+    - name: Create the image cache directory on the deployment host
+      ansible.builtin.file:
+        path: "{{ remote_archive | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Transfer the tarball to the deployment host (rsync over SSH :{{ ansible_port }})
+      ansible.builtin.shell:
+        cmd: >-
+          rsync -a --partial
+          -e 'ssh -p {{ ansible_port }} -i {{ ansible_ssh_private_key_file }} -o StrictHostKeyChecking=accept-new'
+          {{ image_archive }}
+          {{ ansible_user }}@{{ ansible_host }}:{{ remote_archive }}
+      delegate_to: localhost
+      changed_when: true
+
+    - name: Load the image into podman (deployment host)
+      ansible.builtin.command:
+        cmd: "podman load -i {{ remote_archive }}"
+      register: _load
+      changed_when: "'Loaded image' in _load.stdout or _load.rc == 0"
+
+    - name: Confirm the image was loaded
+      ansible.builtin.debug:
+        msg: "Image loaded on the deployment host: {{ hermes_image_name }}:{{ hermes_image_tag }}"

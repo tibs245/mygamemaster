@@ -1,0 +1,56 @@
+---
+# Purges the RUNTIME state of the Steward (ledger/pending/snap for the current turn) INSIDE the data volume,
+# without touching game content (world/npc/characters/sessions) or safety snapshots.
+# Useful when a turn's ledger gets stuck. Preserves .banquier/snapshots/ and scoreboard.json.
+#
+#   ansible-playbook playbooks/reset-banquier.yml -e game=<slug> -e confirm=yes
+#   # ('-e campagne=<slug>' still works as a legacy alias)
+#   # also purge timestamped snapshots (more aggressive):
+#   ansible-playbook playbooks/reset-banquier.yml -e game=<slug> -e confirm=yes -e purge_snapshots=yes
+- name: Reset the Steward runtime
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  environment: "{{ systemd_user_env }}"
+  vars:
+    container_name: "hermes-{{ deploy_id }}"
+    _banquier: "{{ container_data_root }}/{{ campagne_data_dir }}/.banquier"
+  pre_tasks:
+    - name: Safety guard
+      ansible.builtin.assert:
+        that:
+          - campagne_slug is defined
+          - campagne_data_dir is defined
+          - confirm | default('') == 'yes'
+        fail_msg: "Re-run with -e game=<slug> -e confirm=yes."
+
+    - name: Safety backup before purge
+      ansible.builtin.include_role:
+        name: hermes_backup
+      vars:
+        backup_label: "pre-reset-banquier"
+      when: restore_safety_backup | default(true) | bool
+
+  tasks:
+    - name: Purge ledger / pending / snap for current turn (running container)
+      ansible.builtin.command:
+        cmd: >-
+          podman exec {{ container_name }} sh -c
+          "cd {{ _banquier }} 2>/dev/null && rm -f ledger-* pending-* snap-*.json && echo purged || echo nothing"
+      register: _purge
+      changed_when: "'purged' in _purge.stdout"
+      failed_when: false
+
+    - name: Also purge timestamped snapshots (optional)
+      ansible.builtin.command:
+        cmd: >-
+          podman exec {{ container_name }} sh -c "rm -rf {{ _banquier }}/snapshots/* 2>/dev/null; echo done"
+      changed_when: true
+      failed_when: false
+      when: purge_snapshots | default(false) | bool
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: >-
+          Steward purged for {{ deploy_id }} ({{ _purge.stdout | default('?') | trim }}).
+          Snapshots {{ 'PURGED' if (purge_snapshots | default(false) | bool) else 'preserved' }}.
+          Game content intact.

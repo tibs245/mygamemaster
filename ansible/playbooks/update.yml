@@ -1,0 +1,108 @@
+---
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  SAFE UPDATE of one (or all) campaign(s) — all-in-one orchestrator.        ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+# Chains the following steps in a single command (single vault prompt):
+#   1. Preflight     — clear summary + confirmation (if recreating the container)
+#   2. Backup        — hybrid safety guard BEFORE any change (failure ⇒ nothing is altered)
+#   3. Update        — targeted according to `what` (modules by default)
+#   4. Smoke-test    — the image + seeded data respond correctly
+#   5. Status        — the instance is indeed `active`
+#
+# NEVER touched: campaign DATA (data volume) nor agent MEMORY (home volume).
+# Only changed: skills, hooks, scripts, config.yaml, SOUL.md.
+#
+#   what = modules      (default)  rebuild image (skills/hooks/scripts) + recreate + re-render config/SOUL
+#          config                  re-render config.yaml + SOUL.md only (no rebuild)
+#          credentials             rewrite the .env from the vault only
+#
+# Examples (game is looked up from the games.yml table; '-e campagne=' still works as a legacy alias):
+#   ansible-playbook playbooks/update.yml -e game=mistfall -e confirm=yes --ask-vault-pass
+#   ansible-playbook playbooks/update.yml -e game=<slug> -e what=config
+#   ansible-playbook playbooks/update.yml -e what=credentials --ask-vault-pass        # all campaigns
+#   ansible-playbook playbooks/update.yml -e game=<slug> -e confirm=yes -e skip_backup=true --ask-vault-pass
+
+# ─── 1. Preflight: clear summary + confirmation ──────────────────────────────
+- name: Update preflight
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # DISTINCT name from the extra-var `what`: self-referencing (what: "{{ what | … }}")
+    # would trigger a template recursion loop at resolution time.
+    u_what: "{{ what | default('modules') }}"
+  tasks:
+    - name: Validate `what` target
+      ansible.builtin.assert:
+        that:
+          - u_what in ['modules', 'config', 'credentials']
+        fail_msg: "what must be 'modules', 'config', or 'credentials' (received: '{{ u_what }}')."
+
+    - name: Update summary
+      ansible.builtin.debug:
+        msg:
+          - "UPDATE — target: {{ campagne | default('ALL campaigns') }}"
+          - "  type       : {{ u_what }}"
+          - "  rebuilds   : {{ {'modules': 'image (skills/hooks/scripts) + config.yaml + SOUL.md', 'config': 'config.yaml + SOUL.md', 'credentials': '.env file (secrets)'}[u_what] }}"
+          - "  recreate   : {{ 'YES (container is recreated)' if u_what == 'modules' else 'no (simple restart)' }}"
+          - "  backup     : {{ 'skipped (skip_backup=true)' if (skip_backup | default(false) | bool) else 'YES — data + memory, before any change' }}"
+          - "  PRESERVED  : campaign data (data volume) AND agent memory (home volume)"
+
+    - name: Confirmation required for a recreate (what=modules)
+      ansible.builtin.assert:
+        that:
+          - (confirm | default('') | string) == 'yes'
+        fail_msg: >-
+          what=modules RECREATES the container (data and memory preserved, but the instance
+          restarts on a rebuilt image). Re-run with -e confirm=yes.
+        success_msg: "Confirmation received (confirm=yes)."
+      when: u_what == 'modules'
+
+# ─── 2. Safety backup (config / credentials) ─────────────────────────────────
+# For `modules`, the backup is taken by redeploy.yml itself (avoids a double backup).
+# any_errors_fatal: if the backup fails, the playbook stops → no changes are applied.
+- name: Safety backup (config / credentials)
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  any_errors_fatal: true
+  vars:
+    volume_data: "hermes-{{ deploy_id }}-data"
+  tasks:
+    - name: Does the data volume exist?
+      ansible.builtin.command:
+        cmd: "podman volume exists {{ volume_data }}"
+      register: _gv
+      changed_when: false
+      failed_when: false
+
+    - name: Hybrid safety backup (data + agent memory)
+      ansible.builtin.include_role:
+        name: hermes_backup
+      vars:
+        backup_label: "pre-update"
+      when:
+        - (what | default('modules')) in ['config', 'credentials']
+        - not (skip_backup | default(false) | bool)
+        - _gv.rc == 0
+
+# ─── 3. Targeted update ──────────────────────────────────────────────────────
+# redeploy.yml carries ITS OWN safety guard (confirmation + backup) → consistent when called directly.
+- name: Update modules (rebuild + recreate)
+  ansible.builtin.import_playbook: redeploy.yml
+  when: (what | default('modules')) == 'modules'
+
+- name: Update config (config.yaml + SOUL.md)
+  ansible.builtin.import_playbook: update-config.yml
+  when: (what | default('modules')) == 'config'
+
+- name: Update credentials (.env)
+  ansible.builtin.import_playbook: update-credentials.yml
+  when: (what | default('modules')) == 'credentials'
+
+# ─── 4. Smoke-test: image + seeded data respond correctly ────────────────────
+- name: Post-update verification (smoke-test)
+  ansible.builtin.import_playbook: smoke-test.yml
+
+# ─── 5. Status: is the instance active? ──────────────────────────────────────
+- name: Final instance status
+  ansible.builtin.import_playbook: status.yml

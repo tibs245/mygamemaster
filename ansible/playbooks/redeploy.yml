@@ -1,0 +1,91 @@
+---
+# Rebuild the image then redeploy (module-improvement loop).
+# Recreates the CONTAINER on the new image — the data + home volumes (campaign
+# data AND agent memory) are PRESERVED (never recreated or re-seeded).
+#
+# Guardrails (see update.yml for the full orchestrator):
+#   • explicit confirmation required             → -e confirm=yes
+#   • safety backup BEFORE recreate              → can be skipped with -e skip_backup=true
+#
+#   ansible-playbook playbooks/redeploy.yml -e game=mistfall -e confirm=yes --ask-vault-pass
+#   ansible-playbook playbooks/redeploy.yml -e game=<slug> -e confirm=yes -e skip_backup=true   # fast dev
+#   (legacy alias: -e campagne=<slug> still works)
+
+# ─── Guardrail 1: clear message + explicit confirmation ──────────────────────
+- name: Confirm redeployment (recreate container)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Operation summary
+      ansible.builtin.debug:
+        msg:
+          - "⚠  REDEPLOYMENT — recreates the container on a new image."
+          - "    Target       : {{ campagne | default('ALL campaigns (campagnes)') }}"
+          - "    REBUILT      : OCI image (skills, hooks, scripts) + re-renders config.yaml + SOUL.md"
+          - "    PRESERVED    : campaign data (data volume) AND agent memory (home volume)"
+          - "                   → monde.json, sessions/, .banquier/, personnages/, memory/ : INTACT"
+          - "    Safety net   : {{ 'safety backup BEFORE recreate' if not (skip_backup | default(false) | bool) else 'NONE (skip_backup=true)' }}"
+
+    - name: Require explicit confirmation
+      ansible.builtin.assert:
+        that:
+          - (confirm | default('') | string) == 'yes'
+        fail_msg: >-
+          Operation NOT confirmed. Redeployment recreates the container (data and
+          memory are preserved, but the instance restarts). Re-run with -e confirm=yes.
+        success_msg: "Confirmation received (confirm=yes) — proceeding with redeployment."
+
+# ─── Guardrail 2: safety backup BEFORE any modification ──────────────────────
+# any_errors_fatal: if the backup fails, NOTHING is altered (neither image nor container).
+- name: Safety backup before recreate
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  any_errors_fatal: true
+  vars:
+    volume_data: "hermes-{{ deploy_id }}-data"
+  tasks:
+    - name: "Does the data volume exist? (if not: first-time setup, nothing to back up)"
+      ansible.builtin.command:
+        cmd: "podman volume exists {{ volume_data }}"
+      register: _gv
+      changed_when: false
+      failed_when: false
+
+    - name: Hybrid safety backup (data + agent memory)
+      ansible.builtin.include_role:
+        name: hermes_backup
+      vars:
+        backup_label: "pre-update"
+      when:
+        - not (skip_backup | default(false) | bool)
+        - _gv.rc == 0
+
+    - name: Note — backup skipped
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'Backup skipped (skip_backup=true).' if (skip_backup | default(false) | bool)
+             else 'No existing volume for ' ~ deploy_id ~ ' — first-time setup, nothing to back up.' }}
+      when: (skip_backup | default(false) | bool) or _gv.rc != 0
+
+# ─── Image rebuild ───────────────────────────────────────────────────────────
+- name: Rebuild the image
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - hermes_image
+
+# ─── Redeployment (data + home volumes preserved) ────────────────────────────
+- name: Redeploy the campaign(s) on the new image
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  roles:
+    - hermes_deploy
+  post_tasks:
+    - name: Force restart on the new image
+      ansible.builtin.systemd:
+        name: "hermes-{{ deploy_id }}.service"
+        state: restarted
+        scope: user
+      failed_when: false

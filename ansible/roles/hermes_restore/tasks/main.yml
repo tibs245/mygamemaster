@@ -1,0 +1,251 @@
+---
+# Restores a campaign from a backup set (see the hermes_backup role).
+#
+# Recommended mode — by set (manifest, integrity verified):
+#   ansible-playbook playbooks/restore.yml -e game=mistfall \
+#     -e set=20260609T101500-manual -e restore_what=all -e confirm=yes
+#   ('-e campagne=<slug>' still works as a legacy alias for '-e game=<slug>')
+#
+# Single-file mode (backward-compatible, no manifest check):
+#   ansible-playbook playbooks/restore.yml -e game=mistfall \
+#     -e snapshot=/abs/.../20260609T101500-manual-data.tar.gz -e restore_what=data -e confirm=yes
+#
+# restore_what : data (game data) | home (agent state/memory) | all. 'memory' = alias for 'home'.
+# An automatic safety-backup is taken BEFORE overwriting (unless -e restore_safety_backup=false).
+
+- name: Normalize restore_what (memory → home)
+  ansible.builtin.set_fact:
+    _what: "{{ 'home' if (restore_what == 'memory') else restore_what }}"
+
+- name: Verify required variables
+  ansible.builtin.assert:
+    that:
+      - campagne_slug is defined
+      - (set is defined) or (snapshot is defined)
+      - _what in ['data', 'home', 'all']
+    fail_msg: >-
+      Requires -e game=<slug>, (-e set=<set> OR -e snapshot=<file>) and
+      -e restore_what=data|home|all.
+
+- name: Confirmation guard
+  ansible.builtin.assert:
+    that:
+      - confirm | default('') == 'yes'
+    fail_msg: >-
+      Restore OVERWRITES the targeted volume(s) ({{ _what }}). Re-run with -e confirm=yes.
+
+- name: Restore targets
+  ansible.builtin.set_fact:
+    _targets: "{{ ['data', 'home'] if _what == 'all' else [_what] }}"
+
+# ─── File resolution + expected checksums ───────────────────────────────────
+- name: Read the set manifest (set mode)
+  ansible.builtin.slurp:
+    src: "{{ backup_dir }}/{{ set }}-manifest.json"
+  register: _mf_raw
+  delegate_to: localhost
+  when: set is defined
+
+- name: Decode the manifest
+  ansible.builtin.set_fact:
+    _mf: "{{ _mf_raw.content | b64decode | from_json }}"
+  when: set is defined
+
+- name: Resolve files from the manifest
+  ansible.builtin.set_fact:
+    _data_entry: "{{ (_mf.files | selectattr('role', 'equalto', 'data') | list | first) | default({}) }}"
+    _home_entry: "{{ (_mf.files | selectattr('role', 'equalto', 'home') | list | first) | default({}) }}"
+  when: set is defined
+
+- name: Single-file mode does not support restore_what=all
+  ansible.builtin.assert:
+    that:
+      - _what != 'all'
+    fail_msg: "With -e snapshot=<file>, restore_what must be 'data' or 'home' (not 'all'). Use -e set=<set> for 'all'."
+  when: snapshot is defined and set is not defined
+
+- name: Resolve file (snapshot mode — single file)
+  ansible.builtin.set_fact:
+    _data_entry: "{{ {'name': (snapshot | basename), 'format': 'tar.gz', 'sha256': ''} if _what == 'data' else {} }}"
+    _home_entry: >-
+      {{ {'name': (snapshot | basename),
+          'format': ('zip' if (snapshot | basename).endswith('.zip') else 'tar.gz'),
+          'sha256': ''} if _what == 'home' else {} }}
+  when: snapshot is defined and set is not defined
+
+- name: Local source path for each archive
+  ansible.builtin.set_fact:
+    _src_dir: "{{ (snapshot | dirname) if (snapshot is defined and set is not defined) else backup_dir }}"
+
+# ─── Presence + integrity checks BEFORE any destructive action ───────────────
+- name: Build the list of archives to restore
+  ansible.builtin.set_fact:
+    _files: >-
+      {{ ([_data_entry] if ('data' in _targets) else []) +
+         ([_home_entry] if ('home' in _targets) else []) }}
+
+- name: Verify that each source archive exists (controller)
+  ansible.builtin.stat:
+    path: "{{ _src_dir }}/{{ item.name }}"
+  register: _src_stat
+  delegate_to: localhost
+  loop: "{{ _files }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Fail if an archive is missing
+  ansible.builtin.fail:
+    msg: "Archive not found: {{ _src_dir }}/{{ item.item.name }}"
+  when: not item.stat.exists
+  loop: "{{ _src_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+- name: Verify sha256 checksum (if provided by the manifest)
+  ansible.builtin.shell:
+    cmd: "openssl dgst -sha256 {{ _src_dir }}/{{ item.name }} | awk '{print $NF}'"
+  args:
+    executable: /bin/bash
+  register: _verify_sha
+  changed_when: false
+  delegate_to: localhost
+  loop: "{{ _files }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Fail if checksum does not match
+  ansible.builtin.assert:
+    that:
+      - (item.item.sha256 | default('')) == '' or (item.stdout | trim) == item.item.sha256
+    fail_msg: >-
+      ⛔ Invalid sha256 checksum for {{ item.item.name }} — corrupted archive, restore ABORTED.
+    success_msg: "Integrity OK: {{ item.item.name }}"
+  loop: "{{ _verify_sha.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+# ─── Safety net: back up the CURRENT state before overwriting ───────────────
+- name: Safety-backup before restore
+  ansible.builtin.include_role:
+    name: hermes_backup
+  vars:
+    backup_label: "pre-restore"
+  when: restore_safety_backup | default(true) | bool
+
+# ─── Stop + restore ─────────────────────────────────────────────────────────
+- name: Stop the campaign
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: stopped
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  failed_when: false
+
+- name: Create restore staging directory (deployment host)
+  ansible.builtin.file:
+    path: "{{ pi_restore_tmp }}"
+    state: directory
+    mode: "0700"
+
+- name: Push archives to restore to the deployment host
+  ansible.builtin.copy:
+    src: "{{ _src_dir }}/{{ item.name }}"
+    dest: "{{ pi_restore_tmp }}/{{ item.name }}"
+    mode: "0600"
+  loop: "{{ _files }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# --- Game data: volume recreation + import ---
+- name: Restore the data volume (recreation + import)
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman volume rm -f {{ volume_data }} &&
+      podman volume create {{ volume_data }} &&
+      gunzip -c {{ pi_restore_tmp }}/{{ _data_entry.name }} | podman volume import {{ volume_data }} -
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: "'data' in _targets"
+
+# --- HERMES_HOME: according to the manifest format ---
+- name: "Restore HERMES_HOME — hermes import (zip archive, transient container)"
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman volume rm -f {{ volume_home }} &&
+      podman volume create {{ volume_home }} &&
+      podman run --rm
+      -v {{ volume_home }}:/opt/hermes-home:z
+      -v {{ pi_restore_tmp }}:/restore:ro,Z
+      -e HERMES_HOME=/opt/hermes-home
+      --entrypoint /opt/hermes/venv/bin/hermes
+      {{ hermes_image_name }}:{{ hermes_image_tag }}
+      import /restore/{{ _home_entry.name }} --force
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - "'home' in _targets"
+    - (_home_entry.format | default('zip')) == 'zip'
+
+- name: "Restore HERMES_HOME — volume import (tar.gz archive)"
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      podman volume rm -f {{ volume_home }} &&
+      podman volume create {{ volume_home }} &&
+      gunzip -c {{ pi_restore_tmp }}/{{ _home_entry.name }} | podman volume import {{ volume_home }} -
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - "'home' in _targets"
+    - (_home_entry.format | default('zip')) == 'tar.gz'
+
+# ─── Restart + health check ─────────────────────────────────────────────────
+- name: Restart the campaign
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: started
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  failed_when: false
+
+- name: Wait for the container to start
+  ansible.builtin.pause:
+    seconds: 8
+
+- name: Health check (container running?)
+  ansible.builtin.command:
+    cmd: "podman ps --filter name=^{{ container_name }}$ --filter status=running --format {% raw %}'{{.Names}}'{% endraw %}"
+  environment: "{{ systemd_user_env }}"
+  register: _health
+  changed_when: false
+  failed_when: false
+
+- name: Fetch logs if the container did NOT restart
+  ansible.builtin.command:
+    cmd: "podman logs --tail 30 {{ container_name }}"
+  environment: "{{ systemd_user_env }}"
+  register: _health_logs
+  changed_when: false
+  failed_when: false
+  when: (_health.stdout | default('') | trim) | length == 0
+
+- name: Clean up restore staging directory (deployment host)
+  ansible.builtin.file:
+    path: "{{ pi_restore_tmp }}/{{ item.name }}"
+    state: absent
+  loop: "{{ _files }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Summary
+  ansible.builtin.debug:
+    msg: >-
+      {{ ('✅ Restore ' ~ _what ~ ' OK for ' ~ deploy_id ~ ' — container running.')
+         if (_health.stdout | default('') | trim) | length > 0
+         else ('❌ Restore applied but ' ~ container_name ~ ' NOT started — logs:\n'
+               ~ (_health_logs.stdout | default('(unavailable)'))) }}

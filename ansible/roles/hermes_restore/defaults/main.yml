@@ -1,0 +1,11 @@
+---
+volume_data: "hermes-{{ deploy_id }}-data"
+volume_home: "hermes-{{ deploy_id }}-home"
+container_name: "hermes-{{ deploy_id }}"
+quadlet_unit: "hermes-{{ deploy_id }}"
+backup_dir: "{{ backups_dir }}/{{ deploy_id }}"
+pi_restore_tmp: "{{ ansible_env.HOME }}/.cache/hermes-restore/{{ deploy_id }}"
+
+# What to restore: data (game) | home (agent state/memory) | all (both, default).
+# 'memory' is accepted as a backward-compatible alias for 'home'.
+restore_what: all

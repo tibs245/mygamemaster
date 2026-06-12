@@ -1,0 +1,18 @@
+---
+rendered_dir: "{{ rendered_root }}/{{ deploy_id }}"
+volume_data: "hermes-{{ deploy_id }}-data"
+# Full HERMES_HOME (state.db, memories/, sessions/, kanban.db…). Replaces the former
+# "-memory" volume that was only mounted on the memory/ sub-folder (empty, unused).
+volume_home: "hermes-{{ deploy_id }}-home"
+volume_home_legacy: "hermes-{{ deploy_id }}-memory"   # orphan (empty) from old deployments
+quadlet_unit: "hermes-{{ deploy_id }}"
+# Source of game data for the initial volume seed.
+# Repository data (on the Mac) is first COPIED to this staging directory ON the deployment host
+# (see tasks/main.yml "Push data…"), then mounted into the podman run seed command.
+# (The seed mounts a podman -v path: it must exist on the TARGET host, not on the controller.)
+seed_stage_dir: "{{ ansible_env.HOME }}/.cache/hermes-seed"
+campagne_src: "{{ seed_stage_dir }}/{{ campagne_data_dir }}"
+base_items_src: "{{ seed_stage_dir }}/base_items.yaml"
+# Controller-side source (Mac repository) — origin of copy: tasks to the staging area.
+campagne_src_local: "{{ repo_root }}/data/mj-tonnerre/campagnes/{{ campagne_data_dir }}"
+base_items_src_local: "{{ repo_root }}/data/mj-tonnerre/base_items.yaml"

@@ -1,0 +1,158 @@
+{
+  "meta": {
+    "campagne": "Mistfall",
+    "version": 1,
+    "genere_par": "manual (example campaign — run geo_query.py build to regenerate from monde.json)",
+    "date": "2026-06-12T00:00:00Z",
+    "echelle": "1 unit ~ 1 minute of travel on foot (non-metric, code use only)",
+    "mds_stress_normalise": null
+  },
+  "lieux": [
+    {
+      "id": "region:ashveil-region",
+      "nom": "The Ashveil Region",
+      "parent": null,
+      "type": "region",
+      "altitude": null,
+      "ancrage": { "x": 0, "y": 0 },
+      "aretes": [],
+      "description_narrative": "Rolling chalk downs and dark woods on the border of fae influence. The Veil gathers here when the Court is near."
+    },
+    {
+      "id": "lieu:ashveil-region/ashveil-crossing",
+      "nom": "Ashveil Crossing",
+      "parent": "region:ashveil-region",
+      "type": "hamlet",
+      "altitude": null,
+      "ancrage": { "x": 0, "y": 0 },
+      "aretes": [
+        {
+          "vers": "lieu:thornwick/village-hall",
+          "duree_min": 30,
+          "description": "West along the old drover's road, past the split oak"
+        },
+        {
+          "vers": "lieu:ashveil-region/mire-of-sighs",
+          "duree_min": 90,
+          "description": "North-east, following the dry-stone wall until it ends, then into the reeds"
+        }
+      ],
+      "description_narrative": "Seven stone buildings at a ford. The mist gathers at the treeline each night and retreats at dawn — a little later each morning."
+    },
+    {
+      "id": "lieu:ashveil-region/mire-of-sighs",
+      "nom": "The Mire of Sighs",
+      "parent": "region:ashveil-region",
+      "type": "wetland",
+      "altitude": null,
+      "ancrage": { "x": 90, "y": 30 },
+      "aretes": [
+        {
+          "vers": "lieu:ashveil-region/ashveil-crossing",
+          "duree_min": 90,
+          "description": "South-west, out of the reeds, back to the dry-stone wall"
+        },
+        {
+          "vers": "lieu:thornwick/village-hall",
+          "duree_min": 120,
+          "description": "West through Hunger Wood — dense, fog-filled, easy to lose the path"
+        }
+      ],
+      "description_narrative": "A brackish marsh. The air smells of iron and old lavender. Fog-wraiths first appear here. A faceless standing stone marks the fae boundary at its centre."
+    },
+    {
+      "id": "region:thornwick",
+      "nom": "Thornwick",
+      "parent": null,
+      "type": "region",
+      "altitude": null,
+      "ancrage": { "x": -40, "y": 0 },
+      "aretes": [],
+      "description_narrative": "A village swallowed by the Veil. Silence between heartbeats, cold lamplight, the smell of wet chalk."
+    },
+    {
+      "id": "lieu:thornwick/village-hall",
+      "nom": "Thornwick Village Hall",
+      "parent": "region:thornwick",
+      "type": "civic_building",
+      "altitude": null,
+      "ancrage": { "x": -40, "y": 0 },
+      "aretes": [
+        {
+          "vers": "lieu:ashveil-region/ashveil-crossing",
+          "duree_min": 30,
+          "description": "East along the old drover's road, past the split oak"
+        },
+        {
+          "vers": "lieu:thornwick/village-well",
+          "duree_min": 5,
+          "description": "Cross the village square — two minutes in daylight, five in Veil-fog"
+        },
+        {
+          "vers": "lieu:thornwick/the-warden-tree",
+          "duree_min": 15,
+          "description": "North through the village, past the tithe barn, to the edge of the wood"
+        }
+      ],
+      "description_narrative": "Long stone building doubling as shelter and Warden meeting room. Cold-iron tools on the wall. The last safe room in Thornwick."
+    },
+    {
+      "id": "lieu:thornwick/village-well",
+      "nom": "The Village Well",
+      "parent": "region:thornwick",
+      "type": "landmark",
+      "altitude": null,
+      "ancrage": { "x": -38, "y": 2 },
+      "aretes": [
+        {
+          "vers": "lieu:thornwick/village-hall",
+          "duree_min": 5,
+          "description": "Back across the village square"
+        },
+        {
+          "vers": "lieu:thornwick/the-warden-tree",
+          "duree_min": 12,
+          "description": "North-east, skirting the tithe barn"
+        }
+      ],
+      "description_narrative": "A deep stone well in the village square. The water tastes faintly of iron. The Charter is hidden in a sealed pouch behind a loose stone at its base."
+    },
+    {
+      "id": "lieu:thornwick/the-warden-tree",
+      "nom": "The Warden Tree",
+      "parent": "region:thornwick",
+      "type": "fae_anchor",
+      "altitude": null,
+      "ancrage": { "x": -40, "y": 15 },
+      "aretes": [
+        {
+          "vers": "lieu:thornwick/village-hall",
+          "duree_min": 15,
+          "description": "South through the village"
+        },
+        {
+          "vers": "lieu:ashveil-region/the-pale-court",
+          "duree_min": 180,
+          "description": "Deeper into the forest — no path, follow the cold draft; only possible at the new moon or by fae invitation"
+        }
+      ],
+      "description_narrative": "An enormous ancient oak. Wide enough for three to stand inside. Bargain-marks etched in the bark. The gateway inside opens at the new moon."
+    },
+    {
+      "id": "lieu:ashveil-region/the-pale-court",
+      "nom": "The Pale Court",
+      "parent": "region:ashveil-region",
+      "type": "fae_realm",
+      "altitude": null,
+      "ancrage": { "x": -80, "y": 60 },
+      "aretes": [
+        {
+          "vers": "lieu:thornwick/the-warden-tree",
+          "duree_min": 180,
+          "description": "Through the gateway — only accessible at new moon or by invitation; time passes differently inside"
+        }
+      ],
+      "description_narrative": "Cold marble pavilions hung with silver lanterns. Time passes wrong here. The Lady of Sighs holds court on a throne of antlers and promises."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mj-tonnerre/geo.schema.json",
+  "title": "geo.json — graphe spatial 4D d'une campagne (monde vivant)",
+  "description": "Vérité du graphe spatial d'une campagne MJ Tonnerre (contrat §5, doc 01 §2-4). Trois couches : contenance (parent), adjacence (aretes), ancrage (ancrage {x,y}, code-only, JAMAIS exposé au LLM). Généré par geo_query.py build (contenance depuis univers.regions, adjacence depuis regles.temps.deplacements, ancrage par MDS SMACOF stdlib). Les coordonnées d'ancrage sont non métriques (1 unité ~ 1 UT de marche). Fichier non destructif : il n'écrit JAMAIS dans monde.json. Tolérant (additionalProperties:true) : on ne signale que les manques réels.",
+  "type": "object",
+  "required": ["meta", "lieux"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["campagne", "version"],
+      "additionalProperties": true,
+      "properties": {
+        "campagne": { "type": "string" },
+        "version": { "type": "integer" },
+        "genere_par": {
+          "type": "string",
+          "description": "Script émetteur, p.ex. 'geo_query.py build'."
+        },
+        "date": { "type": "string", "description": "Horodatage ISO-8601 de génération." },
+        "echelle": {
+          "type": "string",
+          "description": "Mention de l'échelle d'ancrage (non métrique, usage code uniquement)."
+        },
+        "mds_stress_normalise": {
+          "type": ["number", "null"],
+          "description": "Qualité d'ancrage MDS : sqrt(Σ(d-D)²/ΣD²). Indicatif (cible < 0.30)."
+        }
+      }
+    },
+    "lieux": {
+      "type": "array",
+      "description": "Nœuds du graphe. Au moins une région racine (parent null).",
+      "items": { "$ref": "#/$defs/lieu" }
+    }
+  },
+  "$defs": {
+    "lieu": {
+      "type": "object",
+      "description": "Nœud-lieu du graphe (contrat §5.1). id figé hiérarchique 'type:chemin-kebab' (contrat §2.2).",
+      "required": ["id", "nom", "parent", "type", "altitude", "ancrage", "aretes"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifiant figé unique, forme 'type:chemin-kebab' hiérarchique (ex. 'lieu:marche-aux-trois-rivieres/cabane-berthe', 'region:marche-aux-trois-rivieres')."
+        },
+        "nom": {
+          "type": "string",
+          "description": "Nom libre pour la narration (ex. « Cabane de Berthe »)."
+        },
+        "parent": {
+          "type": ["string", "null"],
+          "description": "id du lieu conteneur (contenance), ou null pour une région racine."
+        },
+        "type": {
+          "type": "string",
+          "description": "Nature du lieu. Enum extensible : la liste figée du contrat §5.1 est conseillée, mais tout libellé est toléré (additionalProperties d'esprit).",
+          "enum": [
+            "region",
+            "habitation",
+            "campement",
+            "site-ancien",
+            "menhir",
+            "ruine",
+            "foret",
+            "clairiere",
+            "grotte",
+            "colline",
+            "riviere",
+            "sentier",
+            "crypte",
+            "edifice",
+            "zone-naturelle",
+            "lieu"
+          ]
+        },
+        "altitude": {
+          "type": ["number", "null"],
+          "description": "Scalaire « z » optionnel (le z se gère à 95 % par la contenance). null si non renseigné."
+        },
+        "ancrage": { "$ref": "#/$defs/ancrage" },
+        "aretes": {
+          "type": "array",
+          "description": "Adjacence dirigée. Peut être [] pour une région racine. Traitée BIDIRECTIONNELLE par les algos (aller = retour).",
+          "items": { "$ref": "#/$defs/arete" }
+        },
+        "description_narrative": {
+          "type": "string",
+          "description": "Texte d'ambiance optionnel."
+        }
+      }
+    },
+    "ancrage": {
+      "type": "object",
+      "description": "Coordonnées MDS grossières (x,y). USAGE CODE UNIQUEMENT — jamais vues ni produites par le LLM (invariant 01 §C / contrat §14.2).",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "arete": {
+      "type": "object",
+      "description": "Arête d'adjacence dirigée (contrat §5.2). temps_ut déduit de regles.temps.deplacements via minutes_vers_ut(parser_duree_minutes).",
+      "required": ["vers", "dir", "distance_m", "temps_ut"],
+      "additionalProperties": true,
+      "properties": {
+        "vers": {
+          "type": "string",
+          "description": "id du lieu cible (doit exister dans 'lieux')."
+        },
+        "dir": {
+          "type": "string",
+          "description": "Cardinalité ∈ {N,NE,E,SE,S,SO,O,NO} ; '?' si inconnue.",
+          "enum": ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "?"]
+        },
+        "distance_m": {
+          "type": ["number", "null"],
+          "description": "Distance en mètres si connue, sinon null."
+        },
+        "temps_ut": {
+          "type": "number",
+          "description": "Durée du trajet en UT (≥ 1). 1 UT = 10 min."
+        },
+        "voie": {
+          "type": "string",
+          "description": "Description du trajet (extraite de la durée narrative). Optionnel."
+        }
+      }
+    }
+  }
+}

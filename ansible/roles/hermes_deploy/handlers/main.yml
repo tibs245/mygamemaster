@@ -1,0 +1,17 @@
+---
+# systemd_user_env (XDG_RUNTIME_DIR + DBus, dynamic UID): required to reach the
+# systemd --user bus over non-interactive SSH. Defined in group_vars/all/main.yml.
+- name: Reload systemd user
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  listen: reload_systemd
+
+- name: Restart the campaign
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: restarted
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  listen: restart_campagne

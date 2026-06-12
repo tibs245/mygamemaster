@@ -1,0 +1,35 @@
+---
+# Control one (-e game=<slug>) or all instances.
+# '-e campagne=' is still accepted as a legacy alias for '-e game='.
+#   ansible-playbook playbooks/control.yml -e action=restart
+#   ansible-playbook playbooks/control.yml -e action=stop -e game=mistfall
+# actions : start | stop | restart
+- name: Control MJ Tonnerre instances
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true        # required to resolve the UID (systemd_user_env)
+  vars:
+    unit: "hermes-{{ deploy_id }}"
+    _state_map:
+      start: started
+      stop: stopped
+      restart: restarted
+  tasks:
+    - name: Verify the requested action
+      ansible.builtin.assert:
+        that:
+          - action is defined
+          - action in _state_map.keys() | list
+        fail_msg: "Requires -e action=start|stop|restart."
+
+    - name: Apply action {{ action }}
+      ansible.builtin.systemd:
+        name: "{{ unit }}.service"
+        state: "{{ _state_map[action] }}"
+        scope: user
+      environment: "{{ systemd_user_env }}"
+      register: _ctl
+      failed_when: false
+
+    - name: Result
+      ansible.builtin.debug:
+        msg: "{{ unit }} → action '{{ action }}' {{ 'OK' if (_ctl is not failed) else 'failed (is the instance deployed?)' }}"

@@ -1,0 +1,22 @@
+---
+# All-in-one orchestrator: build (Mac) → push image (deployment host) → deploy campaign(s).
+# Single command, single vault prompt.
+#
+#   # Full run: build + push + deployment of all campaigns
+#   ansible-playbook playbooks/deploy-full.yml --ask-vault-pass
+#
+#   # Same but a single campaign (build+push still happen, then that campaign)
+#   ansible-playbook playbooks/deploy-full.yml -e game=mistfall --ask-vault-pass
+#   # (-e campagne=<slug> still works as a legacy alias)
+#
+# For a REDEPLOYMENT without rebuilding the image (image already on the deployment host),
+# use playbooks/deploy.yml directly (faster, no build/push).
+#
+# Step order (each sub-playbook keeps its own `hosts:`):
+#   1. build-image.yml  → hosts: localhost    (build aarch64 on the Mac)
+#   2. push-image.yml   → localhost + campaigns (save → rsync → load on the deployment host)
+#   3. deploy.yml       → hosts: campaigns    (config, seed, quadlet, start)
+
+- ansible.builtin.import_playbook: build-image.yml
+- ansible.builtin.import_playbook: push-image.yml
+- ansible.builtin.import_playbook: deploy.yml

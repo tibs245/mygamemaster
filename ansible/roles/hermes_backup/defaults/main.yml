@@ -1,0 +1,17 @@
+---
+volume_data: "hermes-{{ deploy_id }}-data"
+# Full HERMES_HOME (see hermes_deploy: volume mounted over the entire /opt/hermes-home).
+volume_home: "hermes-{{ deploy_id }}-home"
+container_name: "hermes-{{ deploy_id }}"
+quadlet_unit: "hermes-{{ deploy_id }}"
+
+# Backups are stored on the CONTROLLER (Mac), inside the repository (git-ignored) —
+# to be archived later to NAS/S3. Artifacts are first produced on the deployment host then fetched back.
+backup_dir: "{{ backups_dir }}/{{ deploy_id }}"
+pi_backup_tmp: "{{ ansible_env.HOME }}/.cache/hermes-backup/{{ deploy_id }}"
+
+backup_stamp: "{{ ansible_date_time.iso8601_basic_short | default('manual') }}"
+backup_label: "manual"                       # overridden by automated calls (pre-restore, pre-reset…)
+backup_set: "{{ backup_stamp }}-{{ backup_label }}"   # common prefix for all files in a backup set
+
+# backup_keep (rotation) and backup_freeze (stop during export): group_vars/all/main.yml

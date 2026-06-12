@@ -1,0 +1,70 @@
+---
+# Builds the Hermes OCI image + modules.
+
+- name: Prepare the build context
+  ansible.builtin.file:
+    path: "{{ build_context }}"
+    state: directory
+    mode: "0755"
+
+- name: Sync modules into the build context
+  ansible.builtin.command:
+    cmd: >-
+      rsync -a --delete
+      --exclude '._*' --exclude '__pycache__/' --exclude '*.pyc'
+      {{ repo_root }}/modules/ {{ build_context }}/modules/
+  register: _rsync_modules
+  changed_when: "'total size' in _rsync_modules.stdout or _rsync_modules.stdout_lines | length > 0"
+
+- name: Render the Containerfile
+  ansible.builtin.template:
+    src: Containerfile.j2
+    dest: "{{ build_context }}/Containerfile"
+    mode: "0644"
+
+- name: Render the entrypoint
+  ansible.builtin.template:
+    src: entrypoint.sh.j2
+    dest: "{{ build_context }}/entrypoint.sh"
+    mode: "0755"
+
+- name: Build the Hermes OCI image + modules
+  ansible.builtin.command:
+    cmd: >-
+      podman build
+      -t {{ hermes_image_name }}:{{ hermes_image_tag }}
+      -t {{ hermes_image_name }}:{{ image_version }}
+      -f {{ build_context }}/Containerfile
+      {{ build_context }}
+  register: _build
+  changed_when: "'COMMIT' in _build.stdout or 'Writing manifest' in _build.stdout or _build.rc == 0"
+
+- name: Retrieve the Hermes version actually installed in the image
+  ansible.builtin.command:
+    cmd: >-
+      podman run --rm --entrypoint cat
+      {{ hermes_image_name }}:{{ image_version }} /opt/hermes/INSTALLED_VERSION
+  register: _installed
+  changed_when: false
+  failed_when: false
+
+- name: Record build info (traceability + rollback)
+  ansible.builtin.copy:
+    dest: "{{ build_context }}/build-info-{{ image_version }}.json"
+    mode: "0644"
+    content: |
+      {
+        "image": "{{ hermes_image_name }}",
+        "tags": ["{{ hermes_image_tag }}", "{{ image_version }}"],
+        "hermes_version_requested": "{{ hermes_version | default('latest') }}",
+        "hermes_version_installed": {{ (_installed.stdout | default('') | trim) | to_json }},
+        "built": "{{ ansible_date_time.iso8601 | default('manual') }}"
+      }
+
+- name: Display the built tag + rollback reminder
+  ansible.builtin.debug:
+    msg:
+      - "Image built: {{ hermes_image_name }}:{{ hermes_image_tag }} (+ :{{ image_version }})"
+      - "Hermes installed: {{ _installed.stdout | default('?') | trim }}"
+      - "Rollback: 'podman tag {{ hermes_image_name }}:<old_tag> {{ hermes_image_name }}:latest' then push-image.yml + redeploy."
+      - "Available tags: 'podman images {{ hermes_image_name }}'."

@@ -1,0 +1,49 @@
+---
+# Startup smoke-test: image, baked modules, seeded data, hermes binary.
+#   ansible-playbook playbooks/smoke-test.yml -e game=mistfall
+#   ('-e campagne=<slug>' still works as a legacy alias)
+#   Games are looked up from the games.yml table (exposed by hermes_inventory.py).
+- name: Smoke-test a campaign
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  vars:
+    image_ref: "{{ hermes_image_name }}:{{ hermes_image_tag }}"
+    volume_data: "hermes-{{ deploy_id }}-data"
+  tasks:
+    # `--entrypoint sh` is REQUIRED: the image has an ENTRYPOINT (entrypoint.sh) that expects
+    # config.yaml in /opt/hermes-home BEFORE launching hermes. With `podman run image <cmd>`,
+    # <cmd> is passed as ARGS to the entrypoint (never executed directly) → the test fails on the
+    # bare image ("config.yaml missing"). We bypass the entrypoint to test the binary/files.
+    - name: Verify that hermes --version responds inside the image
+      ansible.builtin.command:
+        cmd: 'podman run --rm --entrypoint sh {{ image_ref }} -c "hermes --version"'
+      register: _ver
+      changed_when: false
+
+    - name: The 15 mj-tonnerre skills are baked
+      ansible.builtin.command:
+        cmd: >-
+          podman run --rm --entrypoint sh {{ image_ref }}
+          -c "ls -d {{ container_modules }}/gaming/mj-tonnerre* | wc -l"
+      register: _skills
+      changed_when: false
+      failed_when: (_skills.stdout | trim | int) < 15
+
+    # :ro,z (shared) and NOT :ro,Z: a transient container with :Z would relabel the volume
+    # with its PRIVATE MCS category → the main container (which has this volume mounted) would
+    # then be denied SELinux access. Read-only + shared z = safe while the bot is running.
+    - name: Verify that world.json is readable inside the data volume
+      ansible.builtin.command:
+        cmd: >-
+          podman run --rm --entrypoint sh -v {{ volume_data }}:/d:ro,z {{ image_ref }}
+          -c "test -f /d/{{ campagne_data_dir }}/monde.json && echo OK"
+      register: _monde
+      changed_when: false
+      failed_when: "'OK' not in _monde.stdout"
+
+    - name: Result
+      ansible.builtin.debug:
+        msg:
+          - "version : {{ _ver.stdout | default('?') | trim }}"
+          - "mj-tonnerre skills : {{ _skills.stdout | trim }}"
+          - "world.json : {{ _monde.stdout | trim }}"

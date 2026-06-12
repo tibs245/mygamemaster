@@ -1,0 +1,44 @@
+# Containerfile — Hermes image + MJ Tonnerre modules  (rendered by Ansible)
+FROM {{ hermes_base_image }}
+
+# 1. Base tools + skill-script dependencies
+#    ffmpeg : mixes the ambient soundbed under the narrative voice (skill mj-tonnerre-tts).
+#    If absent → voice is still generated (fail-open), only the ambient layer is skipped.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl ca-certificates git jq tini ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Hermes installation (official method)
+ENV HERMES_INSTALL_DIR=/opt/hermes
+# Requested version — best-effort: HERMES_VERSION is exported so the installer can read it;
+# 'latest' = most recently published release. The true reproducibility anchor is the image TAG
+# (see roles/hermes_image) → NEVER delete dated/semantic tags so rollbacks remain possible.
+ENV HERMES_VERSION={{ hermes_version | default('latest') }}
+RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+ENV PATH="/opt/hermes/venv/bin:${PATH}"
+# Record the actually-installed version (audit + rollback diagnostics).
+RUN /opt/hermes/venv/bin/hermes --version > /opt/hermes/INSTALLED_VERSION 2>&1 || true
+LABEL org.hermes-mj.hermes_version_requested="{{ hermes_version | default('latest') }}"
+LABEL org.hermes-mj.built="{{ ansible_date_time.iso8601 | default('manual') }}"
+
+# 3. Our modules (baked in for reproducibility)
+COPY modules/ {{ container_modules }}/
+
+# 4. Python dependencies for skill scripts (if a requirements.txt is present)
+RUN if [ -f {{ container_modules }}/gaming/mj-tonnerre/scripts/requirements.txt ]; then \
+      /opt/hermes/venv/bin/pip install --no-cache-dir \
+        -r {{ container_modules }}/gaming/mj-tonnerre/scripts/requirements.txt ; \
+    fi
+
+# 4b. Executable bit on runtime hooks (safety net — they are invoked via explicit interpreter)
+RUN chmod +x {{ container_modules }}/gaming/mj-tonnerre/hooks/*.py 2>/dev/null || true
+
+# 5. Hermes HOME + mount-point directories
+ENV HOME={{ container_home }}
+RUN mkdir -p {{ container_home }} {{ container_home }}/memory {{ container_data_root }}
+
+# 6. Entrypoint (starts the gateway)
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]

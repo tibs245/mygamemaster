@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mj-tonnerre/monde.schema.json",
+  "title": "monde.json — état du monde d'une campagne MJ Tonnerre",
+  "type": "object",
+  "required": ["meta", "modules", "etat_global", "univers"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["nom", "temps"],
+      "additionalProperties": true,
+      "properties": {
+        "nom": { "type": "string" },
+        "temps": {
+          "type": "object",
+          "required": ["regime"],
+          "additionalProperties": true,
+          "properties": {
+            "regime": { "type": "string" }
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Bloc de modules thématiques activables. Chaque module = {actif:bool, params:obj}.",
+      "patternProperties": {
+        "^(voyage|factions|proactivite_pnj|artefacts|politique|meteo|worldbuilding_lieux|construction_royaume)$": {
+          "type": "object",
+          "required": ["actif"],
+          "additionalProperties": true,
+          "properties": {
+            "actif": { "type": "boolean" },
+            "params": { "type": "object" }
+          }
+        }
+      }
+    },
+    "etat_global": {
+      "type": "object",
+      "required": ["factions", "faction_actions_horloge", "chronologie"],
+      "additionalProperties": true,
+      "properties": {
+        "chronologie": { "type": "string" },
+        "factions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nom", "objectif_court_terme", "objectif_long_terme", "attitude_actuelle"],
+            "additionalProperties": true,
+            "properties": {
+              "nom": { "type": "string" },
+              "objectif_court_terme": { "type": "string" },
+              "objectif_long_terme": { "type": "string" },
+              "attitude_actuelle": { "type": "string" },
+              "indices_observes": { "type": "array" }
+            }
+          }
+        },
+        "faction_actions_horloge": {
+          "type": "object",
+          "required": ["actions"],
+          "additionalProperties": true,
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["faction", "actions_en_cours"],
+                "additionalProperties": true,
+                "properties": {
+                  "faction": { "type": "string" },
+                  "actions_en_cours": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["action", "echeance", "consequence"],
+                      "additionalProperties": true,
+                      "properties": {
+                        "action": { "type": "string" },
+                        "consequence": { "type": "string" },
+                        "echeance": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": ["texte", "unite", "min", "max", "ancre", "statut"],
+                              "additionalProperties": true,
+                              "properties": {
+                                "texte": { "type": "string" },
+                                "unite": { "type": "string", "enum": ["jour", "ut"] },
+                                "min": { "type": ["integer", "null"] },
+                                "max": { "type": ["integer", "null"] },
+                                "ancre": { "type": "integer" },
+                                "statut": { "type": "string", "enum": ["en_cours", "echue", "resolue"] }
+                              }
+                            },
+                            {
+                              "type": "string",
+                              "description": "Format LEGACY chaîne libre — toléré mais non avançable par machine (à migrer vers l'objet épinglé)."
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "univers": {
+      "type": "object",
+      "required": ["regions"],
+      "additionalProperties": true,
+      "properties": {
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nom"],
+            "additionalProperties": true,
+            "properties": {
+              "nom": { "type": "string" },
+              "lieux": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["nom"],
+                  "additionalProperties": true,
+                  "properties": {
+                    "nom": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

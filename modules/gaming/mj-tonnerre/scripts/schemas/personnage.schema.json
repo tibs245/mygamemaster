@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mj-tonnerre/personnage.schema.json",
+  "title": "personnages/<id>.json — fiche d'un personnage joueur",
+  "type": "object",
+  "required": ["meta", "stats", "inventaire", "sante"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["nom_perso"],
+      "additionalProperties": true,
+      "properties": {
+        "nom_perso": { "type": "string" },
+        "discord_id": { "type": ["string", "integer"] }
+      }
+    },
+    "stats": { "type": "object" },
+    "inventaire": { "type": "array" },
+    "competences": { "type": ["array", "object"] },
+    "sante": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "PV / seuils de blessure. Champs exacts variables selon le système."
+    },
+    "progression": { "type": ["object", "array"] }
+  }
+}

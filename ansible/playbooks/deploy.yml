@@ -1,0 +1,9 @@
+---
+# Deploy one campaign (-e game=<slug>) or all campaigns (omit -e game).
+# '-e campagne=<slug>' still works as a legacy alias.
+#   ansible-playbook playbooks/deploy.yml -e game=mistfall --ask-vault-pass
+- name: Deploy the campaign(s)
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  roles:
+    - hermes_deploy

@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mj-tonnerre/intention.schema.json",
+  "title": "intention — unité atomique du plan d'un acteur (monde vivant)",
+  "description": "Une intention dit QUOI, OÙ, QUAND au plus tard (echeance en T/UT), sous quelles PRÉCONDITIONS, avec quelle CONSÉQUENCE attendue (doc 02 §1, contrat §6.2). C'est aussi le FORMAT DE SORTIE du seam LLM agent_decide (contrat §7.5) : toute sortie est validée contre ce schéma PUIS contre les invariants avant d'entrer dans le plan. id 'intent:<slug>' unique AU SEIN DU PLAN d'un acteur (pas globalement). echeance est un T DÉTERMINISTE (entier UT) : le LLM ne produit jamais de T brut — il est dérivé d'une échéance épinglée (echeance_source) par worldlib.echeance_en_t. Tolérant (additionalProperties:true).",
+  "type": "object",
+  "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Identifiant 'intent:<slug>' unique dans le plan de l'acteur (ex. 'intent:raid-hivernal')."
+    },
+    "action": {
+      "type": "string",
+      "description": "Quoi : libellé de l'action."
+    },
+    "lieu": {
+      "type": ["string", "null"],
+      "description": "id de lieu cible, ou null si l'intention n'est pas spatiale."
+    },
+    "echeance": {
+      "type": "integer",
+      "description": "T (UT) AU PLUS TARD — entier déterministe. Pour une fourchette épinglée, c'est la borne HAUTE (au plus tard)."
+    },
+    "echeance_source": {
+      "description": "Échéance « épinglée » d'origine (trace), format clock.py {texte,unite,min,max,ancre,statut} OU chaîne libre. Optionnel — conservé pour audit (contrat §3.9).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["texte", "unite", "ancre"],
+          "additionalProperties": true,
+          "properties": {
+            "texte": { "type": "string" },
+            "unite": { "type": "string", "enum": ["jour", "ut"] },
+            "min": { "type": ["integer", "null"] },
+            "max": { "type": ["integer", "null"] },
+            "ancre": { "type": "integer" },
+            "statut": {
+              "type": "string",
+              "enum": ["en_cours", "echue", "resolue"]
+            }
+          }
+        },
+        {
+          "type": "string",
+          "description": "Chaîne libre non datable par machine (ex. « Dans 2-3 semaines… ») — signalée, non avançable."
+        }
+      ]
+    },
+    "preconditions": {
+      "type": "array",
+      "description": "Expressions évaluables — sous-ensemble SÛR : comparaisons numériques 'ressources.<clef> <op> <nombre>' (ex. 'ressources.vivres_jours < 14'). Inconnu/non parsable → True (fail-open). Optionnel.",
+      "items": { "type": "string" }
+    },
+    "consequence_attendue": {
+      "type": "string",
+      "description": "Effets attendus (texte). Déclenche la propagation causale si significatif."
+    },
+    "consequence_effets": { "$ref": "#/$defs/consequence_effets" },
+    "significativite": {
+      "type": "number",
+      "description": "0–1 : amorce de propagation causale (contrat §8). Défaut applicatif 0.5 si absent."
+    },
+    "visible_par_pj": {
+      "type": "boolean",
+      "description": "Le PJ peut-il observer cette intention ?"
+    },
+    "statut": {
+      "type": "string",
+      "description": "Cycle de vie de l'intention.",
+      "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
+    }
+  },
+  "$defs": {
+    "consequence_effets": {
+      "type": "object",
+      "description": "Deltas MACHINE optionnels appliqués par le Banquier étendu (appliquer_consequence). Tout est optionnel.",
+      "additionalProperties": true,
+      "properties": {
+        "ressources": {
+          "type": "object",
+          "description": "Deltas de ressources (clef → nombre, peut être négatif). Une conservation violée (ressource négative créée) fait REFUSER la conséquence.",
+          "additionalProperties": true
+        },
+        "relations": {
+          "type": "array",
+          "description": "Mutations de relations à appliquer (mêmes champs qu'une relation, cf. relation.schema.json).",
+          "items": { "$ref": "#/$defs/relation_effet" }
+        },
+        "evenement": {
+          "type": "object",
+          "description": "Gabarit d'événement à émettre (partiel) — complété par le tick/propagation.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "relation_effet": {
+      "type": "object",
+      "description": "Mutation de relation embarquée dans une conséquence (forme allégée de la relation du graphe causal).",
+      "required": ["vers", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "vers": { "type": "string", "description": "id de l'acteur/lieu cible." },
+        "type": {
+          "type": "string",
+          "description": "Type de relation (cf. relation.schema.json).",
+          "enum": [
+            "approvisionnement",
+            "vassalite",
+            "alliance",
+            "hostilite",
+            "route_commerciale",
+            "parente",
+            "rivalite",
+            "predation",
+            "commandement",
+            "trahison",
+            "concurrence",
+            "tutelle"
+          ]
+        },
+        "intensite": { "type": "number", "description": "0–1." },
+        "bien": { "type": "string" },
+        "part": { "type": "number" },
+        "delai_ut": { "type": "integer" },
+        "poids": { "type": "number" }
+      }
+    }
+  }
+}

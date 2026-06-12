@@ -1,0 +1,20 @@
+---
+# Configuration ansible-lint pour la suite MJ Tonnerre.
+# On vise le profil "basic" en assumant explicitement deux idiomes du projet.
+profile: basic
+
+exclude_paths:
+  - ../archive_hermes/
+  - ../.build/
+  - ../.rendered/
+
+skip_list:
+  # Choix assumé : variables de rôle internes à noms courts et lisibles
+  # (volume_data, rendered_dir, …). Pas de collision réelle entre rôles
+  # car chaque rôle s'exécute isolément.
+  - var-naming[no-role-prefix]
+  # Choix assumé : on pilote podman via `command:` pour ne pas imposer la
+  # collection containers.podman (gardée idempotente manuellement). La
+  # collection reste recommandée (ansible/requirements.yml) mais non requise
+  # pour la validation statique.
+  - command-instead-of-module

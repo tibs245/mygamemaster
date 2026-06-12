@@ -1,0 +1,61 @@
+---
+# Instance status (read-only).
+#   ansible-playbook playbooks/status.yml                              # global view + campaigns
+#   ansible-playbook playbooks/status.yml -e game=mistfall
+#   ansible-playbook playbooks/status.yml -e game=mistfall -e instance=test1
+# Note: '-e campagne=<slug>' still works as a legacy alias for '-e game=<slug>'.
+# Games are declared in the games.yml table (exposed by hermes_inventory.py).
+
+- name: Global view of all Podman instances
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [global]
+  tasks:
+    - name: List all hermes-* containers
+      ansible.builtin.command:
+        cmd: "podman ps -a --filter name=hermes- --format {% raw %}'{{.Names}}\t{{.Status}}'{% endraw %}"
+      register: _all
+      changed_when: false
+      failed_when: false
+
+    - name: MJ Tonnerre containers
+      ansible.builtin.debug:
+        msg: "{{ _all.stdout_lines | default(['(none)']) }}"
+
+- name: Detailed status per declared campaign
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true        # required to resolve the UID (systemd_user_env)
+  environment: "{{ systemd_user_env }}"   # systemctl/podman --user connect to the user bus
+  vars:
+    unit: "hermes-{{ deploy_id }}"
+  tasks:
+    - name: Is the systemd service active?
+      ansible.builtin.command:
+        cmd: "systemctl --user is-active {{ unit }}.service"
+      register: _active
+      changed_when: false
+      failed_when: false
+
+    - name: Podman container status
+      ansible.builtin.command:
+        cmd: "podman ps -a --filter name=^{{ unit }}$ --format {% raw %}'{{.Status}}'{% endraw %}"
+      register: _ps
+      changed_when: false
+      failed_when: false
+
+    - name: Volumes present
+      ansible.builtin.command:
+        cmd: "podman volume ls --filter name=hermes-{{ deploy_id }} --format {% raw %}'{{.Name}}'{% endraw %}"
+      register: _vols
+      changed_when: false
+      failed_when: false
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "campaign   : {{ campagne_titre | default(campagne_slug) }} ({{ campagne_slug }})"
+          - "instance   : {{ instance }}  →  id={{ deploy_id }}"
+          - "service    : {{ _active.stdout | default('?') | trim }}"
+          - "container  : {{ _ps.stdout | default('') | trim | default('absent', true) }}"
+          - "volumes    : {{ _vols.stdout_lines | default([]) | join(', ') | default('none', true) }}"

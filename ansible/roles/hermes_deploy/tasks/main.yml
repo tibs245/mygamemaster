@@ -1,0 +1,229 @@
+---
+# Full deployment of a campaign. Reuses config.yml + credentials.yml
+# (which can also be run standalone for targeted updates).
+
+- name: Verify campaign variables
+  ansible.builtin.assert:
+    that:
+      - campagne_slug is defined
+      - campagne_data_dir is defined
+      - discord_secret_key is defined
+    fail_msg: >-
+      Missing campaign variables. Run with -e game=<slug> (or -e campagne=<slug> as a legacy alias)
+      and verify the entry in the games.yml table.
+
+- name: Check that the image exists
+  ansible.builtin.command:
+    cmd: "podman image exists {{ hermes_image_name }}:{{ hermes_image_tag }}"
+  register: _img
+  changed_when: false
+  failed_when: false
+
+- name: Fail if the image is missing
+  ansible.builtin.fail:
+    msg: >-
+      Image {{ hermes_image_name }}:{{ hermes_image_tag }} not found.
+      Run first: ansible-playbook playbooks/build-image.yml
+  when: _img.rc != 0
+
+# --- Rendered configuration (config.yaml + SOUL.md) ---
+- name: Render configuration
+  ansible.builtin.import_tasks: config.yml
+
+# --- Persistent volumes + initial seed ---
+- name: Check volumes (game data + HERMES_HOME)
+  ansible.builtin.command:
+    cmd: "podman volume exists {{ item }}"
+  register: _vol
+  changed_when: false
+  failed_when: false
+  loop:
+    - "{{ volume_data }}"
+    - "{{ volume_home }}"
+
+- name: Create missing volumes
+  ansible.builtin.command:
+    cmd: "podman volume create {{ item.item }}"
+  when: item.rc != 0
+  loop: "{{ _vol.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  changed_when: true
+
+# --- Initial seed: ONLY on first deployment (empty data volume) ---
+# On REDEPLOYMENT, the volume already holds UP-TO-DATE data (modified in-game on the
+# deployment host). Nothing is pushed from the controller and no re-seed is done: the
+# repository data is the INITIAL SKELETON only. The volume check runs FIRST and guards the
+# entire block below (staging + copy + seed) — without it those tasks ran needlessly every run.
+#
+# `--entrypoint sh` is REQUIRED: the image has an ENTRYPOINT (tini → entrypoint.sh →
+# hermes gateway start). Without an override, `sh -c …` is passed as ARGS to the entrypoint
+# (ignored) and hermes starts instead — the ls never runs. Silent bug:
+# the seed-check "saw" entrypoint output (non-empty) → seed always skipped.
+- name: Is the data volume empty? (decides the initial seed)
+  ansible.builtin.command:
+    # :z (shared) NOT :Z: a transient container with :Z would steal the MCS private
+    # categories of the volume → the main container would then be denied access (SELinux).
+    cmd: >-
+      podman run --rm --entrypoint sh -v {{ volume_data }}:/d:z
+      {{ hermes_image_name }}:{{ hermes_image_tag }}
+      -c "ls -A /d/{{ campagne_data_dir }} 2>/dev/null | head -1"
+  register: _seed_check
+  changed_when: false
+  failed_when: false
+
+- name: Decide whether an initial seed is needed (empty volume)
+  ansible.builtin.set_fact:
+    _needs_seed: "{{ (_seed_check.stdout | trim | length) == 0 }}"
+
+- name: Log the seed decision
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Volume EMPTY → initial seed from repository (first deployment).'
+         if _needs_seed
+         else 'Volume already populated → NOTHING pushed from controller, runtime data preserved.' }}
+
+# --- Staging game data ON the deployment host (only if seed is needed) ---
+# `podman run -v` mounts a path on the TARGET host: we first copy repository data
+# (controller) to a staging directory on the deployment host. Lightweight JSON files → `copy` is enough.
+- name: Create the data staging directory (deployment host)
+  ansible.builtin.file:
+    path: "{{ seed_stage_dir }}/{{ campagne_data_dir }}"
+    state: directory
+    mode: "0755"
+  when: _needs_seed
+
+- name: Push campaign data to staging (controller → deployment host)
+  ansible.builtin.copy:
+    src: "{{ campagne_src_local }}/"
+    dest: "{{ campagne_src }}/"
+    mode: "0644"
+    directory_mode: "0755"
+  when: _needs_seed
+
+- name: Push base_items.yaml to staging
+  ansible.builtin.copy:
+    src: "{{ base_items_src_local }}"
+    dest: "{{ base_items_src }}"
+    mode: "0644"
+  when: _needs_seed
+
+- name: Seed game data into the volume (first deployment)
+  ansible.builtin.command:
+    cmd: >-
+      podman run --rm --entrypoint sh
+      -v {{ volume_data }}:/d:z
+      -v {{ campagne_src }}:/src:ro,Z
+      -v {{ base_items_src }}:/base_items.yaml:ro,Z
+      {{ hermes_image_name }}:{{ hermes_image_tag }}
+      -c "mkdir -p /d/{{ campagne_data_dir }} &&
+          cp -a /src/. /d/{{ campagne_data_dir }}/ &&
+          cp -a /base_items.yaml /d/../base_items.yaml 2>/dev/null || true"
+  when: _needs_seed
+  changed_when: true
+
+# --- Secrets (environment file) ---
+- name: Write credentials
+  ansible.builtin.import_tasks: credentials.yml
+
+# --- Linger: persistent --user services (beyond SSH session + at boot) ---
+# Best-effort WITHOUT sudo: we attempt to enable linger as the current user.
+# If policy requires elevated privileges we do NOT fail the deployment — we warn instead
+# (linger can then be enabled manually once: sudo loginctl enable-linger <user>).
+# NOTE: no `become` here → an escalation failure cannot break the deploy.
+- name: Current linger state
+  ansible.builtin.command:
+    cmd: "loginctl show-user {{ ansible_user_id }} --property=Linger --value"
+  register: _linger_state
+  changed_when: false
+  failed_when: false
+
+- name: Enable linger (best-effort, no privilege)
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ ansible_user_id }}"
+  register: _linger_try
+  changed_when: _linger_try.rc == 0
+  failed_when: false
+  when: (_linger_state.stdout | default('') | trim) != 'yes'
+
+- name: Warn if linger remains inactive
+  ansible.builtin.debug:
+    msg: >-
+      ⚠ Linger not enabled for {{ ansible_user_id }} → campaigns will stop on SSH disconnect
+      and will not restart at boot. Run ONCE on the deployment host:
+      'sudo loginctl enable-linger {{ ansible_user_id }}'.
+  when:
+    - (_linger_state.stdout | default('') | trim) != 'yes'
+    - (_linger_try.rc | default(1)) != 0
+
+# --- Quadlet unit (systemd user) + startup ---
+- name: Create the Quadlet directory
+  ansible.builtin.file:
+    path: "{{ quadlet_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render the Quadlet unit
+  ansible.builtin.template:
+    src: hermes-campagne.container.j2
+    dest: "{{ quadlet_dir }}/{{ quadlet_unit }}.container"
+    mode: "0644"
+  notify:
+    - reload_systemd
+    - restart_campagne
+
+- name: Reload systemd before startup
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  # In non-interactive SSH, the user bus is only reachable with XDG_RUNTIME_DIR (+ DBus).
+  # UID resolved dynamically (see group_vars: systemd_user_env), no longer hardcoded to 1000.
+  environment: "{{ systemd_user_env }}"
+
+- name: Enable and start the campaign
+  ansible.builtin.systemd:
+    name: "{{ quadlet_unit }}.service"
+    state: started
+    scope: user
+  environment: "{{ systemd_user_env }}"
+  register: _start
+  failed_when: false
+
+- name: Note if systemd user is unavailable
+  ansible.builtin.debug:
+    msg: >-
+      systemd --user startup not confirmed. On the deployment host, check:
+      'systemctl --user start {{ quadlet_unit }}' and 'loginctl enable-linger {{ ansible_user_id }}'
+      for startup at boot.
+  when: _start is failed
+
+# --- Post-startup health check (no more silent failures) ---
+- name: Wait for the container to start
+  ansible.builtin.pause:
+    seconds: 8
+  when: _start is not failed
+
+- name: Is the container running?
+  ansible.builtin.command:
+    cmd: "podman ps --filter name=^{{ quadlet_unit }}$ --filter status=running --format {% raw %}'{{.Names}}'{% endraw %}"
+  environment: "{{ systemd_user_env }}"
+  register: _health
+  changed_when: false
+  failed_when: false
+
+- name: Fetch logs if the container is NOT running
+  ansible.builtin.command:
+    cmd: "podman logs --tail 30 {{ quadlet_unit }}"
+  environment: "{{ systemd_user_env }}"
+  register: _health_logs
+  changed_when: false
+  failed_when: false
+  when: (_health.stdout | default('') | trim) | length == 0
+
+- name: Health check result
+  ansible.builtin.debug:
+    msg: >-
+      {{ '✅ ' ~ quadlet_unit ~ ' is running.'
+         if (_health.stdout | default('') | trim) | length > 0
+         else ('❌ ' ~ quadlet_unit ~ ' NOT started — last logs:\n'
+               ~ (_health_logs.stdout | default('(logs unavailable)'))) }}

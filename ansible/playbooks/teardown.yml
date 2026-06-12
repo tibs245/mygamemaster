@@ -1,0 +1,102 @@
+---
+# Tears down an instance (useful for test instances).
+#   # stop + remove container/unit/env/configs (data PRESERVED in volumes):
+#   ansible-playbook playbooks/teardown.yml -e game=mistfall -e instance=test1
+#   # (legacy alias: -e campagne=<slug> still works)
+#   # + remove volumes (data + home) — IRREVERSIBLE:
+#   ansible-playbook playbooks/teardown.yml -e game=mistfall -e instance=test1 \
+#       -e remove_volumes=yes -e confirm=yes
+#   # destroying PRODUCTION volumes (instance=main) additionally requires -e force_prod=yes:
+#   ansible-playbook playbooks/teardown.yml -e game=mistfall \
+#       -e remove_volumes=yes -e confirm=yes -e force_prod=yes
+#
+# When remove_volumes=yes, an automatic safety-backup is taken BEFORE destruction
+# (unless -e restore_safety_backup=false). See docs/03-backup-et-restauration.md.
+- name: Tear down a MJ Tonnerre instance
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true        # required to resolve the UID (systemd_user_env)
+  environment: "{{ systemd_user_env }}"
+  vars:
+    unit: "hermes-{{ deploy_id }}"
+    quadlet_file: "{{ quadlet_dir }}/hermes-{{ deploy_id }}.container"
+    env_file: "{{ host_env_dir }}/{{ deploy_id }}.env"
+    rendered: "{{ rendered_root }}/{{ deploy_id }}"
+    _is_prod: "{{ (instance | string) in ['main', ''] }}"
+    _wipe: "{{ remove_volumes | default(false) | bool }}"
+  pre_tasks:
+    - name: Safety guard — confirm volume deletion
+      ansible.builtin.assert:
+        that:
+          - not _wipe or (confirm | default('') == 'yes')
+        fail_msg: >-
+          Deleting the volumes of {{ deploy_id }} is IRREVERSIBLE.
+          Re-run with -e remove_volumes=yes -e confirm=yes.
+
+    - name: Safety guard — destroying PRODUCTION volumes requires force_prod=yes
+      ansible.builtin.assert:
+        that:
+          - not (_wipe and _is_prod) or (force_prod | default('') == 'yes')
+        fail_msg: >-
+          {{ deploy_id }} is the PRODUCTION instance (instance=main). Destroying its
+          volumes would PERMANENTLY erase game data AND the agent memory.
+          If this is truly intended, add -e force_prod=yes (in addition to confirm=yes).
+
+    # Automatic safety net: backup BEFORE destroying (container still alive → hermes backup OK).
+    - name: Safety-backup before volume deletion
+      ansible.builtin.include_role:
+        name: hermes_backup
+      vars:
+        backup_label: "pre-teardown"
+      when: _wipe and (restore_safety_backup | default(true) | bool)
+
+  tasks:
+    - name: Stop the service
+      ansible.builtin.systemd:
+        name: "{{ unit }}.service"
+        state: stopped
+        scope: user
+      failed_when: false
+
+    - name: Remove the Quadlet unit
+      ansible.builtin.file:
+        path: "{{ quadlet_file }}"
+        state: absent
+
+    - name: Reload systemd user daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+      failed_when: false
+
+    - name: Remove the container (if present)
+      ansible.builtin.command:
+        cmd: "podman rm -f {{ unit }}"
+      register: _rm
+      changed_when: "'Error' not in _rm.stderr"
+      failed_when: false
+
+    - name: Remove the environment file and rendered configs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ env_file }}"
+        - "{{ rendered }}"
+
+    - name: Delete volumes (data + home + legacy -memory orphan)
+      ansible.builtin.command:
+        cmd: "podman volume rm -f {{ item }}"
+      loop:
+        - "hermes-{{ deploy_id }}-data"
+        - "hermes-{{ deploy_id }}-home"
+        - "hermes-{{ deploy_id }}-memory"   # legacy (empty) — cleanup
+      register: _vrm
+      changed_when: "'Error' not in _vrm.stderr"
+      failed_when: false
+      when: _wipe
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: >-
+          Instance {{ deploy_id }} torn down (container/unit/env/configs).
+          Volumes {{ 'DELETED' if _wipe else 'preserved' }}.

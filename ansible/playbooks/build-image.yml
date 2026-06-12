@@ -1,0 +1,9 @@
+---
+# Builds the Hermes OCI image + modules (once, shared by all campaigns).
+#   ansible-playbook playbooks/build-image.yml
+- name: Build the Hermes MJ Tonnerre image
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - hermes_image

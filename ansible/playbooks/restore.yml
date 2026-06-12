@@ -1,0 +1,15 @@
+---
+# Restores a campaign from a backup set.
+#   # by set (recommended — integrity verified via manifest) :
+#   ansible-playbook playbooks/restore.yml -e game=mistfall \
+#     -e set=<stamp>-<label> -e restore_what=all -e confirm=yes
+#   # single file (backwards-compatible) :
+#   ansible-playbook playbooks/restore.yml -e game=mistfall \
+#     -e snapshot=/abs/.../<stamp>-<label>-data.tar.gz -e restore_what=data -e confirm=yes
+#   # '-e campagne=<slug>' still works as a legacy alias for '-e game=<slug>'.
+# restore_what : data | home | all (memory = alias for home).
+- name: Restore a campaign
+  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  gather_facts: true
+  roles:
+    - hermes_restore

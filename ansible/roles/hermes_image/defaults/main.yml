@@ -1,0 +1,6 @@
+---
+# Additional image tag, IMMUTABLE (serves as a rollback anchor — do not delete it).
+# Default = second-precision timestamp (two builds on the same day no longer overwrite each other).
+# For semantic versioning: -e image_version=v1.2
+image_version: "{{ ansible_date_time.iso8601_basic_short | default('manual') }}"
+build_context: "{{ repo_root }}/.build"
