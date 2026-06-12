@@ -155,6 +155,14 @@ python3 /opt/modules/gaming/mj-tonnerre/scripts/roll.py "<formula>" --dc <DC> --
   → Standard output format
 ```
 
+### Roll-First Default
+
+**When uncertain, roll.** The dice tools exist precisely so that uncertain player actions produce
+real, unpredictable outcomes rather than authored ones. An automatic success or failure should only
+appear when the narrative *requires* a fixed outcome (a scripted betrayal, a trivial action with no
+meaningful failure state). For everything else — a climb, a bluff, a risky search — call for a
+roll: it is faster, fairer, and makes the game feel alive.
+
 ---
 
 ## Step 5 — Output Format
