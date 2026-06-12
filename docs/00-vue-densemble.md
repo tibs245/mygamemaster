@@ -60,6 +60,10 @@ See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the step-by
 
 Or jump straight to the guided walkthrough: [`CREATE-A-GAME.md`](CREATE-A-GAME.md).
 
+**Just want to explore locally or run the tests?**
+- [`QUICKSTART-LOCAL.md`](QUICKSTART-LOCAL.md) — run the three engine test suites with plain `python3`, no credentials.
+- [`QUICKSTART-DOCKER.md`](QUICKSTART-DOCKER.md) — build the dev image with Docker and validate with `docker run`.
+
 ## Design: the living world (space-time & simulation)
 
 The [`monde-vivant/`](monde-vivant/00-vue-densemble.md) series documents the system that keeps the
