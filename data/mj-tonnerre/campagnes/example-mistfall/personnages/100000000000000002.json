@@ -92,5 +92,18 @@
   "progression": {
     "xp": 0,
     "niveau_suivant": 300
+  },
+  "preferences": {
+    "_description": "Out-of-fiction, table-style play preferences for Sam. Surfaced to the GM each turn so play is tailored. Private to this player.",
+    "rythme": "Fast and reactive — keep scenes moving, I get restless during long exposition.",
+    "ton_aime": ["tension", "high-stakes choices", "cinematic action"],
+    "ton_evite": ["bookkeeping", "long shopping scenes"],
+    "verbosite_combat": "vivid",
+    "spotlight": "Loves a dramatic solo moment now and then, but never at another player's expense.",
+    "limites_contenu": [],
+    "aime_etre_trompe": false,
+    "custom": {
+      "note": "Prefers to be told when a situation is a trap is likely — enjoys outsmarting it rather than being blindsided."
+    }
   }
 }

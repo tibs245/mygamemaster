@@ -23,6 +23,11 @@
       "additionalProperties": true,
       "description": "PV / seuils de blessure. Champs exacts variables selon le système."
     },
-    "progression": { "type": ["object", "array"] }
+    "progression": { "type": ["object", "array"] },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Préférences de jeu méta/hors-fiction propres au joueur (rythme, ton, verbosité combat, spotlight, limites de contenu, aime_etre_trompe, custom). Toutes optionnelles — ré-injectées au MJ à chaque tour (fail-open)."
+    }
   }
 }

@@ -20,6 +20,17 @@
     "relations": {},
     "secrets": []
   },
+  "preferences": {
+    "_description": "Préférences de jeu (méta / hors-fiction) propres à CE joueur. Enregistrées quand le joueur en exprime une (« retiens que j'aime X ») et ré-injectées au MJ à chaque tour pour adapter l'expérience. Libre mais structuré : clés documentées ci-dessous + un objet « custom » pour le reste. Privées au joueur (même isolation par joueur que la fiche). Toutes optionnelles — un bloc vide/absent ne change rien (fail-open).",
+    "rythme": "",
+    "ton_aime": [],
+    "ton_evite": [],
+    "verbosite_combat": "",
+    "spotlight": "",
+    "limites_contenu": [],
+    "aime_etre_trompe": null,
+    "custom": {}
+  },
   "sante": {
     "pv_max": 10,
     "pv_actuels": 10,

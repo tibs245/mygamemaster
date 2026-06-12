@@ -370,6 +370,38 @@ python3 $SCRIPTS/voir_pnj.py $CAMP --list
 
 ---
 
+## 12. `prefs.py` — Per-Player Play Preferences (read/write)
+
+Reads/writes a player's **out-of-fiction, table-style** play preferences
+(pacing, tone likes/dislikes, combat verbosity, spotlight, content boundaries,
+"enjoys being deceived", plus any custom key) in the `preferences` block of
+their sheet (`personnages/<discord_id>.json`). Preferences persist across
+sessions and are **surfaced to the GM each turn** by the `pre_llm_call` hook so
+play is tailored. Fully compartmentalized: only ever touches the file named by
+`<discord_id>`. Fail-open: a missing/empty block changes nothing.
+
+Documented keys (FR, to match sibling sheet keys — a later PR renames FR→EN):
+`rythme`, `ton_aime`, `ton_evite`, `verbosite_combat`, `spotlight`,
+`limites_contenu`, `aime_etre_trompe`, plus `custom` (any extra key lands here
+automatically). Values are parsed as JSON when possible, else stored as a string.
+
+**Signature**
+```
+python3 prefs.py <campaign> <discord_id> get [key]
+python3 prefs.py <campaign> <discord_id> set <key> <value> [--dry-run] [--json]
+python3 prefs.py <campaign> <discord_id> unset <key>
+```
+**Exit codes**: `0` success (read/write/dry-run) · `1` invalid data / write
+failure · `2` usage (sheet not found, unreadable sheet).
+
+```
+python3 $SCRIPTS/prefs.py $CAMP 100000000000000001 set rythme "slow-burn investigation"
+python3 $SCRIPTS/prefs.py $CAMP 100000000000000001 set aime_etre_trompe true
+python3 $SCRIPTS/prefs.py $CAMP 100000000000000001 get
+```
+
+---
+
 ## Summary of New Exit Codes
 
 | Script | Exit 0 | Exit 1 | Exit 2 |
@@ -379,3 +411,4 @@ python3 $SCRIPTS/voir_pnj.py $CAMP --list
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |
 | `voir_pnj.py` | NPC found / `--list` | not found or ambiguous | pnj.json not found/usage |
+| `prefs.py` | read/write/dry-run OK | invalid data / write failure | sheet not found/usage |

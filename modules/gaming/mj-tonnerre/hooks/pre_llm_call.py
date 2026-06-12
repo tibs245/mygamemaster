@@ -76,7 +76,63 @@ def build_context(camp, monde, payload=None):
     tail = ""
     if L.load_pnj_list(camp):
         tail = "\n⚠️ Un PNJ nommé absent de la liste = à documenter, pas à inventer."
-    return "\n".join(head) + "\n" + brief + tail
+    prefs = build_player_prefs(camp)  # fail-open: "" if none
+    return "\n".join(head) + "\n" + brief + tail + prefs
+
+
+def build_player_prefs(camp):
+    """Out-of-fiction play preferences (preferences block of each sheet).
+
+    Surfaces per-player, table-style preferences (pacing, tone, combat verbosity,
+    spotlight, content boundaries, enjoys-being-deceived, custom keys) so the GM
+    tailors the experience. Absolute FAIL-OPEN: no prefs / no sheets / any error
+    → "" (the turn is unchanged). Private to each player; only ever surfaced to
+    the GM (who already sees every sheet), never cross-shared between players.
+    """
+    try:
+        lignes = []
+        for path, fiche in L.iter_personnages(camp):
+            prefs = fiche.get("preferences")
+            if not isinstance(prefs, dict):
+                continue
+            meta = fiche.get("meta") if isinstance(fiche.get("meta"), dict) else {}
+            qui = meta.get("nom_joueur") or meta.get("nom_perso") or path.stem
+            resume = _resumer_prefs(prefs)
+            if resume:
+                lignes.append("  • %s : %s" % (qui, resume))
+        if not lignes:
+            return ""
+        return ("\n🎚️ PRÉFÉRENCES JOUEURS (méta — adapte le jeu, ne les narre pas) :\n"
+                + "\n".join(lignes))
+    except Exception:
+        return ""
+
+
+def _resumer_prefs(prefs):
+    """One-line summary of a player's preferences block. Skips empty values."""
+    morceaux = []
+
+    def ajouter(label, valeur):
+        if valeur is None or valeur == "" or valeur == [] or valeur == {}:
+            return
+        if isinstance(valeur, list):
+            valeur = ", ".join(str(v) for v in valeur)
+        elif isinstance(valeur, bool):
+            valeur = "oui" if valeur else "non"
+        morceaux.append("%s : %s" % (label, valeur))
+
+    ajouter("rythme", prefs.get("rythme"))
+    ajouter("ton aimé", prefs.get("ton_aime"))
+    ajouter("ton évité", prefs.get("ton_evite"))
+    ajouter("verbosité combat", prefs.get("verbosite_combat"))
+    ajouter("spotlight", prefs.get("spotlight"))
+    ajouter("limites contenu", prefs.get("limites_contenu"))
+    ajouter("aime être trompé", prefs.get("aime_etre_trompe"))
+    custom = prefs.get("custom")
+    if isinstance(custom, dict):
+        for k, v in custom.items():
+            ajouter(k, v)
+    return " · ".join(morceaux)
 
 
 def build_scene_brief(camp, payload, monde):

@@ -74,5 +74,18 @@
   "progression": {
     "xp": 0,
     "niveau_suivant": 300
+  },
+  "preferences": {
+    "_description": "Out-of-fiction, table-style play preferences for Alex. Surfaced to the GM each turn so play is tailored. Private to this player.",
+    "rythme": "Slow-burn investigation — let me read documents and ask questions before any action escalates.",
+    "ton_aime": ["mystery", "moral ambiguity", "lore and worldbuilding"],
+    "ton_evite": ["slapstick comedy", "gore"],
+    "verbosite_combat": "concise",
+    "spotlight": "Happy to share the spotlight; nudge me in if I've gone quiet for a while.",
+    "limites_contenu": ["no harm to children on-screen"],
+    "aime_etre_trompe": true,
+    "custom": {
+      "note": "Loves a well-foreshadowed twist — does not mind being deceived if the clues were fair in hindsight."
+    }
   }
 }

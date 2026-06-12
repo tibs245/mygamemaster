@@ -237,6 +237,57 @@ If empty: *"You haven't noted anything yet. Use `!char goal "..." add` to get st
 
 ---
 
+### `!prefs` — Custom Play Preferences (per player, persistent)
+
+Out-of-fiction, **table-style** preferences for a player: how they like to be run. These are **not** in-fiction data — they describe the *experience* (pacing, tone, combat verbosity, spotlight, content boundaries, "enjoys being deceived"…). They are stored in the `preferences` block of that player's sheet (`personnages/<discord_id>.json`), persist across sessions, and are **automatically surfaced to the GM each turn** (hook `pre_llm_call`) so play is tailored without the player having to repeat themselves.
+
+**Storage** — one block per player, fully compartmentalized (same isolation rules as the rest of the sheet). Documented keys (all optional; an empty/missing block changes nothing — fail-open):
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `rythme` | string | Preferred pacing (e.g. "slow-burn investigation", "fast and reactive") |
+| `ton_aime` | list | Tone the player enjoys (mystery, tension, lore…) |
+| `ton_evite` | list | Tone to avoid (slapstick, bookkeeping…) |
+| `verbosite_combat` | string | Combat verbosity (`concise` \| `vivid`) |
+| `spotlight` | string | Spotlight preferences (shy, loves solo moments, never at others' expense…) |
+| `limites_contenu` | list | Content boundaries (hard lines — always respected) |
+| `aime_etre_trompe` | bool | Enjoys being deceived (a fair, foreshadowed twist) |
+| `custom` | object | Any extra free-form keys the player asks to remember |
+
+> Keys are kept in French to match the sibling sheet keys (`notes_perso`, `objectifs`, …). A later PR handles the FR→EN rename across the schema.
+
+**Saving a preference** — when a player expresses one in play (*"remember that I like slow investigation"*, *"please keep combat short"*, *"I love being fooled by a good twist"*, *"no harm to children on screen"*), the GM saves it immediately with the script (no manual JSON editing):
+
+```bash
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> set rythme "slow-burn investigation"
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> set verbosite_combat concise
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> set aime_etre_trompe true
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> set ton_aime '["mystery","lore"]'
+# An unknown key lands under preferences.custom automatically:
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> set music_cues "play a sting on a critical hit"
+```
+
+Values are parsed as JSON when possible (`true`, `["a","b"]`, numbers), else stored as a raw string. Confirm briefly to the player: *"Noted — I'll keep that in mind."* The auto-commit hook persists the change like any sheet write.
+
+**Recalling a preference** — preferences are injected into the GM's authoritative-state context on **every** turn, so the GM should already be applying them. To read explicitly:
+
+```bash
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> get          # whole block
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> get rythme    # one key
+```
+
+**Removing** a preference (player changes their mind):
+
+```bash
+python3 /opt/modules/gaming/mj-tonnerre/scripts/prefs.py <campaign> <discord_id> unset rythme
+```
+
+**Compartmentalization** — a player's preferences are **private to that player**. The GM (who already sees all sheets) uses them to run the table; they are NEVER shown to or shared with other players. Only ever set/get the file named by the requesting player's own `discord_id`.
+
+**Fail-open** — no `preferences` block, an empty block, or any read error = no change to play. Never block a turn over preferences.
+
+---
+
 ## Validation Rules
 
 **CRITICAL — Verify each modification before applying it.**
