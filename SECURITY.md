@@ -4,7 +4,7 @@
 
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
-If you discover a security vulnerability in MJ Tonnerre, report it privately by emailing:
+If you discover a security vulnerability in MyGameMaster, report it privately by emailing:
 
 **security@your-domain.example**
 
