@@ -16,7 +16,7 @@ All scripts:
 
 Path convention in examples (from project root):
 ```
-CAMP=.hermes/mj-tonnerre/campagnes/la-naissance-dun-roi
+CAMP=.hermes/mj-tonnerre/campaigns/la-naissance-dun-roi
 SCRIPTS=/opt/modules/gaming/mj-tonnerre/scripts
 ```
 
@@ -57,7 +57,7 @@ The JSON field (dice, rng, seed) can be copied into `sessions/NNN.json > actions
 ## 2. `validator-distances.py` — Spatial Coherence (FIXED)
 
 Validates travel governance rules from
-`regles.temps.deplacements`:
+`rules.temps.movements`:
 - **R1**: an indirect route (source→X→dest) cannot be shorter than the direct route;
 - **R3**: a round trip must not exceed 12h (game day);
 - **R4**: flags suspicious identical durations (requires human review).
@@ -68,22 +68,22 @@ instead of 90/345/450).
 
 **Signature**
 ```
-python3 validator-distances.py <path/monde.json>
+python3 validator-distances.py <path/world.json>
 ```
 **Exit codes**: `0` coherent · `1` warnings (R3/R4 — human review needed) · `2` error/file not found.
 
 **How the GM calls it** (after adding/modifying any route)
 ```
-python3 $SCRIPTS/validator-distances.py $CAMP/monde.json
+python3 $SCRIPTS/validator-distances.py $CAMP/world.json
 ```
-Also automatically invoked by the pre-commit hook (see §4) on any modified `monde.json`.
+Also automatically invoked by the pre-commit hook (see §4) on any modified `world.json`.
 
 ---
 
 ## 3. `validate_json.py` — Generic JSON Validator
 
-Loads **all** `*.json` files from a campaign (`monde.json`, `pnj.json`,
-`evenements.json`, `personnages/*`, `sessions/*`, etc.) and validates their syntax.
+Loads **all** `*.json` files from a campaign (`world.json`, `npcs.json`,
+`evenements.json`, `characters/*`, `sessions/*`, etc.) and validates their syntax.
 Ignores `.git`, `__pycache__`, `images`. Replaces scattered `python3 -c "import json; json.load(...)"` calls.
 
 **Signature**
@@ -103,7 +103,7 @@ python3 $SCRIPTS/validate_json.py $CAMP
 ## 4. Hook `pre-commit` + `install-hooks.sh`
 
 Git guard-rail: **refuses the commit** if campaign JSON is syntactically
-broken, and runs the distance validator (non-blocking) on any modified `monde.json`.
+broken, and runs the distance validator (non-blocking) on any modified `world.json`.
 Transforms the rule "never commit unvalidated JSON" into machine guarantee.
 
 - `pre-commit.hook`: hook template (POSIX sh). Contains the placeholder
@@ -133,13 +133,13 @@ The installer finds the git repository versioning the campaign, copies the hook 
 ## 5. `check_session.py` — Checklist Gap Detector (READ-ONLY)
 
 Walks through the **latest** session (or `--session N`) and flags gaps WITHOUT
-modifying anything. Compatible with both schemas (`pnj.json` can be
+modifying anything. Compatible with both schemas (`npcs.json` can be
 `{"pnj":[…]}` or a bare list). Matches locations/NPCs by **normalized name**
 (tolerates accents, punctuation, spelling variants).
 
 Gaps detected:
-- location in `lieux_visites[]` missing from `univers.regions[].lieux` → **blocking**;
-- NPC in `pnj_rencontres[]` with no sheet in `pnj.json` → **blocking**;
+- location in `lieux_visites[]` missing from `universe.regions[].locations` → **blocking**;
+- NPC in `pnj_rencontres[]` with no sheet in `npcs.json` → **blocking**;
 - faction without `objectif_court_terme` OR `objectif_long_terme` → **blocking**;
 - faction absent from `faction_actions_horloge` → **blocking**;
 - clock deadline **overdue** (Day < current day) not marked RESOLVED → **blocking**;
@@ -165,14 +165,14 @@ python3 $SCRIPTS/check_session.py $CAMP
 ## Summary of Calls (snippets to reference in SKILL.md)
 
 ```sh
-CAMP=.hermes/mj-tonnerre/campagnes/<campaign>
+CAMP=.hermes/mj-tonnerre/campaigns/<campaign>
 SCRIPTS=/opt/modules/gaming/mj-tonnerre/scripts
 
 # Roll a die (instead of inventing a number)
 python3 $SCRIPTS/roll.py "1d20+6" --dc 12 --stat Intuition --json
 
 # Check distance coherence (after adding a route)
-python3 $SCRIPTS/validator-distances.py $CAMP/monde.json
+python3 $SCRIPTS/validator-distances.py $CAMP/world.json
 
 # Validate all JSON (before commit / after edit)
 python3 $SCRIPTS/validate_json.py $CAMP
@@ -199,7 +199,7 @@ sh $SCRIPTS/install-hooks.sh $CAMP
 | `validate_json.py` | Campaign JSON syntax | all valid | one broken | usage |
 | `check_session.py` | Checklist gaps (read-only) | no blocking | blocking gap | usage |
 | `add_action.py` | Append action(s) to session log | added | invalid data | session not found |
-| `voir_pnj.py` | Query NPC sheet (read-only) | found/--list | not found/ambiguous | pnj.json not found/usage |
+| `voir_pnj.py` | Query NPC sheet (read-only) | found/--list | not found/ambiguous | npcs.json not found/usage |
 | `install-hooks.sh` | Install hook | installed | hook already present | usage/no git |
 
 **Execution constraints**: Python 3 (tested on 3.14), stdlib only, no network access
@@ -211,7 +211,7 @@ are strictly read-only.
 
 ## 6. `clock.py` — Faction Clock Advancer
 
-Reads `etat_global.faction_actions_horloge`, calculates **current game time**
+Reads `global_state.faction_actions_horloge`, calculates **current game time**
 deterministically, and marks each action according to **pinned deadline format**:
 
 - **UT** mode → current time = last `t` from `evenements.json` (in UT);
@@ -236,7 +236,7 @@ overwritten (GM narrative decision).
 python3 clock.py <campaign> [--dry-run|--apply] [--faction NAME] [--json] [--quiet]
 ```
 - `--dry-run` (DEFAULT): report only, writes nothing.
-- `--apply`: writes `echeance.statut` in `monde.json` (`echue`/`en_cours`;
+- `--apply`: writes `echeance.statut` in `world.json` (`echue`/`en_cours`;
   `approche` is a report signal, not a persisted schema status).
 
 **Exit codes**: `0` no overdue · `1` ≥ 1 overdue unresolved · `2` usage.
@@ -286,10 +286,10 @@ local `$ref`, `$defs`. Tolerant (`additionalProperties: true` everywhere): only
 reports **actual gaps**.
 
 Provided schemas:
-- `monde.schema.json` — incl. `modules` block, `etat_global.factions` with
+- `monde.schema.json` — incl. `modules` block, `global_state.factions` with
   required `objectif_court_terme`+`objectif_long_terme`, `faction_actions_horloge`
   with new `echeance` object (legacy string format tolerated via `oneOf`);
-- `pnj.schema.json` — canonical format (required `faits_etablis`/`hypotheses_mj`;
+- `pnj.schema.json` — canonical format (required `established_facts`/`hypotheses_mj`;
   tolerates bare list or `{"pnj":[...]}`);
 - `personnage.schema.json` — `meta.nom_perso`, `stats`, `inventaire`, `sante`;
 - `session.schema.json` — session log fields.
@@ -302,7 +302,7 @@ python3 validate_schema.py <file.json> --schema monde   # specific file
 **Exit codes**: `0` compliant · `1` ≥ 1 gap · `2` usage.
 
 > First run = list of **technical debt** (expected real gaps). E.g.:
-> in C1 the 3 NPCs lack `faits_etablis`/`hypotheses_mj` → 6 gaps reported
+> in C1 the 3 NPCs lack `established_facts`/`hypotheses_mj` → 6 gaps reported
 > (audit gap §2.9, to migrate on data side, not by this tooling).
 
 ```
@@ -347,7 +347,7 @@ EOF
 
 Eliminates the heredoc `for pnj in p: if pnj['nom']==… : print …` that the GM
 recopies to reread a sheet. Searches by name (case-insensitive equality, then
-unique substring), displays **all** fields from `pnj.json`, including
+unique substring), displays **all** fields from `npcs.json`, including
 **GM secret fields** (`hypotheses_mj`, `notes_privees`, `derniere_interaction`).
 
 Distinct from `build_brief.py`: the latter produces a *brief for NPC agents*
@@ -358,10 +358,10 @@ and deliberately **omits** secret fields (not to expose them). `voir_pnj.py` is 
 ```
 python3 voir_pnj.py <campaign> <name> [--json] [--max N]
 python3 voir_pnj.py <campaign> --list
-python3 voir_pnj.py <pnj.json> <name>
+python3 voir_pnj.py <npcs.json> <name>
 ```
 **Exit codes**: `0` found / `--list` · `1` not found or name ambiguous
-(≥ 2 substrings) · `2` usage (`pnj.json` not found, name missing).
+(≥ 2 substrings) · `2` usage (`npcs.json` not found, name missing).
 
 ```
 python3 $SCRIPTS/voir_pnj.py $CAMP Firmin
@@ -378,4 +378,4 @@ python3 $SCRIPTS/voir_pnj.py $CAMP --list
 | `close_session.py` | pipeline green | blocking step missing | usage |
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |
-| `voir_pnj.py` | NPC found / `--list` | not found or ambiguous | pnj.json not found/usage |
+| `voir_pnj.py` | NPC found / `--list` | not found or ambiguous | npcs.json not found/usage |

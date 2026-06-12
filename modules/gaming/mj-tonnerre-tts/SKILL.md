@@ -52,9 +52,9 @@ Voices the **last narration** on demand (zero latency on normal turns), or a **p
 ## `!raconte` command flow
 
 > The skill loads automatically on triggers (`!raconte`, `!audio`, `!voix`).
-> It runs from the **cwd = campaign folder** (`/opt/data/mj-tonnerre/campagnes/<slug>`).
+> It runs from the **cwd = campaign folder** (`/opt/data/mj-tonnerre/campaigns/<slug>`).
 
-0. **🚦 Guard feature flag — tts.** If `monde.json > meta.features.tts == false` (or
+0. **🚦 Guard feature flag — tts.** If `world.json > meta.features.tts == false` (or
    `MJ_FEATURE_TTS=0`) → reply briefly *« 🔇 Narrative voice is disabled for this world
    (`!feature tts on` to reactivate). »* and **stop**. *Reminder: everything is ON by default —
    only act if the axis is explicitly `false`; unreadable info → assume ON (fail-open).*
@@ -140,8 +140,8 @@ Never post `MEDIA:` if code ≠ 0.
 
 | Lever | Where | Effect |
 |---|---|---|
-| `tts` axis | `monde.json > meta.features.tts` / `MJ_FEATURE_TTS` / `!feature tts on\|off` | activate/cut **all** voice (auto **and** `!raconte`) — live |
-| `meta.hooks.tts_auto` | `monde.json` | cuts **auto-voice** while keeping `!raconte` (default `true`, governed by `tts` axis) |
+| `tts` axis | `world.json > meta.features.tts` / `MJ_FEATURE_TTS` / `!feature tts on\|off` | activate/cut **all** voice (auto **and** `!raconte`) — live |
+| `meta.hooks.tts_auto` | `world.json` | cuts **auto-voice** while keeping `!raconte` (default `true`, governed by `tts` axis) |
 | `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = silent no-op |
 | `MJ_TTS_MIN_CHARS` | env | auto-voice length threshold (default 280) |
 | `MJ_TTS_FORMAT_MODEL` | env | format step model (default `minimax/minimax-m3`) |
@@ -159,7 +159,7 @@ Never post `MEDIA:` if code ≠ 0.
 | `scripts/` (Minimax + OpenRouter) | actual generation (`tts_render.py` & modules) |
 | `ffmpeg` (container image) | ambient mixing (fail-open if absent) |
 | `MINIMAX_API_KEY` / `OPENROUTER_API_KEY` | synthesis / format step |
-| `monde.json` | `tts` axis, `meta.hooks.tts_auto` toggles |
+| `world.json` | `tts` axis, `meta.hooks.tts_auto` toggles |
 
 ---
 

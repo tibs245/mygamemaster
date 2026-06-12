@@ -1,8 +1,8 @@
 # Module — Weather and Biodiversity
 
-> **Conditional loading.** This module applies only if the campaign declares `monde.json > modules.meteo.actif === true`.
+> **Conditional loading.** This module applies only if the campaign declares `world.json > modules.meteo.actif === true`.
 >
-> **Regional data (climate, conditions, fauna, flora) are GAMEPLAY** : they live in `monde.json > regles.meteo` and `monde.json > univers.regions[].biodiversite`. This module describes only the generic framework and consistency rules — never the values of a specific campaign.
+> **Regional data (climate, conditions, fauna, flora) are GAMEPLAY** : they live in `world.json > rules.meteo` and `world.json > universe.regions[].biodiversite`. This module describes only the generic framework and consistency rules — never the values of a specific campaign.
 
 ## Principle
 
@@ -13,11 +13,11 @@ Weather and biodiversity give a **sensory and practical texture** to the world. 
 | **🌤️ Weather** | Climate, season, conditions of the day | Region | Determined in advance (season + trend). Then improvised by session or game day |
 | **🌿 Biodiversity** | Fauna, flora, natural resources | Region (areas) + Location (rare/specific) | Created as play progresses, but **recorded immediately** to guarantee consistency |
 
-## Weather — Data Structure (in `monde.json > regles.meteo`)
+## Weather — Data Structure (in `world.json > rules.meteo`)
 
 ```json
 {
-  "regles": {
+  "rules": {
     "meteo": {
       "saison_actuelle": "[Season + phase, ex: Autumn (early)]",
       "tendance": "[Expected evolution, ex: gradual cooling]",
@@ -42,7 +42,7 @@ Weather and biodiversity give a **sensory and practical texture** to the world. 
 - Resources : game hides in rain, mushrooms after autumn rains
 - Comfort : night without shelter in rain → fatigue +1
 
-## Biodiversity — Data Structure (in `monde.json > univers.regions[].biodiversite`)
+## Biodiversity — Data Structure (in `world.json > universe.regions[].biodiversite`)
 
 ```json
 {

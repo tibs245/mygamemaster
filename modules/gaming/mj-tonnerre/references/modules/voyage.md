@@ -1,6 +1,6 @@
 # Module — Travel: pace, encounters, and hazards
 
-> **Conditional loading.** This module applies only if the campaign declares `monde.json > modules.voyage.actif === true`. Values (terrain types, encounter tables, DCs) can be overridden via `modules.voyage.params`.
+> **Conditional loading.** This module applies only if the campaign declares `world.json > modules.voyage.actif === true`. Values (terrain types, encounter tables, DCs) can be overridden via `modules.voyage.params`.
 
 **Principle:** Travel is not simply "you arrive." It is a narrative sequence — mechanics (fatigue, encounters, navigation) are my tools, not the spectacle (see the Persona Immersion Rule in the preamble). It is a sequence with choices, time passing, and hazards proportional to distance and terrain.
 
@@ -27,7 +27,7 @@ A journey is divided into **stages**. One stage = one cohesive movement unit (cr
 
 **Fatigue consequences:**
 - 1 fatigue level: no penalty, but the character needs rest
-- 2 fatigue levels: -1 to all physical checks (the physical stat in the system — see `monde.json > systeme.stats`)
+- 2 fatigue levels: -1 to all physical checks (the physical stat in the system — see `world.json > system.stats`)
 - 3 fatigue levels: -2, risk of exhaustion
 - 4+ levels: exhaustion — the character must stop or collapses
 
@@ -89,4 +89,4 @@ Failure → the PC deviates from their route. Journey duration increased by 50%.
 
 ---
 
-**Link:** Fixed travel durations for the campaign live in `monde.json > regles.temps.deplacements` (spatial data persistence procedure: see preamble §0).
+**Link:** Fixed travel durations for the campaign live in `world.json > rules.temps.movements` (spatial data persistence procedure: see preamble §0).

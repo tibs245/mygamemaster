@@ -41,7 +41,7 @@ moving along a **trajectory** ([`01`](01-horloge-et-espace.md)) and maintaining
 ```
 
 > **Continuity with existing code.** The fields `goal`, `motivations`, `situation`, `relationships`
-> already exist in `pnj.json` and `global_state.factions`. The **plan** is the generalization
+> already exist in `npcs.json` and `global_state.factions`. The **plan** is the generalization
 > of `faction_actions_horloge` (`trigger` → `preconditions`, `deadline` → `deadline` in
 > `T`, `consequence` → `expected_consequence`). The **`lod`** and **trajectory** are new.
 

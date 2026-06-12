@@ -43,9 +43,9 @@ The real data model imposes a boundary that must be respected to avoid **false r
 
 | Real data | Form | Consequence |
 |---|---|---|
-| `personnages/<id>.json > inventaire` | **array of free strings** (`"15 silver crowns"`, `"Rations (~1 day…)"`) | no `{name, qty}` → a check "does they have object X?" is **fuzzy** (substring at best) |
+| `personnages/<id>.json > inventory` | **array of free strings** (`"15 silver crowns"`, `"Rations (~1 day…)"`) | no `{name, qty}` → a check "does they have object X?" is **fuzzy** (substring at best) |
 | `meta.temps.regime` | often `"Narratif"` — "the GM estimates durations" | **time/travel** checks are **not hard** |
-| `pnj.json > faits_etablis / connaissances_privees` | arrays of free strings | knowledge check is **fuzzy** |
+| `npcs.json > established_facts / connaissances_privees` | arrays of free strings | knowledge check is **fuzzy** |
 
 **Golden rule: a hook blocks ONLY on unambiguous deterministic data.** Three levels:
 
@@ -66,7 +66,7 @@ What each initial request concretely becomes:
   and traced**.
 - *"Refuses nonexistent object and explains"* → **T3 advisory** by default (⚠️ annotation);
   **hard** only in strict mode + structured data (§7).
-- *"Automatic verbosity"* → **T1**: `transform_llm_output` reads `meta.verbosite` and formats.
+- *"Automatic verbosity"* → **T1**: `transform_llm_output` reads `meta.verbosity` and formats.
 - *"CSV traceability"* → **T1**: never dependent on the LLM.
 - *"Admin bypass / ⏸️"* → **T1**: short-circuit in all augmentation hooks.
 
@@ -104,12 +104,12 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
   "tool_name": "write_file",
   "tool_input": { "path": "...", "content": "..." },
   "session_id": "sess_abc",
-  "cwd": "/opt/data/mj-tonnerre/campagnes/<slug>",
+  "cwd": "/opt/data/mj-tonnerre/campaigns/<slug>",
   "extra": { "model": "deepseek/...", "platform": "discord", "author_id": "..." }
 }
 ```
 
-- **`cwd`** = campaign directory (= `terminal.cwd`) → anchor for `monde.json`, `pnj.json`,
+- **`cwd`** = campaign directory (= `terminal.cwd`) → anchor for `world.json`, `npcs.json`,
   `personnages/`, `sessions/`, `collecte.csv`, `.banquier/`.
 - The exact locations of the **incoming message** (player text) and **response text** are
   not guaranteed by the docs → **defensive multi-key** reading (`first_present`), with **safe no-op**
@@ -131,7 +131,7 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
 ### 4.3 Bypass (`meta.admins` / `⏸️`)
 
 Any augmentation hook short-circuits (no-op) if:
-- the message author is in `monde.json > meta.admins` (list of Discord IDs) **or** `MJ_ADMIN_IDS`
+- the message author is in `world.json > meta.admins` (list of Discord IDs) **or** `MJ_ADMIN_IDS`
   (env, comma-separated); **or**
 - the incoming message contains `⏸️`.
 
@@ -142,7 +142,7 @@ Any augmentation hook short-circuits (no-op) if:
 
 ## 5. Configuration
 
-### 5.1 Toggles per campaign — `monde.json > meta.hooks` (all optional)
+### 5.1 Toggles per campaign — `world.json > meta.hooks` (all optional)
 
 ```jsonc
 "meta": {
@@ -161,7 +161,7 @@ Any augmentation hook short-circuits (no-op) if:
 
 Defaults if absent: injection **on**, Steward **on**, JSON guard **advisory** (non-blocking),
 end-of-session snapshot **on**, **auto-commit on**, traceability follows `diagnostic.actif`, verbosity
-follows `meta.verbosite`.
+follows `meta.verbosity`.
 
 **Auto-commit (`post_tool_call`)** — offloads the model from manual `git add/commit` (which it often forgets).
 After **each campaign file write**: if the JSON is **valid**, `git -C <campaign> add -A && commit` with
@@ -274,7 +274,7 @@ At each judged turn: `turns`, `clean` (judge passes **and** Steward doesn't inte
 `%clean` → feeds directly into **model choice** (cheapest that maintains high % clean).
 The same signals feed `collecte.csv` (columns `error`, `error_type`, `model`).
 
-### 10.3 Configuration — `monde.json > meta.hooks.judge` (default: inactive)
+### 10.3 Configuration — `world.json > meta.hooks.judge` (default: inactive)
 
 ```jsonc
 "judge": {

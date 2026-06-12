@@ -61,7 +61,7 @@ The stack is intentionally minimal: one declarative table, one vault, one comman
 
 Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice
 
-All flags fail-open (absent = ON). Toggled live in `monde.json > meta.features` — no redeploy needed.
+All flags fail-open (absent = ON). Toggled live in `world.json > meta.features` — no redeploy needed.
 
 ### Living-World Engine
 
@@ -221,10 +221,10 @@ hermesv5/
 │       ├── scripts/         # shared Python/Bash utilities (roll.py, clock.py, …)
 │       └── references/      # rules, thematic modules, JSON schemas
 ├── data/                    # campaign data (one subfolder per game slug)
-│   └── mj-tonnerre/campagnes/<slug>/
-│       ├── monde.json       # world config, rules, feature flags
-│       ├── pnj.json         # NPC sheets
-│       ├── evenements.json  # event timeline (T clock)
+│   └── mj-tonnerre/campaigns/<slug>/
+│       ├── world.json       # world config, rules, feature flags
+│       ├── npcs.json         # NPC sheets
+│       ├── events.json  # event timeline (T clock)
 │       └── ...
 ├── ansible/                 # deployment suite
 │   ├── inventory/
@@ -270,7 +270,7 @@ See [ansible/inventory/group_vars/all/vault.example.yml](ansible/inventory/group
 The default GM model is `minimax/minimax-m3` (via OpenRouter). The LLM judge ideally runs on a
 separate, smaller model (default: `google/gemma-4-31b-it`) to keep costs low and avoid self-grading.
 
-In-game toggles (`monde.json > meta`) are read at runtime — no redeploy needed to change verbosity,
+In-game toggles (`world.json > meta`) are read at runtime — no redeploy needed to change verbosity,
 enable/disable the judge, or adjust feature flags.
 
 ---

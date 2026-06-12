@@ -18,7 +18,7 @@ ansible/   →  DEPLOYMENT : deploy/backup/restore inside Podman
 ```
 
 - **modules/** — see [`../modules/MODULES.md`](../modules/MODULES.md).
-- **data/** — one campaign per folder under `data/mj-tonnerre/campagnes/<slug>/`. Full structure in
+- **data/** — one campaign per folder under `data/mj-tonnerre/campaigns/<slug>/`. Full structure in
   [`../specs/modele-de-donnees-campagne.md`](../specs/modele-de-donnees-campagne.md).
 - **ansible/** — the playbook suite. Technical details in
   [`../specs/ansible-suite.md`](../specs/ansible-suite.md).
@@ -33,7 +33,7 @@ unreliable). See [`06-concept-isolation.md`](06-concept-isolation.md).
 
 All games are declared in **one file**: `ansible/inventory/games.yml` (git-ignored; the committed
 example is `games.example.yml`). A dynamic inventory script (`hermes_inventory.py`) reads this
-table and exposes each entry as an Ansible host in the `campagnes` group.
+table and exposes each entry as an Ansible host in the `campaigns` group.
 
 **Adding a game = adding one entry in `games.yml` + adding its Discord token to the vault. Nothing
 else to touch.**

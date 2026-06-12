@@ -18,7 +18,7 @@ Design reference: `archive_hermes/audit/06-niveau2-factions.md` (archived).
 
 ## Your entry (at each interaction)
 
-1. **Your identity brief** (deterministic, produced by `build_brief.py`): who you are, what you know (`faits_etablis`), what you know but haven't revealed (`connaissances_privees`), your private notes (`notes_privees`), your engines/limitations, your abilities, your inventory.
+1. **Your identity brief** (deterministic, produced by `build_brief.py`): who you are, what you know (`established_facts`), what you know but haven't revealed (`connaissances_privees`), your private notes (`notes_privees`), your engines/limitations, your abilities, your inventory.
 2. **The scene context** that the **GM** gives you: where things stand, what's happening around you, what's expected of you now.
 
 ## 🔒 Golden rule — "neither more, nor less"

@@ -19,7 +19,7 @@ MISSING items are reported (required fields absent, wrong types, value outside e
 Usage:
   python3 validate_schema.py <path/campaign>
   python3 validate_schema.py <path/campaign> --json
-  python3 validate_schema.py <file.json> --schema monde   # a specific file
+  python3 validate_schema.py <file.json> --schema world   # a specific file
 
 Exit codes:
   0  conformant (some absent files may remain — non-blocking)
@@ -231,12 +231,12 @@ def main(argv=None) -> int:
         epilog=(
             "Exemples :\n"
             "  python3 validate_schema.py .hermes/mj-tonnerre/campaigns/la-naissance-dun-roi\n"
-            "  python3 validate_schema.py world.json --schema monde\n"
+            "  python3 validate_schema.py world.json --schema world\n"
         ),
     )
     parser.add_argument("cible", help="Campaign folder OR a specific .json file.")
     parser.add_argument("--schema", default=None,
-                        help="Schema name (monde|pnj|personnage|session) "
+                        help="Schema name (world|npcs|character|session) "
                              "when the target is a specific file.")
     parser.add_argument("--json", action="store_true", dest="as_json",
                         help="Output in JSON format.")

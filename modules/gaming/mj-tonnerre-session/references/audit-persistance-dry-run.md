@@ -21,7 +21,7 @@ the audit seeks gaps before they cause a bug.
 > (e.g., `/opt/data/.hermes/` in a container).
 
 ```bash
-find / -name "campagnes" -type d 2>/dev/null | grep "mj-tonnerre/campagnes$"
+find / -name "campaigns" -type d 2>/dev/null | grep "mj-tonnerre/campaigns$"
 # → Resolve to: <path_found>/<campaign-name>/
 ```
 
@@ -29,12 +29,12 @@ find / -name "campagnes" -type d 2>/dev/null | grep "mj-tonnerre/campagnes$"
 
 ```
 Campaign: <path>
-├── monde.json           # Size, lines?
-├── pnj.json             # Size, lines?
+├── world.json           # Size, lines?
+├── npcs.json             # Size, lines?
 ├── evenements.json      # DOES IT EXIST? (frequently missing)
 ├── MJ-INTENTION-LOG.md  # Ideally present
 ├── analyse-bug-rapport.md # If applicable
-├── personnages/
+├── characters/
 │   └── <id>.json        # One per player
 ├── sessions/
 │   ├── 001.json → NNN.json  # All present?
@@ -81,24 +81,24 @@ Read `sessions/NNN.json` (the highest one with `heure_fin` filled):
 | `etat_fin` | Active quest, location, leads, key NPCs |
 | `teaser` | Present |
 
-### 4. Synchronization `etat_global` vs `etat_fin`
+### 4. Synchronization `global_state` vs `etat_fin`
 
-Compare `monde.json > etat_global` with `sessions/NNN.json > etat_fin`.
+Compare `world.json > global_state` with `sessions/NNN.json > etat_fin`.
 
 **Typical divergence points (documented S7):**
 
-| Field | monde.json (obsolete) | etat_fin S7 (truth) |
+| Field | world.json (obsolete) | etat_fin S7 (truth) |
 |-------|----------------------|----------------------|
 | `quete_active` | "Build a camp" (template) | "Expedition to the Temple of Markers" |
 | `phase_construction` | "None — not yet arrived" | Camp established, lean-to in progress |
 | `population` | 1 | 4+ (Rubis group) |
 
-**Remedy:** Update `monde.json > etat_global` from the information
+**Remedy:** Update `world.json > global_state` from the information
 in the last session BEFORE starting narration.
 
-### 5. Time Tracking (`regles.temps.suivi`)
+### 5. Time Tracking (`rules.temps.suivi`)
 
-`monde.json > regles.temps.suivi` must contain:
+`world.json > rules.temps.suivi` must contain:
 - `date_jeu_actuelle` (e.g., "Day 6")
 - `heure_jeu_actuelle` (e.g., "early afternoon")
 - `t_actuel` (if UT mode) or `null`
@@ -107,14 +107,14 @@ in the last session BEFORE starting narration.
 - Progress of time mechanics specific to the campaign
 
 **If absent:** Extract from `sessions/NNN.json > heure_fin` and
-`etat_global.chronologie`. Create the section without inventing dates.
+`global_state.chronologie`. Create the section without inventing dates.
 
 **Trap S7:** Absent from the campaign despite 7 sessions. Impossible to
 answer "what day are we on?" without digging through the narrative timeline.
 
 ### 6. Character Sheet Format
 
-Check `personnages/<id>.json` for the new format fields:
+Check `characters/<id>.json` for the new format fields:
 
 | Field | New format | S7 (old) |
 |-------|---------------|-------------|
@@ -124,12 +124,12 @@ Check `personnages/<id>.json` for the new format fields:
 | `session_id` | Persistent agent session | ❌ Absent |
 
 **Migration:** Add missing fields without breaking existing ones.
-`historique[]` can be pre-filled from `etat_global.chronologie`.
+`historique[]` can be pre-filled from `global_state.chronologie`.
 Do NOT rewrite the sheet entirely.
 
 ### 7. Factions and Clocks
 
-Check in `monde.json > etat_global.faction_actions_horloge`:
+Check in `world.json > global_state.faction_actions_horloge`:
 
 - Each faction has ≥ 1 CT action + ≥ 1 LT action
 - Resolved actions are marked ✅
@@ -163,11 +163,11 @@ no trace → 🐛 PERSISTENCE BUG.
 ## Files
 | File | Status | Notes |
 |---------|--------|-------|
-| monde.json | ✅/⚠️/❌ | Size, gaps found |
-| pnj.json | ✅/⚠️/❌ | Number of NPCs |
+| world.json | ✅/⚠️/❌ | Size, gaps found |
+| npcs.json | ✅/⚠️/❌ | Number of NPCs |
 | evenements.json | ✅/⚠️/❌ | Present/absent |
 | sessions/NNN.json | ✅/⚠️/❌ | Verified complete |
-| personnages/<id>.json | ✅/⚠️/❌ | Format, stats |
+| characters/<id>.json | ✅/⚠️/❌ | Format, stats |
 
 ## Gaps Found
 1. **Critical** — <description>

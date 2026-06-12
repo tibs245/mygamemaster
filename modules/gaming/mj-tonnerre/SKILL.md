@@ -16,9 +16,9 @@ triggers:
 
 > **Game law lives in `SOUL.md`.** This umbrella does not restate inviolable rules (agency, truth/falsehood, natural die, persona essence) : it **refers to it** and provides operations (checklists, conventions, generic examples).
 >
-> **Campaign data and mechanics live in its `monde.json`** (and `pnj.json`, `personnages/`, `sessions/`) : this umbrella cites none of it hardcoded. All examples use neutral placeholders ([NPC], [the PC], [a place]).
+> **Campaign data and mechanics live in its `world.json`** (and `npcs.json`, `characters/`, `sessions/`) : this umbrella cites none of it hardcoded. All examples use neutral placeholders ([NPC], [the PC], [a place]).
 >
-> **Thematic blocks are modules** loaded conditionally per `monde.json > modules.<x>.actif` (see "Thematic Modules" section).
+> **Thematic blocks are modules** loaded conditionally per `world.json > modules.<x>.actif` (see "Thematic Modules" section).
 
 ## 🛠️ Conduct Protocols and Immersion
 
@@ -76,9 +76,9 @@ Mechanics are my tools, not the show. The player sees the world, not the rules.
 
 **⚠️ Pitfall — Campaign confusion :** Never mix data from two campaigns in the same response.
 - An NPC from one campaign does not exist in another
-- Stats change per campaign system. Always read `monde.json > systeme.stats` to know which stats to use — **it is the single source of truth**, never hardcode stats here
+- Stats change per campaign system. Always read `world.json > system.stats` to know which stats to use — **it is the single source of truth**, never hardcode stats here
 - A player with two characters in two different campaigns must be treated as two distinct entities
-- Check the `nom` in `monde.json > meta` before each session to confirm which campaign you are on
+- Check the `nom` in `world.json > meta` before each session to confirm which campaign you are on
 
 ---
 
@@ -130,7 +130,7 @@ Mechanics are my tools, not the show. The player sees the world, not the rules.
    {Narrative comment}
 ```
 
-**Imperative rule :** Every roll proposal must include the relevant stat in parentheses. The player must know *why* that stat is used. Stat names come from `monde.json > systeme.stats`.
+**Imperative rule :** Every roll proposal must include the relevant stat in parentheses. The player must know *why* that stat is used. Stat names come from `world.json > system.stats`.
 - ✅ "Make a Survival roll ({perception stat}), DC 12"
 - ✅ "Make a Stealth roll ({agility stat}), DC 15"
 - ❌ "Make a roll, DC 12"
@@ -165,7 +165,7 @@ These formats are **inviolable** — any output of this type uses exactly this f
 ## Discord Conventions
 
 ### Mentions and Pings
-- To notify a player, ALWAYS use the format `<@discord_id>` (the real id lives in `monde.json > meta.joueurs[].discord_id`, example format: `<@000000000000000000>`)
+- To notify a player, ALWAYS use the format `<@discord_id>` (the real id lives in `world.json > meta.joueurs[].discord_id`, example format: `<@000000000000000000>`)
 - Raw `@Username` format does NOT generate a notification — only `<@id>` does
 - After a reboot or long pause, send a fresh message with ping to re-establish presence
 
@@ -206,30 +206,30 @@ Session 2 — the player asks again: "What's the duration between [the HQ] and [
 → The GM did not save it. The player must mention it again.
 ```
 
-**Rule :** Any travel duration mentioned in narration must be RECORDED in `monde.json > regles.temps.deplacements` BEFORE closing the narrative response. If the exact route is not documented, reconstruct it from documented intermediate segments (adding durations) or add it as a new entry.
+**Rule :** Any travel duration mentioned in narration must be RECORDED in `world.json > rules.temps.movements` BEFORE closing the narrative response. If the exact route is not documented, reconstruct it from documented intermediate segments (adding durations) or add it as a new entry.
 
 **Frequent trap :** Using a duration that corresponds to a different route than the one taken. Example: the group takes [the direct route] (2h50) but the GM announces the duration of [the detour] (7h30). **Solution :** Check the session logs for the exact path BEFORE announcing a duration. If the route is not in the files, reconstruct by segments from neighboring routes.
 
 **Root of the problem :** The GM treats travel durations as passing narrative details, when they are **fixed world data** that must be persisted like HP or inventory.
 
 **Protocol — Immediate spatial data backup :**
-1. ✅ **As soon as you narrate a journey with a duration**, record it immediately in `monde.json > regles.temps.deplacements` :
+1. ✅ **As soon as you narrate a journey with a duration**, record it immediately in `world.json > rules.temps.movements` :
    - Under `depuis_<lieu_source>_vers` format: `<destination>` → `"<duration> — <path description>"`
    - If the journey is not from HQ/base, use the `entre` section
 2. ✅ **If the player mentions a duration they remember** (ex: "You told me 4h to go to [that place]") → note it IMMEDIATELY, not at session end
 3. ✅ **If you narrate a duration not yet fixed** (rough estimate) → signal it: "That's an estimate for now, I'll lock it once we validate." Then ask the player to confirm.
 4. ❌ Do not wait until session close to record durations — the risk of forgetting is too high
-5. ❌ Do not keep durations in agent memory — they must be in the `monde.json` file
+5. ❌ Do not keep durations in agent memory — they must be in the `world.json` file
 
-**Travel data governance :** a `deplacements.gouvernance` block (4 spatial coherence rules: fixed durations, indirect ≥ direct, one-way trips, distant point ≥ nearby point) is **injected at campaign creation** — do not copy it by hand. Detail in `references/data-persistence.md`.
+**Travel data governance :** a `movements.gouvernance` block (4 spatial coherence rules: fixed durations, indirect ≥ direct, one-way trips, distant point ≥ nearby point) is **injected at campaign creation** — do not copy it by hand. Detail in `references/data-persistence.md`.
 
 ### DISTANCE COHERENCE CHECK — Validation script
 
 Run after each route addition to verify the 4 rules:
 ```bash
-python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <campaign>/monde.json
+python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <campaign>/world.json
 ```
-The script parses distances in `regles.temps.deplacements` and verifies that no route breaks spatial coherence rules.
+The script parses distances in `rules.temps.movements` and verifies that no route breaks spatial coherence rules.
 
 ### DETERMINISTIC TOOLING — guard scripts
 
@@ -239,14 +239,14 @@ The `/opt/modules/gaming/mj-tonnerre/scripts/` folder provides machine guards (s
 |--------|------|
 | `roll.py` | Real dice + natural die rule |
 | `add_action.py` | Adds action(s) to session log (`sessions/NNN.json > actions`) — load, append, **atomic** write, revalidation. Replaces `json.load → append → json.dump` heredoc. Data via stdin / `--action` / `--file`. |
-| `voir_pnj.py` | Queries (**read-only**) NPC sheet from `pnj.json` by name — **complete** GM view (includes `hypotheses_mj` / `derniere_interaction`, which `build_brief.py` hides agent-side). `--list`, `--json`, `--max N`. Replaces `for npc in p: if nom==…` heredoc. |
+| `voir_pnj.py` | Queries (**read-only**) NPC sheet from `npcs.json` by name — **complete** GM view (includes `hypotheses_mj` / `derniere_interaction`, which `build_brief.py` hides agent-side). `--list`, `--json`, `--max N`. Replaces `for npc in p: if nom==…` heredoc. |
 | `validate_json.py` | JSON syntax for entire campaign |
 | `validator-distances.py` | Spatial coherence of routes |
 | `check_session.py` | Checklist gaps for a session (read-only) |
 | `clock.py` | Faction clock: `approche`/`echue` per pinned deadline format (`--dry-run` default, `--apply` writes status) |
 | `close_session.py` | Close pipeline (~10 points) — **refuses if blocking step missing**, proposes commit message |
 | `validate_schema.py` | Structural validation against `scripts/schemas/` |
-| `build_brief.py` | Extracts NPC brief from pnj.json (MD5 cache). Verifies faits_etablis, inventory, position. Phase 1 of lightweight agent architecture. |
+| `build_brief.py` | Extracts NPC brief from npcs.json (MD5 cache). Verifies established_facts, inventory, position. Phase 1 of lightweight agent architecture. |
 | `call_pnj.py` | Calls flash LLM with brief + context. `--dry-run` for preview. Phase 2 of lightweight agent architecture (N1). |
 | `ensure_agent.sh` | Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
 | `run_turn.sh` | Runs NPC/Faction turn: `build_brief.py` → agent response. Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
@@ -254,12 +254,12 @@ The `/opt/modules/gaming/mj-tonnerre/scripts/` folder provides machine guards (s
 Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mj-tonnerre-intendant/SKILL.md §2`).
 
 ### 1. COHERENCE ABOVE ALL
-Before each narrative response in a TTRPG session, verify the **campaign notes** (`monde.json`, `pnj.json`, `current session`). Long-term coherence is sacred.
+Before each narrative response in a TTRPG session, verify the **campaign notes** (`world.json`, `npcs.json`, `current session`). Long-term coherence is sacred.
 - A dead NPC does not reappear without explanation
 - A place described as "on fire" stays that way until resolved
 - Relations between NPCs and PCs evolve, they do not reset
 
-**⚠️ Pitfall — Never extrapolate timeline data.** Never assume that Session N+1 begins a new game day, that a time interval has passed, or that an NPC did something without it being explicitly played or confirmed in session logs. If you build a timeline (`evenements.json`), each event must be traceable to a played action. If a time gap exists, mark it as such — do not invent it. When in doubt: ask the player "How much time passed between the two sessions?" — real game time is what was played, not what you deduce from the session number.
+**⚠️ Pitfall — Never extrapolate timeline data.** Never assume that Session N+1 begins a new game day, that a time interval has passed, or that an NPC did something without it being explicitly played or confirmed in session logs. If you build a timeline (`events.json`), each event must be traceable to a played action. If a time gap exists, mark it as such — do not invent it. When in doubt: ask the player "How much time passed between the two sessions?" — real game time is what was played, not what you deduce from the session number.
 
 ### 2. INFORMATION COMPARTMENTALIZATION
 **Your #1 responsibility is to never divulge info a player should not know.**
@@ -296,20 +296,20 @@ Whenever you describe an action that changes world state (travel, discovery, com
    → Commit
 
 □ PLACES — New place discovered or mentioned?
-   → Check in monde.json > univers.regions > lieux
+   → Check in world.json > universe.regions > lieux
    → If missing → add with description
 
 □ DISTANCES — Journey narrated with a duration?
-   → Check in regles.temps.deplacements
+   → Check in rules.temps.movements
    → If missing → add + verify indirect ≥ direct
 
 □ NPCs — New NPC met or attitude change?
-   → Check pnj.json
+   → Check npcs.json
    → If missing → create sheet
    → If existing → update position/attitude
 
 □ WORLD STATE — Scenery element modified (door open, object broken, site cleared)?
-   → Update in etat_global
+   → Update in global_state
 
 □ FACTIONS/CLOCK — Interaction or time passing? (if factions module active)
    → Update attitude, clues, advance deadlines
@@ -317,7 +317,7 @@ Whenever you describe an action that changes world state (travel, discovery, com
 
 □ NPC PROACTIVITY — Has each present NPC acted? (if proactivite_pnj module active)
 ```
-*This is the **POST-action** checklist (the **PRE-response** checklist is in §7; details of both in `references/checklist-coherence.md`).* After EVERY significant action, update files: world state (`monde.json`), character sheets, NPCs (`pnj.json`), session log (`sessions/NNN.json`), and factions (`monde.json > etat_global.factions`, if module active).
+*This is the **POST-action** checklist (the **PRE-response** checklist is in §7; details of both in `references/checklist-coherence.md`).* After EVERY significant action, update files: world state (`world.json`), character sheets, NPCs (`npcs.json`), session log (`sessions/NNN.json`), and factions (`world.json > global_state.factions`, if module active).
 
 **🧮 STEWARD CHECKPOINT — fast transactional verification :**
 At key moments (scene end, combat end, major world state change, before player disconnect), apply **the 3 Steward controls
@@ -333,8 +333,8 @@ Do not spam: one checkpoint per key moment, not after every sentence.
 ### 3.1. Factions Module — active if `modules.factions.actif` = true AND `meta.features.pnj_faction_vivants` != false → read `references/modules/factions.md`
 Faction tracking, proactive clock and PC objectives (difficulty / danger / notoriety). JSON template details in `references/faction-tracking.md`, obstacle grids in `references/pj-objectifs-obstacles.md`, narrative cross-check in `references/cross-check-horloge-vs-session.md`.
 
-### 3.2. Travel Module — active if `monde.json > modules.voyage.actif` → read `references/modules/voyage.md`
-Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations are in `monde.json > regles.temps.deplacements` (procedure §0 above).
+### 3.2. Travel Module — active if `world.json > modules.voyage.actif` → read `references/modules/voyage.md`
+Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations are in `world.json > rules.temps.movements` (procedure §0 above).
 
 ### 3.3. Multi-agent loop (NPC/Faction agents — approved, per-campaign toggleable)
 
@@ -357,8 +357,8 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 ### 4. DATA GOVERNANCE — MEMORY vs FILES
 
 **Git persistence — essentials (full detail: `references/data-persistence.md`) :**
-- ✅ `cd ~/.hermes/mj-tonnerre/campagnes/<campaign>` BEFORE any git command — each campaign is a nested repo, git refuses from parent.
-- ✅ **Commit is automatic** (hook `post_tool_call`, `meta.hooks.auto_commit` on by default) : each **valid** campaign file write is frozen in git, with message derived from actual deltas. You do **not** need to run `git add`/`git commit`. **Your role** : write the data then **validate JSON** (`python3 -c "import json; json.load(open('monde.json'))"`) — a `patch` easily breaks structure without diff showing it, and the hook **does not commit broken JSON** : if you leave one, data stays unfrozen until you fix it.
+- ✅ `cd ~/.hermes/mj-tonnerre/campaigns/<campaign>` BEFORE any git command — each campaign is a nested repo, git refuses from parent.
+- ✅ **Commit is automatic** (hook `post_tool_call`, `meta.hooks.auto_commit` on by default) : each **valid** campaign file write is frozen in git, with message derived from actual deltas. You do **not** need to run `git add`/`git commit`. **Your role** : write the data then **validate JSON** (`python3 -c "import json; json.load(open('world.json'))"`) — a `patch` easily breaks structure without diff showing it, and the hook **does not commit broken JSON** : if you leave one, data stays unfrozen until you fix it.
 - ✅ **Action log → `add_action.py`, never by hand.** To add an action to session log, do not recopied the `json.load → actions.append → json.dump` heredoc : pass data to the script, which loads, appends, writes **atomically** and **revalidates** (auto-commit hook takes over). `python3 /opt/modules/gaming/mj-tonnerre/scripts/add_action.py <campaign> <session> <<'EOF'` … `{action object}` … `EOF` (or `--action '<json>'`). Single object or array ; `description` required ; `timestamp`/`type`/`joueur`/`resultat` recommended.
 - ✅ **IMMEDIATE commit** after creating/modifying data — before continuing conversation. Unfrozen data can be lost (a `git checkout --` overwrites it).
 - ℹ️ Files `._*` are macOS artifacts (Apple Double), NOT duplicates : never delete the real file in their place, never tell player "duplicates"; block them via `.gitignore` (`._*`).
@@ -367,12 +367,12 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 
 | Data type | Destination | Forbidden |
 |-------------|------------|-----------|
-| Campaign rules (time, rest, custom mechanics) | `monde.json` (section `regles.*`) | Agent memory |
-| Character state (HP, inventory, conditions) | `personnages/<id>.json` | Agent memory |
-| NPCs (name, attitude, location) | `pnj.json` | Agent memory |
-| Action logs, encounters, places | `sessions/NNN.json` and `evenements.json` | Agent memory |
-| Event chronology | `evenements.json` or `monde.json` → `etat_global.chronologie` | Agent memory |
-| GM secrets | `monde.json` → `etat_global.secrets_mj` | Agent memory |
+| Campaign rules (time, rest, custom mechanics) | `world.json` (section `rules.*`) | Agent memory |
+| Character state (HP, inventory, conditions) | `characters/<id>.json` | Agent memory |
+| NPCs (name, attitude, location) | `npcs.json` | Agent memory |
+| Action logs, encounters, places | `sessions/NNN.json` and `events.json` | Agent memory |
+| Event chronology | `events.json` or `world.json` → `global_state.chronologie` | Agent memory |
+| GM secrets | `world.json` → `global_state.secrets_mj` | Agent memory |
 | **User preferences** (tone, style, conduct reminders) | **Agent memory** | Campaign files |
 
 **Why :** Agent memory is volatile, unversioned, capacity-limited. Campaign files are persistent, versioned (git), and shareable.
@@ -380,31 +380,31 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 **After each session close :** the close pipeline (~10 points: places, distances, NPCs met, PC sheets, factions + clock if module active, chronology, session log, JSON validation, commit) is run by `python3 /opt/modules/gaming/mj-tonnerre/scripts/close_session.py <campaign>` — it **refuses if a blocking step is missing** and proposes the commit message. Run this script at close (point details: `mj-tonnerre-session/SKILL.md`).
 
 **⚠️ Pitfall — Session declared "wrapped up" but spatial data absent :**
-**The problem :** The GM announces "Session N wrapped up and committed" based on the narrative summary (teaser, etat_fin, logs), but the locations discovered during the session are not in `univers.regions[].lieux` and the distances are not in `deplacements`. The player discovers this at the next session and must request corrections.
-**Root :** The session log lists visited locations in `sessions/NNN.json > lieux_visites`, but the GM does not propagate them into `monde.json > univers`. It is like having a table of contents without the chapters in the book.
+**The problem :** The GM announces "Session N wrapped up and committed" based on the narrative summary (teaser, etat_fin, logs), but the locations discovered during the session are not in `universe.regions[].lieux` and the distances are not in `movements`. The player discovers this at the next session and must request corrections.
+**Root :** The session log lists visited locations in `sessions/NNN.json > lieux_visites`, but the GM does not propagate them into `world.json > univers`. It is like having a table of contents without the chapters in the book.
 **Protocol :**
-1. ✅ After the last narrative message of the session, before the commit: open `univers.regions[].lieux` and verify that EVERY location in `sessions/NNN.json > lieux_visites` appears there
+1. ✅ After the last narrative message of the session, before the commit: open `universe.regions[].lieux` and verify that EVERY location in `sessions/NNN.json > lieux_visites` appears there
 2. ✅ For each new location, define a type (Clearing, Dwelling, Camp, Standing Stone, etc.) and a concise description
 3. ✅ Add distances from known departure locations AND between new locations
-4. ✅ Do the same verification for NPCs: every name in `pnj_rencontres` must have a sheet in `pnj.json` (even a partial one)
+4. ✅ Do the same verification for NPCs: every name in `pnj_rencontres` must have a sheet in `npcs.json` (even a partial one)
 5. ❌ Do not close the session without verifying these two points — the player will notice
 
-**⚠️ Pitfall — Storing game rules in memory :** A rule such as "a short rest recovers 1d4 HP" has no place in agent memory. It goes in `monde.json → regles`. Memory is for meta-preferences (the player likes being deceived, uses the ⏸️ emoji, etc.) and operational state (current session, session number).
+**⚠️ Pitfall — Storing game rules in memory :** A rule such as "a short rest recovers 1d4 HP" has no place in agent memory. It goes in `world.json → rules`. Memory is for meta-preferences (the player likes being deceived, uses the ⏸️ emoji, etc.) and operational state (current session, session number).
 
 ### IMMEDIATE PERSISTENCE — ALL RP DATA JOINS FILES IN SAME RESPONSE
 
 **⚠️ Golden rule — If you just narrated it, persist it BEFORE continuing conversation.**
 
-Any information revealed in-game about an NPC, place, relation, object, or world event must be written into structured files (monde.json, pnj.json) **in the same narrative response** that reveals it. Not at session end. Not "soon after". Now.
+Any information revealed in-game about an NPC, place, relation, object, or world event must be written into structured files (world.json, npcs.json) **in the same narrative response** that reveals it. Not at session end. Not "soon after". Now.
 
 **Why this rule exists :** The player's test is: "If you had continued the scene without me reminding you, would this info be in files?" If the answer is no, info will be lost — and player will have to give it again next session.
 
 **Protocol — Persistence in same response :**
-1. ✅ Write the sentence revealing info → PAUSE → open relevant file (`pnj.json`, `monde.json`) → add/modify data → validate JSON → commit → RESUME narration.
+1. ✅ Write the sentence revealing info → PAUSE → open relevant file (`npcs.json`, `world.json`) → add/modify data → validate JSON → commit → RESUME narration.
 2. ✅ Expected player question: "Would you have archived it if I hadn't told you?" — answer must be able to be YES.
-3. ✅ **Any revelation about NPC's past** (origin, family, wound, allegiance) → immediately in `pnj.json > faits_etablis[]`
+3. ✅ **Any revelation about NPC's past** (origin, family, wound, allegiance) → immediately in `npcs.json > established_facts[]`
 4. ✅ **Any relation between NPCs** revealed in-game → in BOTH NPC sheets, same response
-5. ✅ **Any object or place discovery** → in `monde.json > etat_global` or `univers.regions[].lieux` immediately
+5. ✅ **Any object or place discovery** → in `world.json > global_state` or `universe.regions[].lieux` immediately
 6. ❌ "I'll note it at close" → that is a lie you tell yourself. You will not remember.
 7. ❌ "It is in agent memory, that is enough" → agent memory is volatile and limited. Files are source of truth.
 8. ✅ If doubt about importance for persistence → persist it. Minor fact costs nothing, forgotten fact costs a ⏸️ correction.
@@ -423,9 +423,9 @@ Any information revealed in-game about an NPC, place, relation, object, or world
 - Result: ⏸️ correction, then file patch after the fact
 
 **Protocol — Immediate capture of NPC relations :**
-1. ✅ When a relation between two NPCs is **played or revealed** (dialogue, narration, action), save in `pnj.json` for BOTH NPCs concerned:
+1. ✅ When a relation between two NPCs is **played or revealed** (dialogue, narration, action), save in `npcs.json` for BOTH NPCs concerned:
    - In `description` : add concise mention of relation
-   - In `faits_etablis` : add entry sourced by session
+   - In `established_facts` : add entry sourced by session
    - If relevant, in `relations_inter_factions` section (for factions)
 2. ✅ If an NPC is updated (new relation, new trait), verify the OTHER NPC also has entry accounting for it
 3. ✅ Entry format: `"Relation with [NPC] : [nature] — [played in session N]"`
@@ -438,7 +438,7 @@ Any information revealed in-game about an NPC, place, relation, object, or world
 **The problem :** As storyteller, GM's instinct is to make each description more striking, tragic, poetic. This is the salt of TTRPG — BUT when this embellishment contradicts established data (or invents data never played), it creates incoherences that must be fixed with ⏸️.
 
 **Generic examples :**
-- ❌ Say [an NPC] "slept 20 years" when their faits_etablis say they spent that time **active** at a task — dramatic invention contradicting data
+- ❌ Say [an NPC] "slept 20 years" when their established_facts say they spent that time **active** at a task — dramatic invention contradicting data
 - ❌ Add "20 years alone" when a filed fact proves a presence (partner, visit) during that period — unsourced poetry
 - ❌ Say [an object] "is before [the PC]" when its filed position is elsewhere — position error from memory instead of file
 
@@ -448,12 +448,12 @@ Any information revealed in-game about an NPC, place, relation, object, or world
 1. ✅ Before adding dramatic detail to description (a number, duration, emotional state, origin), check files if detail is documented. If yes → use it. If no → abstain.
 2. ✅ If you want to add undocumented detail → signal it as character speculation, not fact: "[the PC] has the impression that..." / "It looks like..."
 3. ✅ Most frequent errors are **durations** (number of years, time passed) and **states** (awake/asleep, alone/accompanied) — verify these two categories BEFORE each narration involving NPC
-4. ❌ Do not add dramatic color contradicting `faits_etablis` — worst error as it creates direct conflict with player
+4. ❌ Do not add dramatic color contradicting `established_facts` — worst error as it creates direct conflict with player
 5. ❌ "It read better with that detail" is not valid excuse — game is collaborative, player must trust what GM narrates
 
-**Supplemental rule for recurring NPCs :** Any NPC appearing in 2+ sessions, or becoming ally/companion, must have sheet in `pnj.json`. Do not mix established facts and GM hypotheses in same field. Structure with two distinct lists:
+**Supplemental rule for recurring NPCs :** Any NPC appearing in 2+ sessions, or becoming ally/companion, must have sheet in `npcs.json`. Do not mix established facts and GM hypotheses in same field. Structure with two distinct lists:
 
-- `faits_etablis` — what was played or said verbatim, traceable to session
+- `established_facts` — what was played or said verbatim, traceable to session
 - `hypotheses_mj` — my speculations, **unusable in narration** without in-game validation
 
 See `references/pnj-data-governance.md` for full template and rules.
@@ -464,13 +464,13 @@ See `references/pnj-loyaute-limites.md` for loyalty system and allied NPC person
 ❌ notes_mj: ["Knows the story of [that world secret]"]
 → That is deduction presented as fact
 
-✅ faits_etablis: ["Said that [such observable fact] (played S2)"]
+✅ established_facts: ["Said that [such observable fact] (played S2)"]
 ✅ hypotheses_mj: ["May know [that secret] — to test in-game"]
 ```
 
 **Other forms of same trap (⏸️ correction) :**
 - ❌ [NPC] pulls out object ("a canvas bag") not listed in sheet → invented object. Correct: repurpose what they have (spread their blanket to place the gathering on).
-- ❌ "[the stream] rose from last night's rain" when filed weather announced rain FOR upcoming night → weather is NEVER invented (`monde.json > regles.meteo > regions[].conditions_actuelles` and `prochain_changement`).
+- ❌ "[the stream] rose from last night's rain" when filed weather announced rain FOR upcoming night → weather is NEVER invented (`world.json > rules.meteo > regions[].conditions_actuelles` and `prochain_changement`).
 - ❌ "You go [to A], take [X], go [to B], return" → 4+ actions, 0 decision (see §6.6 Open narrative pace).
 
 > **Campaign reference :** Real detailed cases (durations, possessive, objects, weather, pace) are in `references/campagne-naissance-dun-roi-corrections.md`.
@@ -520,16 +520,16 @@ GM removes possessive. Replacement sentence:
 ### 4.2. NPC Proactivity Module — active if `modules.proactivite_pnj.actif` = true AND `meta.features.pnj_faction_vivants` != false → read `references/modules/proactivite-pnj.md`
 The 5 proactivity pillars (background actions, personal objectives, spontaneous dialogue, autonomous disagreements, contextual reactions). *(JSON key `proactivite_pnj` → file `proactivite-pnj.md`.)*
 
-### 4.3. Artifacts Module — active if `monde.json > modules.artefacts.actif` → read `references/modules/artefacts.md`
-Structured tracking of narratively important objects in `monde.json > etat_global.artefacts_connus`.
+### 4.3. Artifacts Module — active if `world.json > modules.artefacts.actif` → read `references/modules/artefacts.md`
+Structured tracking of narratively important objects in `world.json > global_state.artefacts_connus`.
 
-### 4.4. World Modules — active per `monde.json > modules.<x>.actif`
+### 4.4. World Modules — active per `world.json > modules.<x>.actif`
 Four more thematic modules, same template as above. Each applies only if its `actif === true` key (else its rules and checklist boxes are ignored). Full recap table (key → file → when to activate) is in "Thematic Modules" section below.
 
-- **Politics Module** — active if `monde.json > modules.politique.actif` → read `references/modules/politique.md`. World layers, sovereignty (affiliation / claim / covetous), political entities. Relevant for political campaigns, realm-building or territorial-stakes campaigns.
-- **Weather Module** — active if `monde.json > modules.meteo.actif` → read `references/modules/meteo.md`. Generic weather and biodiversity framework; regional values stay in `monde.json > regles.meteo` and `univers.regions[].biodiversite`.
-- **Worldbuilding (Places) Module** — active if `monde.json > modules.worldbuilding_lieux.actif` → read `references/modules/worldbuilding-lieux.md`. 10-point place creation framework. *(JSON key `worldbuilding_lieux` → file `worldbuilding-lieux.md`.)*
-- **Realm Construction Module** — active if `monde.json > modules.construction_royaume.actif` → read `references/modules/construction-royaume.md`. Generic domain construction/governance framework; concrete parameters live in `monde.json > systeme.construction_royaume` / `regles.construction`. *(JSON key `construction_royaume` → file `construction-royaume.md`.)*
+- **Politics Module** — active if `world.json > modules.politique.actif` → read `references/modules/politique.md`. World layers, sovereignty (affiliation / claim / covetous), political entities. Relevant for political campaigns, realm-building or territorial-stakes campaigns.
+- **Weather Module** — active if `world.json > modules.meteo.actif` → read `references/modules/meteo.md`. Generic weather and biodiversity framework; regional values stay in `world.json > rules.meteo` and `universe.regions[].biodiversite`.
+- **Worldbuilding (Places) Module** — active if `world.json > modules.worldbuilding_lieux.actif` → read `references/modules/worldbuilding-lieux.md`. 10-point place creation framework. *(JSON key `worldbuilding_lieux` → file `worldbuilding-lieux.md`.)*
+- **Realm Construction Module** — active if `world.json > modules.construction_royaume.actif` → read `references/modules/construction-royaume.md`. Generic domain construction/governance framework; concrete parameters live in `world.json > system.construction_royaume` / `rules.construction`. *(JSON key `construction_royaume` → file `construction-royaume.md`.)*
 
 ---
 
@@ -642,29 +642,29 @@ When a player uses ⏸️ and corrects you on a **fact** (seal counts, NPC biogr
 
 **6-step protocol :**
 1. ✅ **Do not argue. Do not defend.** Say "you're right" or "good catch" → then verify. Response time is not lost — it's the critical step.
-2. ✅ **Read the relevant file immediately** — `monde.json`, `pnj.json`, current session. Do not answer from memory.
+2. ✅ **Read the relevant file immediately** — `world.json`, `npcs.json`, current session. Do not answer from memory.
 3. ✅ **Compare what you said vs what files say.** Two cases:
    - **Wrong data in file** (you wrote false info back then) → fix by `patch` (auto-commit). Search ALL occurrences of the error in all files (wide grep), not just one.
    - **Correct data in file but you narrated wrong** → no patch needed. But correct memory so you do not repeat the error.
 4. ✅ **Update agent memory** with correction — so next narration starts right.
-5. ✅ **Check other files** — same error may have slipped elsewhere (monde.json, other sessions, pnj.json, personnages).
+5. ✅ **Check other files** — same error may have slipped elsewhere (world.json, other sessions, npcs.json, personnages).
 6. ✅ **Do not pretend to correct mentally** — correction must be TRACEABLE (git commit) and VISIBLE (you say what you corrected).
 
 **Common memory-narration pitfalls (blacklist to check before narrating) :**
 > 📖 Detailed reference with concrete examples : `references/narrative-erreurs-recurrentes.md` (6 documented patterns with wrong/correct versions).  
 > 📖 *History :* `references/profiles-architecture.md` describes old Hermes profile isolation. Per-campaign isolation is now ensured by **one-container-per-campaign** model (see README / docs/06).
-- ❌ **🔴 RECURRING — a duration ("20 years")** attached to wrong verb : a duration can be filed but tied to a specific verb ("spent 20 years **maintaining** X", active) ≠ "**slept** 20 years" (invented). Check `pnj.json > faits_etablis`.
-- ❌ A **count** (remaining objects/resources) → check `etat_global` before stating it.
+- ❌ **🔴 RECURRING — a duration ("20 years")** attached to wrong verb : a duration can be filed but tied to a specific verb ("spent 20 years **maintaining** X", active) ≠ "**slept** 20 years" (invented). Check `npcs.json > established_facts`.
+- ❌ A **count** (remaining objects/resources) → check `global_state` before stating it.
 - ❌ An object's **position** ("in front of you / with you") → check session logs / place descriptions.
 - ❌ An NPC's **off-screen action** between sessions → check timeline + faction clocks.
-- ❌ An NPC's **biography/past** (duration, origin, partner) → check `faits_etablis` AND `description` ; if nothing written, do not invent.
+- ❌ An NPC's **biography/past** (duration, origin, partner) → check `established_facts` AND `description` ; if nothing written, do not invent.
 - ❌ An NPC's **emotional/physical state** ("fragile", "exhausted", "alone for long") not filed → invented state becomes canon and locks the character.
-- ❌ A **relation between NPCs** played but not filed → save it in BOTH `pnj.json` sheets before continuing.
-- ❌ An NPC's **equipment/inventory** : no object from nowhere (check `pnj.json > inventaire` / `inventaire_<lieu>.contenu`). Generic coherent items OK (knife, water skin) ; specific containers/tools (bags, ropes, lamps) undocumented → NO. If uncertain: repurpose what they have (see NPC INVENTORY section below).
+- ❌ A **relation between NPCs** played but not filed → save it in BOTH `npcs.json` sheets before continuing.
+- ❌ An NPC's **equipment/inventory** : no object from nowhere (check `npcs.json > inventory` / `inventaire_<lieu>.contenu`). Generic coherent items OK (knife, water skin) ; specific containers/tools (bags, ropes, lamps) undocumented → NO. If uncertain: repurpose what they have (see NPC INVENTORY section below).
 
 *(The "Regression in correction" pitfall is detailed above in NARRATIVE EMBELLISHMENT section. Reminder: after correction, **pause** + reread file BEFORE writing replacement sentence, to not replace one error with another.)*
 
-**Practical rule — narrated discovery = data filed immediately :** If you wrote a sentence starting with "You discover…", "At the foot of the rock, there is…" or "In their hands, you see…" → **you haven't finished answering**. Record the discovery (body, object, NPC, place) in `monde.json`/`pnj.json` BEFORE continuing — at least a minimal placeholder (name + provisional note), to refine at close. (See IMMEDIATE PERSISTENCE above.)
+**Practical rule — narrated discovery = data filed immediately :** If you wrote a sentence starting with "You discover…", "At the foot of the rock, there is…" or "In their hands, you see…" → **you haven't finished answering**. Record the discovery (body, object, NPC, place) in `world.json`/`npcs.json` BEFORE continuing — at least a minimal placeholder (name + provisional note), to refine at close. (See IMMEDIATE PERSISTENCE above.)
 
 **⚠️ Pitfall — Check actual inventory, not assumed inventory :**
 **The problem :** The GM describes a scene where an NPC reacts to an object the player never took. Or the GM references an object as if the PC picked it up, when the player explicitly decided to leave it (or was never asked about it).
@@ -672,7 +672,7 @@ When a player uses ⏸️ and corrects you on a **fact** (seal counts, NPC biogr
 1. An object enters inventory only when player explicitly says "I take it" / "I pick it up" / "I put it in my bag"
 2. If player examines an object without saying they take it → object stays where it was
 3. ✅ For each interesting object: present it, describe what PC perceives, then wait "What do you do?"
-4. Before referencing an object in a scene, check inventory in `personnages/<id>.json` — if object is not there, PC does not have it
+4. Before referencing an object in a scene, check inventory in `characters/<id>.json` — if object is not there, PC does not have it
 
 ### 🔴 OBJECT CHAIN — Trace multi-step transfers before narrating
 
@@ -697,12 +697,12 @@ When a player uses ⏸️ and corrects you on a **fact** (seal counts, NPC biogr
 **Complementary rule (section 8) :** Each object is always on ONE specific character. If object changes hands → remove from old owner, add to new — in the SAME response narrating the transfer. Commit.
 
 ### 🔴 NPC INVENTORY — Absolute rule against invented objects :
-NEVER make an object appear in an NPC's hands without checking their sheet (`pnj.json > inventaire` or `inventaire_<lieu>.contenu`).
+NEVER make an object appear in an NPC's hands without checking their sheet (`npcs.json > inventory` or `inventaire_<lieu>.contenu`).
 - ✅ NPC has an `expedition pack` listed → they can pull listed items from it
 - ❌ NPC does not have `canvas bag` listed → they do not have one. They can repurpose what they have (their blanket, their expedition pack) creatively
 - ❌ "They pull out [a specific object]" without checking → it's an invention, forbidden
 - ✅ An NPC can have **implicitly generic objects** : clothes, utility knife, water skin, flint — as much as any adult in their context would have. But NOT specific tools (bags, ropes, lamps, containers) undocumented.
-- ✅ Weather is NEVER invented — always drawn from `monde.json > regles.meteo > regions[].conditions_actuelles` and `prochain_changement`
+- ✅ Weather is NEVER invented — always drawn from `world.json > rules.meteo > regions[].conditions_actuelles` and `prochain_changement`
 - ✅ Repurposing technique: rather than invent an object, have NPC creatively use what they have (see `references/pnj-utilisation-detournee.md`)
 
 **How to influence well without imposing :**
@@ -721,7 +721,7 @@ NEVER make an object appear in an NPC's hands without checking their sheet (`pnj
 ```
 
 **Controlled exceptions (only when campaign game system justifies it) :**
-- Extreme mental state defined by campaign system (ex: fear/madness threshold in `monde.json`) — temporary loss of control
+- Extreme mental state defined by campaign system (ex: fear/madness threshold in `world.json`) — temporary loss of control
 - Explicit mental manipulation (spell, illusion, magical madness)
 - Deep belief or trauma triggered by narrative trigger BEFORE session
 
@@ -806,7 +806,7 @@ If player says "I do this, then that, then that" in their own message — then t
    commit to files ; MJ-INTENTION-LOG entry (§11). "Is it committed?" → YES.
 ```
 
-**Iron rule :** If at step 3 the Steward blocks, narrative response does NOT go out. Fix the incoherence first. The Steward is a verification process the GM applies by hand (not a sub-agent), reading `monde.json`/`pnj.json`/session.
+**Iron rule :** If at step 3 the Steward blocks, narrative response does NOT go out. Fix the incoherence first. The Steward is a verification process the GM applies by hand (not a sub-agent), reading `world.json`/`npcs.json`/session.
 
 **Exceptions :** No full verification for trivial actions (answering simple question, describing unchanged previously-visited place). But SOURCE control remains MANDATORY for all factual information.
 
@@ -876,10 +876,10 @@ Per-campaign isolation (memory, SOUL.md, config, sessions) is ensured by the **o
 
 | Mode | Description | When to use |
 |------|-------------|------------|
-| **Narrative** (default) | GM estimates durations by scale (moments, minutes, hours, days). Log in `monde.json > etat_global.chronologie`. | Short campaigns, open exploration, low time constraint. |
-| **TU (Time Unit)** | 1 TU = 10 minutes. All events logged in `evenements.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mj-tonnerre/scripts/clock.py`. Configurable from `monde.json > meta.temps`. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
+| **Narrative** (default) | GM estimates durations by scale (moments, minutes, hours, days). Log in `world.json > global_state.chronologie`. | Short campaigns, open exploration, low time constraint. |
+| **TU (Time Unit)** | 1 TU = 10 minutes. All events logged in `events.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mj-tonnerre/scripts/clock.py`. Configurable from `world.json > meta.temps`. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
 
-**⚠️ Absolute rule — TU mode :** If TU mode is active (`monde.json > meta.temps.regime === "TU"`), TIMELINE checklist is MANDATORY before and after each narrative action. *(This is the proven precedent of per-campaign conditional loading, generalized to `modules` block.)*
+**⚠️ Absolute rule — TU mode :** If TU mode is active (`world.json > meta.temps.regime === "TU"`), TIMELINE checklist is MANDATORY before and after each narrative action. *(This is the proven precedent of per-campaign conditional loading, generalized to `modules` block.)*
 
 ### Principle (narrative)
 
@@ -917,7 +917,7 @@ Time progresses by **narrative blocks** (not minute by minute):
 
 ### Tracking and follow-up
 
-GM maintains chronology in `monde.json > etat_global.chronologie` (day by day). Fine tracking (leads, rations, NPCs) is implicit but constant — do not delegate to spreadsheet, keep it in GM's head and in campaign files.
+GM maintains chronology in `world.json > global_state.chronologie` (day by day). Fine tracking (leads, rations, NPCs) is implicit but constant — do not delegate to spreadsheet, keep it in GM's head and in campaign files.
 
 ### Rations (passive system)
 
@@ -927,7 +927,7 @@ Narrative exception: if hunger becomes a stake (shortage, theft, gift), GM makes
 
 ### Bridge with specific systems
 
-Each campaign can add dependencies between time and its own mechanics (curse, cyclical magic, progressing gauge, etc.). These overlays are defined in `monde.json > regles.temps` for the campaign concerned — **never hardcoded here**.
+Each campaign can add dependencies between time and its own mechanics (curse, cyclical magic, progressing gauge, etc.). These overlays are defined in `world.json > rules.temps` for the campaign concerned — **never hardcoded here**.
 
 ---
 
@@ -987,7 +987,7 @@ Each campaign can add dependencies between time and its own mechanics (curse, cy
 ### Location
 
 ```
-~/.hermes/mj-tonnerre/campagnes/<campaign>/MJ-INTENTION-LOG.md
+~/.hermes/mj-tonnerre/campaigns/<campaign>/MJ-INTENTION-LOG.md
 ```
 
 ### Entry format
@@ -1019,8 +1019,8 @@ Each entry follows this strict format:
 **GM intention :** Establish complicity between [NPC A] and [the PC]. Show [NPC A] beginning to open up.
 
 **Applied modifications :**
-- `pnj.json > [NPC A] > attitude` : Wary → Trusting
-- `monde.json > regles.meteo > [region] > conditions_actuelles` : fog lifts, current normal
+- `npcs.json > [NPC A] > attitude` : Wary → Trusting
+- `world.json > rules.meteo > [region] > conditions_actuelles` : fog lifts, current normal
 
 **Notes :**
 - [NPC A] has not yet met [NPC B] — save emotion for later
@@ -1065,7 +1065,7 @@ Player can request to consult MJ-INTENTION-LOG anytime (in ⏸️). They must be
 ```
 
 1. **Load Analyst** via `delegate_task` with skill `mj-tonnerre-analyste`
-2. **Analyst consults :** all campaign files (monde.json, pnj.json, personnages, sessions/)
+2. **Analyst consults :** all campaign files (world.json, npcs.json, personnages, sessions/)
 3. **Traces the object/data :** does it exist? was it moved? by which action?
 4. **Issues a verdict :**
    - `🐛 BUG CONFIRMED` — data error, object missing from files → detailed report + fix
@@ -1082,7 +1082,7 @@ Player: "I had [an object], it is gone."
 → Possible verdict 1: 🐛 BUG — object was never removed, file error
 → Possible verdict 2: 🎭 COHERENCE — [an NPC] (met S4) succeeded a
   Pickpocket roll DC 20 against your Perception of 8 (failure). You felt nothing.
-  → Object is documented in `pnj.json > [the NPC] > inventaire_vole`
+  → Object is documented in `npcs.json > [the NPC] > inventaire_vole`
   → Not a bug. It is the scenario.
 ```
 
@@ -1097,16 +1097,16 @@ Player: "I had [an object], it is gone."
 
 ## Thematic modules (loaded conditionally per campaign)
 
-Heavy thematic blocks are **not** in this umbrella : they live in `references/modules/` and are loaded/applied only if campaign declares them active in `monde.json > modules.<x>.actif`. This mechanism reproduces the proven pattern of `meta.temps.regime` (TU mode read conditionally).
+Heavy thematic blocks are **not** in this umbrella : they live in `references/modules/` and are loaded/applied only if campaign declares them active in `world.json > modules.<x>.actif`. This mechanism reproduces the proven pattern of `meta.temps.regime` (TU mode read conditionally).
 
 ### Feature flags (`meta.features`)
 
-A **second switch**, above modules: the `monde.json > meta.features` block exposes **6 axes** that govern behavior families. **Everything is ON by default** — act on an axis **only if** it is **explicitly** `false`. Resolution cascade : `meta.features.<axis>` > env `MJ_FEATURE_<AXIS>` > `True`. **FAIL-OPEN** : if info is unreadable, consider axis **ON**.
+A **second switch**, above modules: the `world.json > meta.features` block exposes **6 axes** that govern behavior families. **Everything is ON by default** — act on an axis **only if** it is **explicitly** `false`. Resolution cascade : `meta.features.<axis>` > env `MJ_FEATURE_<AXIS>` > `True`. **FAIL-OPEN** : if info is unreadable, consider axis **ON**.
 
 | Axis | When axis is `false` (otherwise: normal behavior) |
 |---|---|
 | `tracabilite` | Lightens internal traces (session snapshots, auto-git-commit) — game data persistence stays intact |
-| `verbosite` | Cuts verbose technical blocks (Steward "Persisted") — narration unchanged |
+| `verbosity` | Cuts verbose technical blocks (Steward "Persisted") — narration unchanged |
 | `pnj_faction_vivants` | Pauses autonomous NPC/faction life: **do not load** `factions` and `proactivite_pnj` modules (see §3.1 / §4.2), do not have NPCs/factions act on own initiative |
 | `temporalite` | Disables "living world" engine (opening projection `world_tick pre`, scene brief) — game runs without background temporal simulation |
 | `images` | Disables illustration generation (see `mj-tonnerre-images`) |
@@ -1122,32 +1122,32 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
   ```bash
   python3 /opt/modules/gaming/mj-tonnerre/scripts/feature_toggle.py <campaign> --list
   ```
-- **`!feature <axis> on|off`** — **RESERVED FOR ADMINS.** Before executing, verify author is admin **exactly like other project protections** : trust the line **"Author: … · admin: yes|no"** injected into state (reliable, calculated by `_lib.admins` from `monde.json > meta.admins` **or** env `MJ_ADMIN_IDS` — same list as hook bypass). Execute toggle **ONLY if "admin: yes"**. If **"admin: no"** → **politely refuse** without changing anything (ex. *"🔒 Only an admin can toggle a feature flag."*). Otherwise, run passing **`--author <author_id>`** (defense-in-depth: script re-applies gate and refuses with code 4 if author not admin):
+- **`!feature <axis> on|off`** — **RESERVED FOR ADMINS.** Before executing, verify author is admin **exactly like other project protections** : trust the line **"Author: … · admin: yes|no"** injected into state (reliable, calculated by `_lib.admins` from `world.json > meta.admins` **or** env `MJ_ADMIN_IDS` — same list as hook bypass). Execute toggle **ONLY if "admin: yes"**. If **"admin: no"** → **politely refuse** without changing anything (ex. *"🔒 Only an admin can toggle a feature flag."*). Otherwise, run passing **`--author <author_id>`** (defense-in-depth: script re-applies gate and refuses with code 4 if author not admin):
   ```bash
   python3 /opt/modules/gaming/mj-tonnerre/scripts/feature_toggle.py <campaign> <axis> on|off --author <author_id>
   ```
-  then **relay as-is** the message returned by script — **including warning** emitted for **structural** axis (`temporalite`, `pnj_faction_vivants`) reminding to prefer session bounds. **Soft** axes (`tracabilite`, `verbosite`, `images`, `tts`) toggle without warning.
+  then **relay as-is** the message returned by script — **including warning** emitted for **structural** axis (`temporalite`, `pnj_faction_vivants`) reminding to prefer session bounds. **Soft** axes (`tracabilite`, `verbosity`, `images`, `tts`) toggle without warning.
 
-> **"Hot" effect.** `monde.json` is reread **every turn** : a toggle takes effect at **next turn, without container redeployment** (remind player). Opposite of `MJ_FEATURE_*` variables (instance default, frozen at start = "cold"). Detail: `docs/monde-vivant/10-features.md` § "Hot vs cold activation".
+> **"Hot" effect.** `world.json` is reread **every turn** : a toggle takes effect at **next turn, without container redeployment** (remind player). Opposite of `MJ_FEATURE_*` variables (instance default, frozen at start = "cold"). Detail: `docs/monde-vivant/10-features.md` § "Hot vs cold activation".
 
-**RECAP TABLE OF 8 MODULES** — single source of truth for mapping. Each row: `monde.json` key → module file → when to activate. Corresponding inline reference is in sections §3-§4, checklist box in §7.
+**RECAP TABLE OF 8 MODULES** — single source of truth for mapping. Each row: `world.json` key → module file → when to activate. Corresponding inline reference is in sections §3-§4, checklist box in §7.
 
-> ⚠️ **Key→file mapping (underscore↔dash trap) :** `monde.json` key uses **underscore**, file uses **dash**. Rule : `file = key.replace('_','-') + '.md'`. Affects `proactivite_pnj` → `proactivite-pnj.md`, `worldbuilding_lieux` → `worldbuilding-lieux.md`, `construction_royaume` → `construction-royaume.md`.
+> ⚠️ **Key→file mapping (underscore↔dash trap) :** `world.json` key uses **underscore**, file uses **dash**. Rule : `file = key.replace('_','-') + '.md'`. Affects `proactivite_pnj` → `proactivite-pnj.md`, `worldbuilding_lieux` → `worldbuilding-lieux.md`, `construction_royaume` → `construction-royaume.md`.
 
-| `monde.json > modules.<x>` key | Module file to read | Module | When to activate |
+| `world.json > modules.<x>` key | Module file to read | Module | When to activate |
 |---|---|---|---|
-| `voyage` | `references/modules/voyage.md` | Travel: pace, fatigue, encounters, orientation | Campaigns with inter-place travel / exploration (requires `regles.temps.deplacements`) |
+| `voyage` | `references/modules/voyage.md` | Travel: pace, fatigue, encounters, orientation | Campaigns with inter-place travel / exploration (requires `rules.temps.movements`) |
 | `factions` | `references/modules/factions.md` | Factions, proactive clock, PC objectives | Whenever factions or background forces exist (load **only if** `meta.features.pnj_faction_vivants` != false) |
 | `proactivite_pnj` | `references/modules/proactivite-pnj.md` | NPC proactivity (5 pillars) | When recurring NPCs have their own life (load **only if** `meta.features.pnj_faction_vivants` != false) |
 | `artefacts` | `references/modules/artefacts.md` | Tracking important objects | When narratively important objects exist to track |
 | `politique` | `references/modules/politique.md` | World layers, sovereignty, political entities | Political / territorial campaigns ; useless for closed room, dungeon, pure exploration |
-| `meteo` | `references/modules/meteo.md` | Weather and biodiversity | When climate/fauna influence gameplay (values in `regles.meteo`) |
+| `meteo` | `references/modules/meteo.md` | Weather and biodiversity | When climate/fauna influence gameplay (values in `rules.meteo`) |
 | `worldbuilding_lieux` | `references/modules/worldbuilding-lieux.md` | Place creation — 10-point framework | Recommended by default, except minimalist / single-location campaigns |
 | `construction_royaume` | `references/modules/construction-royaume.md` | Domain/realm construction | When PCs build/govern (camp, outpost, village, realm) |
 
 **`modules` block schema and architecture justification :** see `references/modules/README.md`.
 
-**When loading a campaign :** read `monde.json > modules`. For each module with `actif: true`, load its reference file and apply its rules. An absent or `actif: false` module is inactive — its rules do not apply, checklist boxes are skipped. Specific values (terrains, tables, regional climate, stats) stay in `monde.json`, not in modules.
+**When loading a campaign :** read `world.json > modules`. For each module with `actif: true`, load its reference file and apply its rules. An absent or `actif: false` module is inactive — its rules do not apply, checklist boxes are skipped. Specific values (terrains, tables, regional climate, stats) stay in `world.json`, not in modules.
 
 ---
 
@@ -1246,13 +1246,13 @@ If task is : describe scene, embody NPC, create content → main model
 
 ## Sub-Skills
 
-Each **functional** sub-skill auto-loads when its command is invoked. (Distinguished from **thematic modules** above, which load per `monde.json > modules`, not per command.)
+Each **functional** sub-skill auto-loads when its command is invoked. (Distinguished from **thematic modules** above, which load per `world.json > modules`, not per command.)
 
 | Skill | Trigger |
 |-------|---------|
 | `mj-tonnerre-initiation` | `!init` |
 | `mj-tonnerre-personnage` | `!fiche`, `!perso`, `!notes` |
-| `mj-tonnerre-inventaire` | `!inv` |
+| `mj-tonnerre-inventory` | `!inv` |
 | `mj-tonnerre-outils` | `!jet`, `!jetq`, `!action` |
 | `mj-tonnerre-images` | `!image`, `!portrait`, `!carte` |
 | `mj-tonnerre-session` | `!cloture`, `!reprendre` |
@@ -1269,7 +1269,7 @@ Each **functional** sub-skill auto-loads when its command is invoked. (Distingui
 At the start of each exchange in a channel where a campaign is active :
 1. **Identify active campaign** (Discord thread, player, memory)
 2. Load this skill
-3. Load `monde.json` of correct campaign — **including `modules` block** to know which thematic modules to load
+3. Load `world.json` of correct campaign — **including `modules` block** to know which thematic modules to load
 4. If action is requested, also verify relevant character sheet and current session log
 
 Ritual phrase internally : *"MJ Tonnerre, what do the notes say?"* before each response.

@@ -1,6 +1,6 @@
 # Module — Politics: world layers, sovereignty and political entities
 
-> **Conditional loading.** This module only applies if the campaign declares `monde.json > modules.politique.actif === true`. Relevant for political campaigns, kingdom-building campaigns, or territorial stakes. Unnecessary for a closed room, a dungeon, pure exploration.
+> **Conditional loading.** This module only applies if the campaign declares `world.json > modules.politique.actif === true`. Relevant for political campaigns, kingdom-building campaigns, or territorial stakes. Unnecessary for a closed room, a dungeon, pure exploration.
 
 ---
 
@@ -51,7 +51,7 @@ An entity at layer N can belong to a layer N+1 in several ways:
 | **👑 Inherited** | You were born into it. Membership is transmitted by blood, land, title. | Feudal monarchy — oath of vassalage, hereditary succession |
 | **🔀 Mixed** | A historical constrained core + voluntary peripheral members. | Empire with conquered provinces and allies |
 
-**Each political entity defines its membership mode in its `type` and `regles` fields.**
+**Each political entity defines its membership mode in its `type` and `rules` fields.**
 
 ### The special case: free territory
 

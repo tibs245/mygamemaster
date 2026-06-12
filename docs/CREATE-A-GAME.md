@@ -101,7 +101,7 @@ connection:
 
 games:
   - slug: <slug>                              # e.g. mistfall
-    data_dir: <slug>                          # folder under data/mj-tonnerre/campagnes/
+    data_dir: <slug>                          # folder under data/mj-tonnerre/campaigns/
     title: "<title>"                          # e.g. "Mistfall"
     model: minimax/minimax-m3                 # LLM model id on OpenRouter
     provider: openrouter
@@ -126,16 +126,16 @@ automatically.
 
 Choose one of two paths:
 
-### Option A: edit `monde.json` manually
+### Option A: edit `world.json` manually
 
 Copy the template folder:
 
 ```bash
-cp -r data/mj-tonnerre/campagnes/_template \
-      data/mj-tonnerre/campagnes/<slug>
+cp -r data/mj-tonnerre/campaigns/_template \
+      data/mj-tonnerre/campaigns/<slug>
 ```
 
-Open `data/mj-tonnerre/campagnes/<slug>/monde.json` and fill in:
+Open `data/mj-tonnerre/campaigns/<slug>/world.json` and fill in:
 - `meta`: title, language, hooks toggles, verbosity
 - `monde`: geography, time, lore
 - `lieux`: starting locations
@@ -145,7 +145,7 @@ Open `data/mj-tonnerre/campagnes/<slug>/monde.json` and fill in:
 ### Option B: run the in-game onboarding questionnaire
 
 Deploy the bot first (Step 6), then type `!init` in your Discord game channel. The
-`mj-tonnerre-initiation` skill walks you through every question and writes `monde.json`
+`mj-tonnerre-initiation` skill walks you through every question and writes `world.json`
 interactively.
 
 For AI help building the world content, paste the prompt from
@@ -181,7 +181,7 @@ systemctl --user status hermes-<slug>
 podman logs -f hermes-<slug>
 ```
 
-The smoke-test checks: `hermes --version`, all 15 skills present, `monde.json` readable. If
+The smoke-test checks: `hermes --version`, all 15 skills present, `world.json` readable. If
 everything is green, your bot is live in Discord.
 
 ---

@@ -1,9 +1,9 @@
 # 📐 Verbosity — Emoji & Format Convention
 
-> ℹ️ **Verbosity is now managed automatically by the `transform_llm_output` hook** (Persisted block + label per `meta.verbosite`). The canonical emoji table lives in `modules/gaming/mj-tonnerre/hooks/_lib.py`. The GM does NOT need to produce this block by hand. What follows is only a format reference (maintainers) and a fallback if hooks are disabled (`meta.hooks.banquier_persiste=false`) or in bypass mode `⏸️`.
+> ℹ️ **Verbosity is now managed automatically by the `transform_llm_output` hook** (Persisted block + label per `meta.verbosity`). The canonical emoji table lives in `modules/gaming/mj-tonnerre/hooks/_lib.py`. The GM does NOT need to produce this block by hand. What follows is only a format reference (maintainers) and a fallback if hooks are disabled (`meta.hooks.banquier_persiste=false`) or in bypass mode `⏸️`.
 
 > **Index + shared emoji table.** One file per verbosity level.
-> The active level lives in `monde.json > meta.verbosite` ; the player changes it with `!verbosite <niveau>` (command / `mj-tonnerre-intendant`).
+> The active level lives in `world.json > meta.verbosity` ; the player changes it with `!verbosite <niveau>` (command / `mj-tonnerre-intendant`).
 
 ---
 
@@ -25,23 +25,23 @@
 
 | Emoji | Data Type | Category | Source (file) |
 |-------|---------------|-----------|------------------|
-| 🕒 | Time / Clock | `temps` | `monde.json > regles.temps.suivi` |
-| ❤️ | Health / HP | `sante` | `personnages/<id>.json > sante` |
-| 🥦 | Consumable / Food | `inventaire` | `personnages/<id>.json > inventaire` |
-| 🎒 | Non-consumable Object | `inventaire` | `personnages/<id>.json > inventaire` |
-| ⚔️ | Weapon / Combat Gear | `inventaire` | `personnages/<id>.json > inventaire` |
-| ☀️ | Weather | `meteo` | `monde.json > regles.meteo` |
-| 🌙 | Night / Rest | `temps` | `monde.json > regles.temps.suivi` |
-| 🔋 | Energy / Fatigue | `etat` | `personnages/<id>.json > etats` |
-| 📚 | Skill / Learning | `competence` | `personnages/<id>.json > competences` |
-| 🗺️ | Movement / Position | `position` | `pnj.json > localisation_actuelle` |
-| 💬 | Knowledge / Information | `connaissance` | `pnj.json > faits_etablis` |
-| 🤝 | Relation / Attitude | `relation` | `pnj.json > relations` |
-| ⭐ | Artifact / Special Object | `artefact` | `monde.json > etat_global.artefacts_connus` |
-| 🏗️ | Construction / Building | `construction` | `monde.json > etat_global.royaume` |
-| ⚡ | Faction / Faction Clock | `faction` | `monde.json > faction_actions_horloge` |
-| 💀 | Death / Permanent Loss | `sante` | `personnages/<id>.json > sante` |
-| 🔒 | Red Line / Limit | `limite` | `pnj.json > limites` |
+| 🕒 | Time / Clock | `temps` | `world.json > rules.temps.suivi` |
+| ❤️ | Health / HP | `sante` | `characters/<id>.json > sante` |
+| 🥦 | Consumable / Food | `inventaire` | `characters/<id>.json > inventaire` |
+| 🎒 | Non-consumable Object | `inventaire` | `characters/<id>.json > inventaire` |
+| ⚔️ | Weapon / Combat Gear | `inventaire` | `characters/<id>.json > inventaire` |
+| ☀️ | Weather | `meteo` | `world.json > rules.meteo` |
+| 🌙 | Night / Rest | `temps` | `world.json > rules.temps.suivi` |
+| 🔋 | Energy / Fatigue | `etat` | `characters/<id>.json > etats` |
+| 📚 | Skill / Learning | `competence` | `characters/<id>.json > competences` |
+| 🗺️ | Movement / Position | `position` | `npcs.json > localisation_actuelle` |
+| 💬 | Knowledge / Information | `connaissance` | `npcs.json > established_facts` |
+| 🤝 | Relation / Attitude | `relation` | `npcs.json > relations` |
+| ⭐ | Artifact / Special Object | `artefact` | `world.json > global_state.artefacts_connus` |
+| 🏗️ | Construction / Building | `construction` | `world.json > global_state.royaume` |
+| ⚡ | Faction / Faction Clock | `faction` | `world.json > faction_actions_horloge` |
+| 💀 | Death / Permanent Loss | `sante` | `characters/<id>.json > sante` |
+| 🔒 | Red Line / Limit | `limite` | `npcs.json > limites` |
 | ❌ | Error / REFUSAL | `erreur` | (Steward) |
 | ✅ | Validation / Success | `succes` | (Steward) |
 | 🛑 | Blocker | `bloquant` | (Steward) |

@@ -18,7 +18,7 @@ Currently, all MJ Tonnerre campaigns live under the same Hermes profile
 ├── sessions/            ← shared (Hermes sessions, not game sessions)
 ├── skills/              ← shared
 └── mj-tonnerre/
-    └── campagnes/
+    └── campaigns/
         ├── la-naissance-dun-roi/     ← campaign A
         └── jusquau-bout-de-mon-monde/ ← campaign B
 ```
@@ -61,8 +61,8 @@ Each campaign becomes an **independent Hermes profile**, with its own `config.ya
 
 ### Where does game data live?
 
-**Campaign data** (`monde.json`, `pnj.json`, `sessions/NNN.json`) remain
-in the centralized folder `~/.hermes/mj-tonnerre/campagnes/<campaign>/` — **not**
+**Campaign data** (`world.json`, `npcs.json`, `sessions/NNN.json`) remain
+in the centralized folder `~/.hermes/mj-tonnerre/campaigns/<campaign>/` — **not**
 in the profile. The profile provides only **Hermes memory isolation**
 and **campaign-specific configuration**.
 
@@ -72,7 +72,7 @@ To point the profile to the correct data folder, configure
 ```yaml
 terminal:
   backend: local
-  cwd: /opt/data/.hermes/mj-tonnerre/campagnes/la-naissance-dun-roi
+  cwd: /opt/data/.hermes/mj-tonnerre/campaigns/la-naissance-dun-roi
 ```
 
 ## Admin-mj Profile
@@ -94,7 +94,7 @@ When a new campaign is created via `!init`:
 2. At **Step 4 — Technical Initialization**, also create:
    ```bash
    hermes profile create <campaign-slug> --clone-from admin-mj
-   hermes -p <campaign-slug> config set terminal.cwd /opt/data/.hermes/mj-tonnerre/campagnes/<campaign-slug>
+   hermes -p <campaign-slug> config set terminal.cwd /opt/data/.hermes/mj-tonnerre/campaigns/<campaign-slug>
    echo "# SOUL — MJ Tonnerre for [Campaign Name]" > ~/.hermes/profiles/<campaign-slug>/SOUL.md
    ```
 3. The GM uses `hermes -p <campaign-slug>` to play this campaign

@@ -109,8 +109,13 @@ All tests must pass before opening a pull request.
 
 - **Match the surrounding code.** Style, indentation, naming conventions, and patterns of the
   file you are editing take precedence over personal preference.
-- **Keys stay as-is.** JSON/YAML keys in campaign data files (`monde.json`, `pnj.json`,
-  `evenements.json`, …) are in French and must not be renamed — downstream code depends on them.
+- **Structural identifiers are English.** JSON/YAML structural keys in campaign data files
+  (`world.json`, `npcs.json`, `events.json`, …) have been renamed to English (see
+  `docs/MIGRATION-rename-fr-en.md`). A small set of cascade/wrapper keys remain intentionally
+  French and must not be renamed: `acteurs`/`acteur`, `evenements`, `pnj`, `trajectoire`,
+  `modules`, `factions`, `chronologie`, `suivi`, `jour`, `heure`, `voyage`, `meteo`,
+  feature-flag axes (`tracabilite`, `temporalite`, `pnj_faction_vivants`), and `MJ_JUDGE_*`
+  internals. When in doubt, check the glossary in `docs/MIGRATION-rename-fr-en.md`.
 - **Fail-open.** Hooks and validators must never crash a session. Use `try/except` broadly in
   hook scripts; log the error and return a neutral result.
 - **Stdlib only in hooks.** Runtime hooks (`hooks/*.py`) must use only the Python standard

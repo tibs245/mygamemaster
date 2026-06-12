@@ -55,7 +55,7 @@ The folder `profiles/pnj-<slug>/` contains:
 |--------|----------|
 | Normal case (1 thread per NPC) | `hermes -p pnj-<slug> chat -c -q "..."` |
 | Named stable thread (long campaign) | `hermes sessions rename <id> "<slug>-partie"` then `... chat -c "<slug>-partie" -q "..."` |
-| Resume by exact ID (pinned in pnj.json) | `hermes -p pnj-<slug> chat --resume <id> -q "..."` |
+| Resume by exact ID (pinned in npcs.json) | `hermes -p pnj-<slug> chat --resume <id> -q "..."` |
 | First turn (empty sessions/) | `hermes -p pnj-<slug> chat -q "..."` (creates thread; following turns = `-c`) |
 
 ---

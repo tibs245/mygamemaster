@@ -73,4 +73,4 @@ and [`docs/09-hooks-runtime.md`](../docs/09-hooks-runtime.md).
 
 ## Rules reference
 
-`mj-tonnerre/references/` contains foundational rules (data governance, faction tracking, timeline, generic d20 system, verbosity, recurring errors…) and **thematic modules** (`references/modules/`: travel, factions, weather, politics, artifacts, NPC proactivity, worldbuilding, kingdom building) activated per `monde.json > modules`.
+`mj-tonnerre/references/` contains foundational rules (data governance, faction tracking, timeline, generic d20 system, verbosity, recurring errors…) and **thematic modules** (`references/modules/`: travel, factions, weather, politics, artifacts, NPC proactivity, worldbuilding, kingdom building) activated per `world.json > modules`.

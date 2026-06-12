@@ -44,7 +44,7 @@ Detailed reference for the checklist in section 7 of SKILL.md.
 - Do not describe the result before the roll
 
 ### Factions and Clock
-- Check etat_global.factions: each interaction/clue/change recorded
+- Check global_state.factions: each interaction/clue/change recorded
 - Check faction_actions_horloge: advance deadlines during narrative lulls
 - If deadline reached → play the consequence
 
@@ -55,8 +55,8 @@ Detailed reference for the checklist in section 7 of SKILL.md.
 - Do NOT confuse "the file is coherent" with "the narration followed the consequences"
 
 ### Locations, Distances, Travel
-- Every location from sessions in univers.regions[].lieux
-- Travel durations in regles.temps.deplacements
+- Every location from sessions in universe.regions[].lieux
+- Travel durations in rules.temps.movements
 - Pace chosen? Fatigue applied? Encounter roll made?
 - At least one micro-choice during travel
 

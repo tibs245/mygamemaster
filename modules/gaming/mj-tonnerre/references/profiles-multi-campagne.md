@@ -24,12 +24,12 @@ admin-mj                          ← Base profile (model v4-pro)
 │
 ├── [clone-from admin-mj] → naissance-dun-roi   ← Campaign "The Birth of a King"
 │   ├── SOUL.md                   ← King campaign GM
-│   ├── config.yaml               ← v4-flash, terminal.cwd = campagnes/la-naissance-dun-roi/
+│   ├── config.yaml               ← v4-flash, terminal.cwd = campaigns/la-naissance-dun-roi/
 │   └── memory/                   ← isolated memory (Rubis, Marche, Cœur…)
 │
 └── [clone-from admin-mj] → jusquau-bout         ← Campaign "To the End of My World"
     ├── SOUL.md                   ← World campaign GM
-    ├── config.yaml               ← v4-flash, terminal.cwd = campagnes/jusquau-bout-de-mon-monde/
+    ├── config.yaml               ← v4-flash, terminal.cwd = campaigns/jusquau-bout-de-mon-monde/
     └── memory/                   ← isolated memory (Abyss, Chasm…)
 ```
 
@@ -37,7 +37,7 @@ admin-mj                          ← Base profile (model v4-pro)
 
 1. **Always clone from `admin-mj`** — never from another campaign profile. Otherwise memory/session customizations propagate.
 2. **Never modify `admin-mj` for a specific campaign** — global rules go in admin-mj, customizations in the campaign profile.
-3. **Campaign data** (`monde.json`, `pnj.json`, `sessions/`) stay in `campagnes/<name>/` — the profile points via `terminal.cwd`.
+3. **Campaign data** (`world.json`, `npcs.json`, `sessions/`) stay in `campaigns/<name>/` — the profile points via `terminal.cwd`.
 
 ---
 
@@ -51,7 +51,7 @@ hermes profile create <campaign-name> --clone-from admin-mj
 hermes config set model.default deepseek/deepseek-v4-flash --profile <campaign-name>
 
 # 3. Point terminal.cwd to the campaign folder
-hermes config set terminal.cwd /opt/data/.hermes/mj-tonnerre/campagnes/<campaign-name> --profile <campaign-name>
+hermes config set terminal.cwd /opt/data/.hermes/mj-tonnerre/campaigns/<campaign-name> --profile <campaign-name>
 
 # 4. Write the custom SOUL.md
 # → ~/.hermes/profiles/<campaign-name>/SOUL.md

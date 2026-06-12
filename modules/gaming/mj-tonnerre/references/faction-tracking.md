@@ -1,6 +1,6 @@
 # Faction Tracking — JSON Templates (factions module details)
 
-> **Technical details of the `factions` module** (loaded if `monde.json > modules.factions.actif`). The **golden rules** of factions are defined once in `references/modules/factions.md`; this file does not duplicate them, but provides the **complete JSON templates** and structural details. Summary of the 4 golden rules below for reference:
+> **Technical details of the `factions` module** (loaded if `world.json > modules.factions.actif`). The **golden rules** of factions are defined once in `references/modules/factions.md`; this file does not duplicate them, but provides the **complete JSON templates** and structural details. Summary of the 4 golden rules below for reference:
 
 1. Each faction always has ≥ 1 short-term objective and ≥ 1 long-term objective.
 2. Objectives are INDEPENDENT of PCs.
@@ -9,9 +9,9 @@
 
 *(Details and examples: `references/modules/factions.md`.)*
 
-## Structure in `monde.json`
+## Structure in `world.json`
 
-### `etat_global.factions` (dynamic tracking)
+### `global_state.factions` (dynamic tracking)
 
 Each faction MUST have the following fields (required):
 
@@ -42,7 +42,7 @@ Each faction MUST have the following fields (required):
 
 These relationships evolve over time independently of PCs. Diplomatic intentions (sending an emissary, proposing an alliance, declaring war) are stored in `notes_mj` or in `faction_actions_horloge` if a deadline is involved.
 
-### `etat_global.faction_actions_horloge` (proactive actions with deadlines)
+### `global_state.faction_actions_horloge` (proactive actions with deadlines)
 
 This section is the heart of the **time pressure** in the world. Each faction does not remain static — it actively pursues its objectives. If PCs do not act within the timeframe, the world moves without them.
 
@@ -51,7 +51,7 @@ Complete structure (with integrated governance):
 ```json
 {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "Each faction ALWAYS has at least 1 short-term action (deadline ≤ 7 days) and 1 long-term action (deadline ≥ 14 days) in its actions_en_cours",
       "Objectives (short and long term in the 'factions' section) are INDEPENDENT of PCs — they exist and evolve even if PCs never intervene",
       "When a short-term objective is achieved, surpassed, or supplanted → renew it immediately with a new objective, consistent with the long term and recent events",
@@ -99,7 +99,7 @@ Complete structure (with integrated governance):
 - **Remove:** when the action has occurred (its consequence has taken place) → archived in the faction's `historique` field
 - **Modify:** when a `facteur_modificateur` is activated → update the deadline or cancel the action
 
-### `etat_global.pistes_non_assignees` (unlinked clues)
+### `global_state.pistes_non_assignees` (unlinked clues)
 
 ```json
 {
@@ -110,23 +110,23 @@ Complete structure (with integrated governance):
 
 ## Rules — Overview
 
-1. **`univers.factions`** = lore (initial description, does not change)
-2. **`etat_global.factions`** = dynamic tracking (what happens in game, changes with each interaction)
+1. **`universe.factions`** = lore (initial description, does not change)
+2. **`global_state.factions`** = dynamic tracking (what happens in game, changes with each interaction)
 3. **Each faction always has ≥ 1 short-term objective AND ≥ 1 long-term objective** — mandatory, even without PC interaction
 4. **Objectives independent of PCs** — never define a short-term objective as « Observe the character's arrival »
 5. **Interfaction relations** — each faction has links (direct or hidden) with others, stored in `relations_inter_factions`
 6. **Interfaction relations evolve** — alliances, betrayals, conflicts independent of PCs, to be updated in the clock
-7. **`etat_global.faction_actions_horloge`** = proactive actions with deadlines (the world moves without PCs)
+7. **`global_state.faction_actions_horloge`** = proactive actions with deadlines (the world moves without PCs)
 8. **Automatic renewal** — when a short-term objective becomes moot, replace it immediately
 9. **`pistes_non_assignees`** = clues where we don't yet know which faction produced them
 10. When a clue is confirmed → move it from `pistes_non_assignees` to the concerned faction
 11. When a faction interacts → update `attitude_actuelle` and `derniere_interaction`
-12. When a clock deadline is reached → play the consequence + update `etat_global.factions` if needed
+12. When a clock deadline is reached → play the consequence + update `global_state.factions` if needed
 
 ## When to Create an Entry
 
 - At the first observable trace of a faction in play
-- If a faction defined in `univers.factions` does not yet have an entry in `etat_global.factions` → that is normal, it has not interacted
+- If a faction defined in `universe.factions` does not yet have an entry in `global_state.factions` → that is normal, it has not interacted
 - As soon as a narrative trigger justifies a faction acting → create an entry in `faction_actions_horloge`
 
 ## Concrete Clock Example (Generic)
@@ -136,7 +136,7 @@ Example of a bandit faction — **objectives independent of PCs**:
 ```json
 {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "Each faction ALWAYS has at least 1 short-term action and 1 long-term action",
       "Objectives are INDEPENDENT of PCs"
     ],

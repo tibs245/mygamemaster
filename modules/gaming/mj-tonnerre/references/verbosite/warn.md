@@ -1,6 +1,6 @@
 # ⚠️ WARN Level — Alerts only
 
-> ℹ️ **The `transform_llm_output` hook manages the "Persisted" block according to `meta.verbosite`.** The alerts/REFUSALS below remain the responsibility of the GM; format reference = net (hook disabled / bypass `⏸️`).
+> ℹ️ **The `transform_llm_output` hook manages the "Persisted" block according to `meta.verbosity`.** The alerts/REFUSALS below remain the responsibility of the GM; format reference = net (hook disabled / bypass `⏸️`).
 
 > **Usage:** Smooth gameplay — the Steward (Banker) only speaks when there is a problem.
 > **What is reported:** Only Controls that fail (REFUSAL, inconsistency, missing value).
@@ -25,9 +25,9 @@
 ```
 ⚠️ Attention:
 💬 Firmin said he knows the Temple of the Markers, but this knowledge
-   is not in faits_etablis[] nor in connaissances_privees.
-   → Source: pnj.json → Firmin → 17 entries scanned, no match.
-💡 Suggestion: If Firmin should know this, add the knowledge in pnj.json
+   is not in established_facts[] nor in connaissances_privees.
+   → Source: npcs.json → Firmin → 17 entries scanned, no match.
+💡 Suggestion: If Firmin should know this, add the knowledge in npcs.json
    before continuing. Otherwise, have him say "I don't know this temple".
 ```
 
@@ -36,9 +36,9 @@
 ```
 ⚠️ Attention:
 🗺️ The route "Valley of the Heart → Berthe's Cabin in 30min" is not documented
-   in regles.temps.deplacements.
+   in rules.temps.movements.
    → Closest known path: Beech Path (2h50).
-💡 Suggestion: Add this route in monde.json > regles.temps.deplacements,
+💡 Suggestion: Add this route in world.json > rules.temps.movements,
    or use the Beech Path (2h50) which is already documented.
 ```
 
@@ -65,9 +65,9 @@
 
 ```
 ⚠️ Attention:
-☀️ The narration mentions rain, but regles.meteo indicates "clear sky, summer".
-   → Source: monde.json > regles.meteo.conditions_actuelles — "clear sky" (D7).
-💡 Suggestion: Update regles.meteo.conditions_actuelles to reflect rain,
+☀️ The narration mentions rain, but rules.meteo indicates "clear sky, summer".
+   → Source: world.json > rules.meteo.conditions_actuelles — "clear sky" (D7).
+💡 Suggestion: Update rules.meteo.conditions_actuelles to reflect rain,
    or correct the narration.
 ```
 

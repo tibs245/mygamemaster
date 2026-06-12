@@ -2,7 +2,7 @@
 
 > This series documents the system that makes the world **coherent in space and
 > time**, and **alive even outside sessions** (factions, key NPCs, cities that evolve when
-> nobody plays). It builds on the existing foundation (`monde.json`, `evenements.json`,
+> nobody plays). It builds on the existing foundation (`world.json`, `events.json`,
 > hooks, the Steward (Banker), level-2 agents) — this is a **formalization and extension**,
 > not a complete overhaul.
 
@@ -55,7 +55,7 @@ what is its next intention? »* and narration — while geometry, deadlines, and
 Four design choices structure the rest (see details in corresponding files):
 
 1. **Clock.** An integer `T` that starts at **0 at campaign creation** and grows monotonically,
-   backed by `evenements.json`. → [`01`](01-horloge-et-espace.md)
+   backed by `events.json`. → [`01`](01-horloge-et-espace.md)
 2. **Session Boundary First.** The simulation runs **at session boundaries** (pre-processing before,
    post-processing after). Evolution toward **selective** background ticks (by *impact score*)
    will come later. → [`03`](03-moteur-de-tick.md)
@@ -93,12 +93,12 @@ already exists vs what is missing** ». Here it is.
 
 | Component | State | Where / What |
 |---|---|---|
-| Narrative Clock | ✅ partial | `evenements.json` (`t`), `suivi.jour_courant` ; to **unify** into `T` integer |
-| Distances between Locations | ✅ | `monde.json > regles.temps.deplacements` (duration matrix) |
+| Narrative Clock | ✅ partial | `events.json` (`t`), `suivi.jour_courant` ; to **unify** into `T` integer |
+| Distances between Locations | ✅ | `world.json > rules.temps.movements` (duration matrix) |
 | Spatial Validation | ✅ | `scripts/validator-distances.py` (4 governance rules) |
 | **Explicit Spatial Graph** | 🔨 | containment + adjacency + anchor; **stable ids** → [`01`](01-horloge-et-espace.md) |
 | **Position = Function of Time** | 🔨 | trajectories; today `localisation_actuelle` is plain text |
-| Actor Goals / Motivations | ✅ partial | `pnj.json`, `etat_global.factions`, `faction_actions_horloge` |
+| Actor Goals / Motivations | ✅ partial | `npcs.json`, `global_state.factions`, `faction_actions_horloge` |
 | **Generalized Dated Plans** | 🔨 | extend faction clock to NPCs and cities → [`02`](02-acteurs-et-agents.md) |
 | Clock Advancement | ✅ partial | `scripts/clock.py` (`approche`/`echue`) ; to integrate into **tick engine** |
 | **LOD Tick Engine (pre/post)** | 🔨 | heart of « living world » → [`03`](03-moteur-de-tick.md) |
@@ -127,10 +127,10 @@ modules/gaming/mj-tonnerre/
 │   └── schemas/*.schema.json    # JSON schemas → to extend (geo, trajectory, plan)
 └── references/modules/          # thematics modules activable (factions, travel, …)
 
-data/mj-tonnerre/campagnes/<slug>/
-├── monde.json        # univers.regions, regles.temps.deplacements, etat_global.factions…
-├── pnj.json          # NPC sheets (faits_etablis, motivations, localisation_actuelle)
-├── evenements.json   # timeline (t, type, entity) → T clock support
+data/mj-tonnerre/campaigns/<slug>/
+├── world.json        # universe.regions, rules.temps.movements, global_state.factions…
+├── npcs.json          # NPC sheets (established_facts, motivations, localisation_actuelle)
+├── events.json   # timeline (t, type, entity) → T clock support
 └── outils/gestion_temps.py  # timeline queries + world snapshot at T
 ```
 

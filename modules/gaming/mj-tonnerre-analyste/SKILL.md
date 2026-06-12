@@ -50,7 +50,7 @@ Output: `analyse-bug-rapport.md`
 ### Mode B — Wrap-up audit (complete, proactive)
 
 Invoked automatically by `!cloture` at the end of a session.
-Verifies ALL points: weather, inventories, NPC positions, faits_etablis,
+Verifies ALL points: weather, inventories, NPC positions, established_facts,
 faction clock, chronology, sessions, artifacts.
 Output: `sessions/NNN-audit.md`
 
@@ -75,13 +75,13 @@ Every analysis begins with the 3 controls. Regardless of mode:
 
 ### Control 1 — SOURCE
 Does the entity have what it claims to have?
-- Object in inventory? (check `personnages/<id>.json` or `pnj.json`)
-- Knowledge in faits_etablis? (check `pnj.json`)
+- Object in inventory? (check `characters/<id>.json` or `npcs.json`)
+- Knowledge in established_facts? (check `npcs.json`)
 - Consistent position? (check `localisation_actuelle`)
 
 ### Control 2 — TRANSFER
 Is the action mechanically valid?
-- Route documented? (check `regles.temps.deplacements`)
+- Route documented? (check `rules.temps.movements`)
 - Time available? (check temporal tracking)
 - Recipient exists? (check target entity)
 ### Control 3 — COHERENCE
@@ -90,7 +90,7 @@ Is the result logical? **And is the narration produced coherent with the data it
 - Were the witnesses present?
 - Does the action respect the limits/relationships?
 - Is the timing coherent with the world state?
-- ⚠️ Do NPC dialogues/decisions reflect exactly their `faits_etablis` (dates, durations, ages, relationships)?
+- ⚠️ Do NPC dialogues/decisions reflect exactly their `established_facts` (dates, durations, ages, relationships)?
 - 🔴 See the canonical box **"Data correct, narration false"** (§3.1) — crucial verification of NPC presence/position.
 
 ### 3.1 — Canonical box: "Data correct, narration false"
@@ -114,9 +114,9 @@ Is the result logical? **And is the narration produced coherent with the data it
 ### Step 1 — Consulting sources
 
 Read ALL relevant files:
-- `monde.json` — global state, weather, chronology, factions
-- `pnj.json` — NPC sheets (position, attitude, inventory, faits_etablis)
-- `personnages/<id>.json` — PC sheets (inventory, HP, states)
+- `world.json` — global state, weather, chronology, factions
+- `npcs.json` — NPC sheets (position, attitude, inventory, established_facts)
+- `characters/<id>.json` — PC sheets (inventory, HP, states)
 - `sessions/NNN.json` — detailed action logs
 
 **Priority source — the Steward's ledger.** The `transform_llm_output` hook (Steward `mj-tonnerre-intendant`) already writes, for each validated turn, a "Persisted" report / ledger of applied transactions. **Read this ledger as source of truth** rather than recalculating everything yourself: it says what was actually debited/transferred/promoted. You compare the files to this ledger, you do not redo its work.
@@ -146,7 +146,7 @@ Before concluding **NOT A BUG**, apply the canonical box **"Data correct, narrat
 
 **Campaign example (invented duration):**
 ```
-pnj.json file:  "His companion left him a few years ago" → departed recently
+npcs.json file:  "His companion left him a few years ago" → departed recently
 GM narration:   "… what twenty years erase" (speaking of her)
 → Inconsistency: 20 years ≠ "a few years". The narration lies about duration.
 → Verdict: GM BUG (narration incoherent with data)
@@ -194,12 +194,12 @@ Write to `sessions/NNN-audit.md`:
 ## Points verified
 
 ### 📍 Locations visited
-- [ ] All session locations documented in monde.json
-- [ ] NPC positions up to date in pnj.json
+- [ ] All session locations documented in world.json
+- [ ] NPC positions up to date in npcs.json
 
 ### 👤 NPCs
-- [ ] Each NPC encountered has a sheet in pnj.json
-- [ ] faits_etablis up to date (played actions promoted)
+- [ ] Each NPC encountered has a sheet in npcs.json
+- [ ] established_facts up to date (played actions promoted)
 - [ ] Positions coherent
 
 ### 🎒 Inventories
@@ -242,11 +242,11 @@ Write to `sessions/NNN-audit.md`:
 When `!cloture` invokes the audit, the Analyst verifies ALL these points:
 
 ### 5.1 — Weather
-- `monde.json > regles.meteo > regions[].conditions_actuelles` coherent with elapsed time?
+- `world.json > rules.meteo > regions[].conditions_actuelles` coherent with elapsed time?
 - `prochain_changement` reached? Played?
 
 ### 5.2 — Time
-- `regles.temps.suivi.jour_courant` and `heure_courante` up to date?
+- `rules.temps.suivi.jour_courant` and `heure_courante` up to date?
 - Does each session action have an estimated duration?
 - Are temporal milestones updated?
 
@@ -256,13 +256,13 @@ When `!cloture` invokes the audit, the Analyst verifies ALL these points:
 - No objects in "limbo" (neither with a PC nor NPC)?
 
 ### 5.4 — NPCs
-- Does each NPC from `pnj_rencontres[]` have a sheet in `pnj.json`?
-- `faits_etablis` up to date? (what was played and said is promoted)
+- Does each NPC from `pnj_rencontres[]` have a sheet in `npcs.json`?
+- `established_facts` up to date? (what was played and said is promoted)
 - `localisation_actuelle` coherent with session end?
 - Do NPCs in transit/mission have a documented deadline?
 
 ### 5.5 — Locations
-- Does each location from `lieux_visites[]` exist in `monde.json`?
+- Does each location from `lieux_visites[]` exist in `world.json`?
 - If new location → added?
 
 ### 5.6 — Factions
@@ -300,10 +300,10 @@ Verify fundamental data structures:
 ```
 🛡️ PERSISTENCE AUDIT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ regles.temps.suivi — exists in monde.json?
-□ evenements.json — structured timeline exists?
+□ rules.temps.suivi — exists in world.json?
+□ events.json — structured timeline exists?
 □ sessions/{N+1}.json — next file ready?
-□ etat_global synced with sessions/NNN.json > etat_fin?
+□ global_state synced with sessions/NNN.json > etat_fin?
 □ Character sheets: historique[] + connaissances_privees[]?
 □ Git — working tree clean?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -405,6 +405,6 @@ Mode C produces no file unless a blocking gap is detected.
 
 - `mj-tonnerre-intendant/SKILL.md` — The Steward (3 controls)
 - `mj-tonnerre-session/SKILL.md` — Orchestrator !cloture
-- `monde.json` — Campaign data
-- `pnj.json` — NPC sheets
-- `personnages/<id>.json` — PC sheets
+- `world.json` — Campaign data
+- `npcs.json` — NPC sheets
+- `characters/<id>.json` — PC sheets

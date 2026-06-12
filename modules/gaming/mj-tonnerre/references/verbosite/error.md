@@ -1,6 +1,6 @@
 # 🛑 ERROR Level — Blocking issues only
 
-> ℹ️ **The `transform_llm_output` hook manages the "Persisted" block according to `meta.verbosite`.** Blocking issues below remain the responsibility of the GM; format reference = baseline (hook disabled / bypass `⏸️`).
+> ℹ️ **The `transform_llm_output` hook manages the "Persisted" block according to `meta.verbosity`.** Blocking issues below remain the responsibility of the GM; format reference = baseline (hook disabled / bypass `⏸️`).
 
 > **Usage:** Radio silence except in crisis. The Steward speaks only if the game is blocked.
 > **What is reported:** Actions impossible without GM intervention.
@@ -26,7 +26,7 @@
 ```
 🛑 BLOCKING ISSUE:
 🔒 Action refused — Berthe has a hard line "Do not kill innocents".
-   → Source: pnj.json → Berthe → limites.lignes_rouges[0]
+   → Source: npcs.json → Berthe → limites.lignes_rouges[0]
 🛠️ GM intervention required: Explicitly override the hard line
    (with major narrative consequence) or propose an alternative to the player.
 ```
@@ -36,7 +36,7 @@
 ```
 🛑 BLOCKING ISSUE:
 💀 Impossible — Firmin is in "unconscious" state and cannot speak.
-   → Source: pnj.json → Firmin → etat_actuel
+   → Source: npcs.json → Firmin → etat_actuel
 🛠️ GM intervention required: Heal Firmin first, or decide on a
    healing time-skip, or accept that the information cannot be obtained now.
 ```
@@ -47,7 +47,7 @@
 🛑 BLOCKING ISSUE:
 🕒 Action impossible — it is pitch dark (midnight, Day 7) and Rubis has no
    light source to read the journal.
-   → Source: monde.json > regles.meteo.conditions_actuelles + Rubis inventory
+   → Source: world.json > rules.meteo.conditions_actuelles + Rubis inventory
 🛠️ GM intervention required: Provide a light source (torch, campfire,
    full moon) or defer the reading to morning.
 ```

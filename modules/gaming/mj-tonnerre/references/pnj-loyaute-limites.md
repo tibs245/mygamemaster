@@ -20,7 +20,7 @@ The `relation_niveau` in the NPC sheet determines what they will accept doing wi
 
 Each recurring NPC has **personal limits** — red lines they will not cross, no matter their attachment to the PC.
 
-**Where to store them:** In `pnj.json` → `limites` field:
+**Where to store them:** In `npcs.json` → `limites` field:
 
 ```json
 "limites": {
@@ -69,7 +69,7 @@ Relationship level can go up or down based on PC actions. No mechanical threshol
 - **A betrayal** (lie, use, abandon) → can drop from Ally to Distrustful or Hostile
 - **Accumulation of small actions** (keep promises, share, respect) → relationship rises gradually
 
-**Record the change:** Update `relation_niveau` in `pnj.json` and add a `fait_etabli` to trace when the change happened.
+**Record the change:** Update `relation_niveau` in `npcs.json` and add a `fait_etabli` to trace when the change happened.
 
 ## Generic Example — an Allied NPC
 

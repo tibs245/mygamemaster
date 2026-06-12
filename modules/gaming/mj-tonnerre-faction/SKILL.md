@@ -21,7 +21,7 @@ Design ref: `archive_hermes/audit/06-niveau2-factions.md` (archived; collective 
 
 ## Your input (on each request)
 
-1. **Your faction brief** (deterministic, produced by `build_brief.py` on the GM side, slice extracted by `faction_slice.py`): your `etat_global.factions[X]` sheet —
+1. **Your faction brief** (deterministic, produced by `build_brief.py` on the GM side, slice extracted by `faction_slice.py`): your `global_state.factions[X]` sheet —
    - `nom`, `importance`, `attitude_actuelle` (toward PCs),
    - `objectif_court_terme` and `objectif_long_terme` (your drivers, **independent of PCs**),
    - **known** `relations_inter_factions` (alliances, truces, rivalries, suspicions),
@@ -81,7 +81,7 @@ Full detail: `/opt/modules/gaming/mj-tonnerre/references/modules/factions.md` §
 
 ## Turn loop (reminder)
 
-GM narrates to a decision point → you receive your faction brief + scene context → you declare (`🎭/🎯/❓/🔒`) → the **Steward validates** your action (rules, coherence, **legitimacy of information used**, capabilities, relations/red lines) → the GM integrates **validated** actions into their narration → the **coordinator** writes the state (your slice `etat_global.factions[X]` + your clock via `faction_slice.py reintegrate`, your `🔒 NOTES` via `faction_slice.py add-note`).
+GM narrates to a decision point → you receive your faction brief + scene context → you declare (`🎭/🎯/❓/🔒`) → the **Steward validates** your action (rules, coherence, **legitimacy of information used**, capabilities, relations/red lines) → the GM integrates **validated** actions into their narration → the **coordinator** writes the state (your slice `global_state.factions[X]` + your clock via `faction_slice.py reintegrate`, your `🔒 NOTES` via `faction_slice.py add-note`).
 
 Outside the **active set**, you are not awakened: your off-stage life is **summarized** by the GM, and your clock deadlines advance without agent call (cf. `archive_hermes/audit/06-niveau2-factions.md` §3 and §6, archived). You act only **when relevant** (the GM awakens you) or **on explicit request**.
 

@@ -33,10 +33,10 @@ Run the pipeline scripts to confirm everything is green:
 
 ```bash
 SCRIPTS=/opt/modules/gaming/mj-tonnerre/scripts
-CAMP=.hermes/mj-tonnerre/campagnes/<campagne>
+CAMP=.hermes/mj-tonnerre/campaigns/<campagne>
 python3 $SCRIPTS/validate_json.py $CAMP/        # STOP if JSON broken
 python3 $SCRIPTS/check_session.py $CAMP --session NNN   # STOP if blocking discrepancy
-python3 $SCRIPTS/validator-distances.py $CAMP/monde.json # WARN if inconsistency
+python3 $SCRIPTS/validator-distances.py $CAMP/world.json # WARN if inconsistency
 python3 $SCRIPTS/clock.py $CAMP --dry-run                 # WARN if faction clock behind
 ```
 
@@ -48,14 +48,14 @@ These points are not automatable — the GM verifies them manually:
 
 - [ ] Have the promised faction clock consequences been played out?
 - [ ] Are the faction short-term/long-term objectives still valid?
-- [ ] Do encountered NPCs have a record in `pnj.json` with `faits_etablis`?
-- [ ] Do visited locations have an entry in `univers.regions[].lieux`?
+- [ ] Do encountered NPCs have a record in `npcs.json` with `established_facts`?
+- [ ] Do visited locations have an entry in `universe.regions[].lieux`?
 - [ ] Are the weather and season consistent with elapsed time?
 - [ ] Have rations been consumed correctly?
 
 ## 5. Commit
 
 ```bash
-cd .hermes/mj-tonnerre/campagnes/<campagne>
+cd .hermes/mj-tonnerre/campaigns/<campagne>
 git add . && git commit -m "Session NNN — Steward wrap-up: <summary of changes>"
 ```

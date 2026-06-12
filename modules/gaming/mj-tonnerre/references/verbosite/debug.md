@@ -1,6 +1,6 @@
 # 💾 DEBUG Level — Persistence Operations
 
-> ℹ️ **The `transform_llm_output` hook produces this block automatically** (labeled `💾 Persisted:` when `meta.verbosite=DEBUG`). Format reference below = safety net (hook disabled / bypass `⏸️`).
+> ℹ️ **The `transform_llm_output` hook produces this block automatically** (labeled `💾 Persisted:` when `meta.verbosity=DEBUG`). Format reference below = safety net (hook disabled / bypass `⏸️`).
 
 > **Usage:** Save verification, file write tracing.
 > **What is reported:** The 7 Persistence Operations only (not Controls).
@@ -36,7 +36,7 @@ One line per persistence operation. No `[OPx]` prefix — we are at a higher lev
 ```
 💾 Persisted:
 ⭐ summoning-statuette +1 (Rubis) — inventory updated
-💬 Firmin: "statuette emits a blue glow" → faits_etablis[] — knowledge propagated
+💬 Firmin: "statuette emits a blue glow" → established_facts[] — knowledge propagated
 📝 sessions/009.json +1 action
 ```
 
@@ -45,8 +45,8 @@ One line per persistence operation. No `[OPx]` prefix — we are at a higher lev
 ```
 💾 Persisted:
 🕒 +2h50 → late afternoon Day 7
-🗺️ Rubis: Heart Valley → Berthe's Cabin (pnj.json updated)
-🗺️ Firmin: Heart Valley → Berthe's Cabin (pnj.json updated)
+🗺️ Rubis: Heart Valley → Berthe's Cabin (npcs.json updated)
+🗺️ Firmin: Heart Valley → Berthe's Cabin (npcs.json updated)
 📝 sessions/009.json +1 action
 ```
 

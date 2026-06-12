@@ -17,18 +17,18 @@ triggers:
 ```txt
 ~/.hermes/mj-tonnerre/
 ├── base_items.yaml              ← Evolving item base (all campaigns)
-├── campagnes/<nom>/
-│   ├── personnages/<id>.json    ← PC character sheet → "inventaire" field (free strings)
-│   ├── pnj.json                ← Allied NPCs → "inventaire" field (free strings)
+├── campaigns/<nom>/
+│   ├── characters/<id>.json    ← PC character sheet → "inventory" field (free strings)
+│   ├── npcs.json               ← Allied NPCs → "inventory" field (free strings)
 │   │                               Key locations → "inventaire_<lieu>" field {description, contenu[]}
-│   └── monde.json              ← Locations/resources → regles.ressources
+│   └── world.json              ← Locations/resources → regles.ressources
 ```
 
 ### Who has an inventory?
 
-- **PC** → `personnages/<discord_id>.json > inventaire` (objects carried)
-- **Allied NPC** (2+ sessions or companion) → `pnj.json > inventaire` (what they carry)
-- **Key inhabited location** (cabin, base, camp) → associated NPC's `pnj.json` > `inventaire_<lieu>` (e.g. `inventaire_cabane`) = `{description, contenu[]}`
+- **PC** → `characters/<discord_id>.json > inventory` (objects carried)
+- **Allied NPC** (2+ sessions or companion) → `npcs.json > inventory` (what they carry)
+- **Key inhabited location** (cabin, base, camp) → associated NPC's `npcs.json` > `inventaire_<lieu>` (e.g. `inventaire_cabane`) = `{description, contenu[]}`
 
 > **The GM READS these inventories.** **Mutations** (add / use / transfer) are VERIFIED by the Steward (3 checks — see `mj-tonnerre-intendant`), and the actual persisted delta is reported **automatically by the `transform_llm_output` hook**. You do NOT need to produce the persistence report manually.
 
@@ -38,7 +38,7 @@ triggers:
 
 ```json
 {
-  "inventaire": [
+  "inventory": [
     "15 silver crowns",
     "Rations (~1 day)",
     "Leather notebook",
@@ -110,7 +110,7 @@ If inventory is empty:
 3. If not found → create minimal entry: `{"nom": "<objet>", "qte": n, "desc": "", "poids": 0, "valeur": 0, "effet": ""}`
 4. If object already exists in inventory → increment `qte`, do not duplicate
 5. Check total weight — warn if exceeded
-6. Update `personnages/<discord_id>.json`
+6. Update `characters/<discord_id>.json`
 7. Confirm:
 
 ```
@@ -335,7 +335,7 @@ To find an object, try in order:
 ## Dependencies
 
 - Parent skill: `mj-tonnerre` (loaded automatically in RPG session)
-- Files: `~/.hermes/mj-tonnerre/campagnes/<nom>/personnages/<discord_id>.json`
+- Files: `~/.hermes/mj-tonnerre/campaigns/<nom>/characters/<discord_id>.json`
 - Files: `~/.hermes/mj-tonnerre/base_items.yaml`
 - Tools: native JSON read/write (no external scripts needed)
 - **Emoji convention:** `references/verbosite/README.md` (in `mj-tonnerre`) — use 🥦 for consumables, 🎒 for standard objects, ⚔️ for weapons/combat equipment in all inventory change notifications.

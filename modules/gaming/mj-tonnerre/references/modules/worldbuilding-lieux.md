@@ -120,7 +120,7 @@
 
 ## Lightweight Version (Pass-Through Hamlets, Functional Locations)
 
-In `world.json > univers.regions[].lieux`:
+In `world.json > universe.regions[].locations`:
 
 ```json
 {

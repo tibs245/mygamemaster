@@ -9,7 +9,7 @@
 ```
   ▣ DETERMINISTIC CODE (geometry, deadlines, conservation, cascades)
   ◆ LLM at seams (declares intent · qualifies · narrates)
-  ▤ FILES = source of truth (monde.json, geo.json, pnj.json, evenements.json)
+  ▤ FILES = source of truth (world.json, geo.json, npcs.json, events.json)
   ⏰ SCHEDULED EVENT (clock that "rings" at a future T)
 ```
 

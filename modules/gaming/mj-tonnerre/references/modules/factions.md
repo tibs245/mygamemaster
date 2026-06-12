@@ -1,6 +1,6 @@
 # Module — Factions, proactive clock and PC objectives
 
-> **Conditional loading.** This module only applies if the campaign declares `monde.json > modules.factions.actif === true`.
+> **Conditional loading.** This module only applies if the campaign declares `world.json > modules.factions.actif === true`.
 >
 > This module is **the single source of truth** for faction and clock golden rules. The references `faction-tracking.md` (complete JSON templates), `pj-objectifs-obstacles.md` (difficulty/danger/notoriety grids) and `cross-check-horloge-vs-session.md` **expand on** these golden rules without duplicating them.
 
@@ -8,7 +8,7 @@
 
 **Why it matters:** Factions advance their interests outside of PC actions. If they are not tracked, they become static scenery instead of dynamic forces.
 
-**Structure to maintain in `monde.json > etat_global.factions`:** each faction must **mandatory have**:
+**Structure to maintain in `world.json > global_state.factions`:** each faction must **mandatory have**:
 - `nom` — unique identifier
 - `attitude_actuelle` — toward the PCs (Unknown, Neutral, Hostile, Friendly, etc.)
 - `derniere_interaction` — session and context of the last trace/encounter
@@ -28,14 +28,14 @@
 **Inter-faction relations:** Factions interact with each other — alliances, rivalries, conflicts, dependencies. These relations evolve independently of PCs, even if PCs can influence them:
 - An alliance can break if a faction fails to keep its promises
 - Hostility can turn into forced truce faced with a common enemy
-- Inter-faction relations are stored in `etat_global.factions > relations_inter_factions` (key-value object)
+- Inter-faction relations are stored in `global_state.factions > relations_inter_factions` (key-value object)
 - When a faction attacks another, create an action in the attacking faction's clock
 - PCs can discover these relations through investigation, hearsay, intercepted letters, or observation
 - A faction may have diplomatic intentions (send an emissary, propose an alliance, declare war) — record them in its `notes_mj`
 
 ## 2. Proactive clock (`faction_actions_horloge`)
 
-Each faction may have one or more `actions_en_cours` in `etat_global.faction_actions_horloge` — concrete actions with:
+Each faction may have one or more `actions_en_cours` in `global_state.faction_actions_horloge` — concrete actions with:
 - `declencheur` — what triggered the action
 - `echeance` — deadline in game time
 - `consequence` — what happens if the deadline passes without intervention
@@ -48,7 +48,7 @@ Clock rules:
 - At each narrative downtime (night, travel, transition, interval between sessions): advance the clock, check deadlines
 - See `references/faction-tracking.md` for the complete template
 
-**Unassigned leads:** If a clue cannot yet be linked to a specific faction, put it in `etat_global.pistes_non_assignees`. When a link is confirmed in play, move it to the relevant faction.
+**Unassigned leads:** If a clue cannot yet be linked to a specific faction, put it in `global_state.pistes_non_assignees`. When a link is confirmed in play, move it to the relevant faction.
 
 **When to update:**
 - ✅ After each session: check if each faction had an interaction, movement, or clue
@@ -67,7 +67,7 @@ Clock rules:
 
 **⚠️ Pitfall — Not advancing the clock:** Entries in `faction_actions_horloge` do not resolve on their own. At each narrative downtime (night, transition, travel, interval between sessions), **manually check each entry** and advance approaching deadlines. A faction whose action reaches deadline without consequence being played = silent inconsistency that players will not forgive.
 
-**⚠️ Pitfall — Static factions by oversight:** Factions defined in `univers.factions` are LORE (initial description). `etat_global.factions` is DYNAMIC TRACKING (what happens in play). Do not confuse the two. If a faction has no entry in `etat_global.factions`, it means it has not yet interacted with the PCs — this is normal, and it must be created at first interaction.
+**⚠️ Pitfall — Static factions by oversight:** Factions defined in `universe.factions` are LORE (initial description). `global_state.factions` is DYNAMIC TRACKING (what happens in play). Do not confuse the two. If a faction has no entry in `global_state.factions`, it means it has not yet interacted with the PCs — this is normal, and it must be created at first interaction.
 
 **⚠️ Pitfall — CROSS-CHECK CLOCK vs SESSION (missed narrative verification):**
 **The problem:** The GM reads the clock data, confirms the file is well-formed (valid JSON, keys present, coherent deadlines), and concludes "all is well". But they do NOT verify whether the **promised consequences** of the clock actions have **actually been played in the session**.

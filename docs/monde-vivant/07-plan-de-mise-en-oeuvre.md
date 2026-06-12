@@ -8,9 +8,9 @@
 
 | Component | Reuse | Build |
 |---|---|---|
-| Clock | `evenements.json` (`t`), `gestion_temps.py` | Unified `T` integer from 0; centralized `T↔day/hour` conversion |
-| Space | `regles.temps.deplacements`, `validator-distances.py` | `geo.json` (graph), `geo_query.py`, MDS anchoring, extended validator |
-| Actors | `pnj.json`, `etat_global.factions`, `faction_actions_horloge` | Unified **plan** schema, `lod`, trajectories, promotion/demotion |
+| Clock | `events.json` (`t`), `gestion_temps.py` | Unified `T` integer from 0; centralized `T↔day/hour` conversion |
+| Space | `rules.temps.movements`, `validator-distances.py` | `geo.json` (graph), `geo_query.py`, MDS anchoring, extended validator |
+| Actors | `npcs.json`, `global_state.factions`, `faction_actions_horloge` | Unified **plan** schema, `lod`, trajectories, promotion/demotion |
 | Agents | `build_brief.py`, `call_pnj.py`, `faction_slice.py`, skills `-pnj`/`-faction` | Tick orchestration loop, **intention output** schema |
 | Tick | `clock.py` | `world_tick.py` (PRE/POST), LOD, lazy generation |
 | Causality | — | Typed `relations`, `causal_propagate.py`, scheduled events |
@@ -25,11 +25,11 @@ previous one is green.
 ### Phase 0 — Foundations: stable ids + `T` clock
 - Assign a stable `id` to each location and actor across 2 campaigns (migration script; we
   **preserve narrative names** for narration).
-- Unify the clock: `T` integer in UT from 0; back-fill from `evenements.json`.
+- Unify the clock: `T` integer in UT from 0; back-fill from `events.json`.
 - **Done when**: `gestion_temps.py` reads/writes `T` everywhere, ids resolved without ambiguity.
 
 ### Phase 1 — Spatial graph + queries
-- Generate `geo.json`: containment (`parent`) + adjacency (from `deplacements`) + anchoring (MDS
+- Generate `geo.json`: containment (`parent`) + adjacency (from `movements`) + anchoring (MDS
   on duration matrix) + cardinal direction (extracted from descriptions, completed manually).
 - Write `geo_query.py` (sub-commands from table [`01`](01-horloge-et-espace.md) §6).
 - Extend `validator-distances.py` → graph validator (the 5 invariants).
@@ -50,7 +50,7 @@ previous one is green.
 
 ### Phase 4 — Causal propagation (multi-level, bounded)
 - Typed `relations` on actors; `causal_propagate.py` (depth, threshold, attenuation);
-  `scheduled` events in `evenements.json`.
+  `scheduled` events in `events.json`.
 - **Done when**: the fire→shortage→migration scenario ([`04`](04-propagation-causale.md))
   unfolds and stays bounded.
 
@@ -71,7 +71,7 @@ Rather than doing everything phase-by-phase flat, deliver **a vertical slice** o
 > provisioning raid".** This plan **already exists** in `faction_actions_horloge`
 > (deadline "in 2–3 weeks", consequence "farm plundered / Bertha's cabin plundered").
 
-Minimal steps: stable ids on March locations → graph from existing `deplacements` → model the Band as an actor with this plan dated in `T` → hook `world_tick pre`
+Minimal steps: stable ids on March locations → graph from existing `movements` → model the Band as an actor with this plan dated in `T` → hook `world_tick pre`
 at session open → verify that a player passing near the Ford at the wrong time **encounters** the raid,
 and that `post` reconciles based on whether they stopped it or not. It's small, it's real, and it exercises
 **the entire** system end-to-end.
@@ -85,7 +85,7 @@ and that `post` reconciles based on whether they stopped it or not. It's small, 
 | `scripts/validator-distances.py` | becomes the graph validator (5 invariants) |
 | `scripts/clock.py` | absorbed by `world_tick.py` (faction clock becomes the tick) |
 | `scripts/schemas/*.json` | new schemas: `geo`, `trajectoire`, `plan`, `intention`, `relation` |
-| `data/.../monde.json` | `regles.temps.deplacements` → graph source; ids added |
+| `data/.../world.json` | `rules.temps.movements` → graph source; ids added |
 | `references/modules/factions.md` | faction clock reformulated as "dated plans" |
 
 **New files**: `geo.json` (per campaign), `geo_query.py`, `world_tick.py`,

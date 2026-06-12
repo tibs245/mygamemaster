@@ -31,7 +31,7 @@ We **explicitly separate**:
   days later").
 
 The player never sees `T`. The engine sees only `T`. The conversion `T ↔ day/hour` is already
-done by [`outils/gestion_temps.py`](../../data/mj-tonnerre/campagnes/jusquau-bout-de-mon-monde/outils/gestion_temps.py)
+done by [`outils/gestion_temps.py`](../../data/mj-tonnerre/campaigns/jusquau-bout-de-mon-monde/outils/gestion_temps.py)
 and remains the only bridge between the two.
 
 > **Why quantify.** Trajectory intersections and causal delays require
@@ -78,7 +78,7 @@ Each location has a **stable `id`** and a **`parent`**. This is the nesting tree
 
 ### Layer B — Adjacency (the "around")
 
-**Directed edges** between locations. This is **your `regles.temps.deplacements` matrix
+**Directed edges** between locations. This is **your `rules.temps.movements` matrix
 promoted to first-class graph**, enriched with a **cardinal direction** (often
 already in your descriptions: "to the west, follow the stream").
 
@@ -138,7 +138,7 @@ space **4D** and solves the migration example.
 }
 ```
 
-> **Where to store it.** Either a `univers.graphe` section in `monde.json`, or a dedicated
+> **Where to store it.** Either a `universe.graphe` section in `world.json`, or a dedicated
 > `geo.json` file per campaign (recommended: isolates the graph, simplifies validation and
 > concurrent writes). To decide in [`07`](07-plan-de-mise-en-oeuvre.md).
 

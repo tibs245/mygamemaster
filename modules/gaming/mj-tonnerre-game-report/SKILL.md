@@ -119,8 +119,8 @@ The report is compiled from:
 - `sessions/NNN.json > pnj_rencontres[]` — NPCs encountered
 - `sessions/NNN.json > lieux_visites[]` — locations explored
 - `sessions/NNN.json > etat_fin` — final party status
-- `monde.json > etat_global.quete_active` — active quest
-- `personnages/<id>.json > inventaire[]` — PC inventory
+- `world.json > global_state.quete_active` — active quest
+- `characters/<id>.json > inventory[]` — PC inventory
 
 ### What is EXCLUDED
 

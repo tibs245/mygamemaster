@@ -17,7 +17,7 @@ triggers:
 
 ## Objective
 
-Generate illustrations for the RPG campaign (scenes, character portraits, location maps) with **absolute visual consistency** : everything starts from the `style_visuel` defined in `monde.json`, passes through reusable templates, and produces instances.
+Generate illustrations for the RPG campaign (scenes, character portraits, location maps) with **absolute visual consistency** : everything starts from the `style_visuel` defined in `world.json`, passes through reusable templates, and produces instances.
 
 ---
 
@@ -26,7 +26,7 @@ Generate illustrations for the RPG campaign (scenes, character portraits, locati
 ```
 ┌──────────────────────────────────────────────────┐
 │  1. VISUAL STYLE                                 │
-│  monde.json → meta.style_visuel                  │
+│  world.json → meta.style_visuel                  │
 │  • technique (illustration style, medium)        │
 │  • palette (dominant colors, chromatic mood)     │
 │  • ambiance (lighting, atmosphere)               │
@@ -61,7 +61,7 @@ Generate illustrations for the RPG campaign (scenes, character portraits, locati
 
 ```
 ~/.hermes/mj-tonnerre/campaigns/<campaign-name>/
-├── monde.json                              ← contains meta.style_visuel
+├── world.json                              ← contains meta.style_visuel
 ├── images/
 │   ├── templates/
 │   │   ├── template_portrait.json          ← prompt template for portraits
@@ -80,7 +80,7 @@ Generate illustrations for the RPG campaign (scenes, character portraits, locati
 
 ---
 
-## Structure of `monde.json > meta.style_visuel`
+## Structure of `world.json > meta.style_visuel`
 
 ```json
 {
@@ -116,7 +116,7 @@ The `description_complete` must include precise technical tags for quality gener
 {
   "type": "portrait",
   "prefix": "<style_visuel.description_complete>",
-  "prompt_template": "Character portrait of {race} {classe}. {apparence}. {contexte}. Solo character, front-facing, detailed facial features, fantasy character design.",
+  "prompt_template": "Character portrait of {race} {class_}. {apparence}. {contexte}. Solo character, front-facing, detailed facial features, fantasy character design.",
   "negative_prompt": "text, watermark, signature, multiple characters, cropped, deformed, blurry",
   "ratio": "3:4",
   "steps": 30,
@@ -175,9 +175,9 @@ The 4 commands (`!image`, `!portrait`, `!carte`, `!illustration session`) share 
 
 ### Generic Workflow (all commands)
 
-0. **🚦 Feature flag guard — images.** If `monde.json > meta.features.images` == `false` (or env `MJ_FEATURE_IMAGES=0`), briefly respond that illustrations are **disabled for this world** and **DO NOT generate an image** (stop here, do not execute subsequent steps). *Reminder: everything is ON by default — only act if the axis is explicitly `false`; if the info is not readable, consider the axis ON and generate normally (fail-open).* Wiring detail: `docs/monde-vivant/10-features.md`.
-1. **Determine active campaign** (check `monde.json`). If absent → *« No active campaign. Run `!init` or `!campaign active <name>`. »*
-2. **Load** `monde.json` → `meta.style_visuel.description_complete`, then the **template** for the command (see table).
+0. **🚦 Feature flag guard — images.** If `world.json > meta.features.images` == `false` (or env `MJ_FEATURE_IMAGES=0`), briefly respond that illustrations are **disabled for this world** and **DO NOT generate an image** (stop here, do not execute subsequent steps). *Reminder: everything is ON by default — only act if the axis is explicitly `false`; if the info is not readable, consider the axis ON and generate normally (fail-open).* Wiring detail: `docs/monde-vivant/10-features.md`.
+1. **Determine active campaign** (check `world.json`). If absent → *« No active campaign. Run `!init` or `!campaign active <name>`. »*
+2. **Load** `world.json` → `meta.style_visuel.description_complete`, then the **template** for the command (see table).
 3. **Gather context** specific to the command (see « Context » column of table).
 4. **Build final prompt** : `{description_complete}` + filled template. **Never one without the other** (see Golden Rule). Integrate exclusions as text (« Avoid: text, watermark, signature… »).
 5. **Generate** via `generate_reviewed.py` (normal path: generate + review + retry, see « Effective Generation »). Ratio = `--aspect` from table. ComfyUI fallback only if OpenRouter unavailable.
@@ -191,15 +191,15 @@ The 4 commands (`!image`, `!portrait`, `!carte`, `!illustration session`) share 
 |----------|----------|-----------|---------------|------------------------------|
 | `!image <description>` | `template_scene.json` | `16:9` | `images/scenes/{slug}.png` (slug = description lowercase, hyphens) | the description provided |
 | `!portrait <character_name>` | `template_portrait.json` | `3:4` | `images/portraits/{character_name}.png` | character sheet (see below) |
-| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `carte_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `monde.json > lieux > {location}` |
+| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `carte_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `world.json > lieux > {location}` |
 | `!illustration session` | `template_scene.json` | `16:9` | `images/scenes/session_{N}_recap.png` | `resume` from `sessions/<derniere>.json` (3-5 sentences) ; prompt suffixed *« Key moment from a fantasy RPG session: {resume}. Cinematic composition, dramatic lighting, emotional impact. »* |
 
 ### Details by Command
 
 **`!portrait` — character sheet lookup and enrichment:**
-- Traverse `personnages/*.json`, search for `meta.nom_perso` (fuzzy match). If not found → *« Character "{name}" not found in this campaign. Check the spelling. »*
-- Inject `meta.race` → `{race}`, `meta.classe` → `{classe}`, `meta.apparence` → `{apparence}`, and a `{contexte}` (e.g. current location).
-- If `apparence` missing, build it: `"{race} {classe}. Notable equipment: {equipement[0]}, {equipement[1]}. Key stats: {stats dominantes}."`
+- Traverse `characters/*.json`, search for `meta.character_name` (fuzzy match). If not found → *« Character "{name}" not found in this campaign. Check the spelling. »*
+- Inject `meta.race` → `{race}`, `meta.class_` → `{class_}`, `meta.apparence` → `{apparence}`, and a `{contexte}` (e.g. current location).
+- If `apparence` missing, build it: `"{race} {class_}. Notable equipment: {equipment[0]}, {equipment[1]}. Key stats: {stats dominantes}."`
 - If portrait already exists → offer existing file + *« To regenerate: `!portrait {name} --force` »*. `--force` overwrites existing and passes current portrait as `--ref-image` (see below).
 
 **`!carte` — a map has a DIEGETIC SOURCE, which determines its precision, style AND reliability.**
@@ -253,7 +253,7 @@ python3 "$GEN" --prompt-file "$CARTES/_schema_<location>.<h>.prompt.txt" \
 - It's **known to the GM only** (trace intent in `GM-INTENTION-LOG.md`, never visible to player).
 - If player cries bug: **NEVER confirm a bug** or the intent. Stay in fiction — *« the map you found may not have been drawn by a sure hand… »*. The map isn't broken: it's *unreliable*, and that's diegetic.
 
-**Fallback (degraded mode).** If `temporalite` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `monde.json > lieux > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `monde.json` (or run `geo_query.py build` then `carte_schema.py` for a faithful map) ! »*
+**Fallback (degraded mode).** If `temporalite` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `world.json > lieux > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `world.json` (or run `geo_query.py build` then `carte_schema.py` for a faithful map) ! »*
 
 **(D) Town/Village Map — micro detail (coming soon).** A regional map shouldn't try to show buildings of a village (unreadable). Dense detail (the tavern doesn't move, player orientates) will be **a separate map**, backed by a **`geo.json` specialized « town »** (micro scale: streets, buildings = containment sub-locations), generated as needed and **persisted** like regional maps. Same temporal consistency principle. *Not implemented — dedicated feature.*
 
@@ -277,7 +277,7 @@ To guarantee that **a character's face remains identical** across images (portra
 
 **`!image <description>` — scene with named characters**
 - If the description mentions one or more characters whose portrait already exists in `images/portraits/`, pass these portraits as `--ref-image` (max 3).
-- Detection: search in the description for `meta.nom_perso` values from `personnages/*.json` sheets (fuzzy match, case-insensitive).
+- Detection: search in the description for `meta.character_name` values from `characters/*.json` sheets (fuzzy match, case-insensitive).
 - If a mentioned character has no portrait yet → generate the scene without reference for that character; note *« ⚠️ No reference portrait for **{name}**. Run `!portrait {name}` first to freeze their appearance. »*
 
 **`!illustration session`** — apply same logic: detect characters in session summary and pass their portraits as `--ref-image`.
@@ -324,7 +324,7 @@ The `ref_images` field is added to sidecar when references are used:
 | Command | Start | Success |
 |----------|-------|--------|
 | `!image` | *« 🎨 Generating scene... (style: {technique}) »* | image + *« 🖼️ Illustration generated. »* |
-| `!portrait` | *« 🎨 Generating portrait of **{character_name}**... ({race}, {classe}) »* | image + name |
+| `!portrait` | *« 🎨 Generating portrait of **{character_name}**... ({race}, {class_}) »* | image + name |
 | `!carte` | *« 🗺️ Mapping **{location}**... »* | map + *« 🗺️ Map of **{location}** generated. »* |
 | `!illustration` | *« 🎬 Illustration of session {N} recap... »* | image + formatted recap |
 
@@ -486,7 +486,7 @@ Base64 images weigh 2-3 MB. Scripts `gen_image.py` / `review_image.py` handle th
 
 Before each generation :
 
-- [ ] `description_complete` loaded from `monde.json` (never generate without — it's the visual glue)
+- [ ] `description_complete` loaded from `world.json` (never generate without — it's the visual glue)
 - [ ] Correct template loaded ; full prompt = `description_complete` + filled template (**never one without the other**, never improvise)
 - [ ] Required OpenRouter parameters present : `modalities` + `image_config.aspect_ratio` (see « Required Parameters » table — their absence = #1 cause of « no image » ; Midjourney `--ar` flags don't work)
 - [ ] Negatives integrated in prompt text (« Avoid: … ») ; `negative_prompt` field reserved for ComfyUI fallback
@@ -513,9 +513,9 @@ After generation :
 | ComfyUI not running | `curl http://127.0.0.1:8188/system_stats` fails | Run `comfy launch --background` |
 | Model missing | `check_deps.py` reports missing checkpoint | `comfy model download --url ...` |
 | Prompt too long | Tokenization error | Truncate `description_complete` to 300 tokens max, keep essentials |
-| Character not found | No sheet with matching `meta.nom_perso` | List available characters |
-| No active campaign | `monde.json` not found | *« No active campaign. Run `!init` or `!campaign active <name>`. »* |
-| Visual style missing | `monde.json` without `meta.style_visuel` | *« ⚠️ Visual style not defined. Use `!style visual ...` to configure it. »* |
+| Character not found | No sheet with matching `meta.character_name` | List available characters |
+| No active campaign | `world.json` not found | *« No active campaign. Run `!init` or `!campaign active <name>`. »* |
+| Visual style missing | `world.json` without `meta.style_visuel` | *« ⚠️ Visual style not defined. Use `!style visual ...` to configure it. »* |
 
 ---
 
@@ -527,8 +527,8 @@ After generation :
 | `mj-tonnerre-personnage` | Character sheet reading for `!portrait` |
 | `scripts/` (OpenRouter) | Actual image generation (`generate_reviewed.py` & co.) |
 | `comfyui` (creative skill, **archived**) | Historic fallback unavailable by default |
-| `monde.json` | Visual style + world data |
-| `personnages/*.json` | Character details for portraits |
+| `world.json` | Visual style + world data |
+| `characters/*.json` | Character details for portraits |
 
 ---
 
@@ -539,7 +539,7 @@ This skill is a sub-skill of `mj-tonnerre`. It is loaded automatically when trig
 **Before each action :**
 1. Load `mj-tonnerre` for persona and global conventions
 2. Determine active campaign
-3. Check `monde.json > meta.style_visuel`
+3. Check `world.json > meta.style_visuel`
 4. Generate via OpenRouter `scripts/` (see « Effective Generation »)
 
 **Always respect parent skill principles :**

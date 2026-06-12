@@ -36,19 +36,19 @@ This skill manages the complete lifecycle of a tabletop RPG session: opening, in
 
 > ✅ **Campaign path discovery (SINGLE DEFINITION — referenced below by `!cloture` and `!reprendre`) :**
 > The current directory (`cwd`) **IS** the campaign (provided by runtime, one container per campaign).
-> Resolve all files from `./` : `monde.json`, `sessions/`, `personnages/`, `pnj.json`, etc.
+> Resolve all files from `./` : `world.json`, `sessions/`, `characters/`, `npcs.json`, etc.
 > Use `find` **only as a last resort**, if `cwd` is NOT the campaign :
 > ```bash
 > # Fallback only — cwd is normally already the campaign
-> find . -name "monde.json" 2>/dev/null | head -1
+> find . -name "world.json" 2>/dev/null | head -1
 > ```
 
 ```
 <cwd = campaign directory>/
-├── monde.json              ← Global state, factions, timeline, time config
-├── evenements.json         ← Single timeline, structured in UT (Time Units)
-├── pnj.json                ← All NPCs (state, position, relations)
-├── personnages/<id>.json   ← Player character sheets (HP, inventory, states)
+├── world.json              ← Global state, factions, timeline, time config
+├── events.json         ← Single timeline, structured in UT (Time Units)
+├── npcs.json                ← All NPCs (state, position, relations)
+├── characters/<id>.json   ← Player character sheets (HP, inventory, states)
 ├── sessions/
 │   ├── 001.json            ← Detailed log session 1
 │   ├── 002.json            ← Detailed log session 2
@@ -199,7 +199,7 @@ Generate a formatted summary of what has happened **so far** in the current sess
 1. Load active campaign
 2. Read current session file
 3. Iterate through `actions[]`, `pnj_rencontres[]`, `lieux_visites[]`
-4. Query group state via `personnages/<id>.json` of participants
+4. Query group state via `characters/<id>.json` of participants
 5. Generate narrative summary (3-5 immersive sentences covering key events)
 6. Format per **hat convention** (sections `🎭 SUMMARY`, `📍 LOCATIONS VISITED`, `👤 NPCs MET`, `⚔️ KEY ACTIONS`, `💀 GROUP STATE`)
 
@@ -273,7 +273,7 @@ In all cases, execute the complete wrap-up workflow (Phase 1-6). Don't interrupt
    ```
    (Teaser auto-generated — you can edit it)
    ```
-5. **Ask for player evaluation** (if `monde.json > meta.diagnostic.actif == true`) :
+5. **Ask for player evaluation** (if `world.json > meta.diagnostic.actif == true`) :
    ```
    ⭐ Session rating — score 1 to 5?
    (1 = frustrating/incoherent, 5 = memorable/immersive. Or "skip" to skip)
@@ -294,7 +294,7 @@ In all cases, execute the complete wrap-up workflow (Phase 1-6). Don't interrupt
 1. **Compile key actions** — iterate through `actions[]`, select most narrative/impactful (not minor rolls)
 2. **List visited locations** from `lieux_visites[]`
 3. **List met NPCs** from `pnj_rencontres[]`
-4. **Collect group state** — read ALL `personnages/<id>.json` of participants, extract `sante.pv_actuels`, `sante.pv_max`, `sante.etats`
+4. **Collect group state** — read ALL `characters/<id>.json` of participants, extract `health.hp_current`, `health.hp_max`, `health.conditions`
 5. **Calculate elapsed session time** — sum `duree_ut` of logged actions. Use `outils/gestion_temps.py` to convert if needed.
 6. **Write narrative summary** (3-5 sentences) — immersive style, MJ Tonnerre tone
 7. **Store complete formatted summary** in `resume` field of session file
@@ -317,15 +317,15 @@ t=36 (end S1) → t=36 (start S2, no time jump)
 
 **Concrete rules :**
 
-1. **Base ONLY on data from played sessions.** Every event in `evenements.json` must be traceable to an action in `sessions/NNN.json` or explicit info in `monde.json`/`pnj.json`.
+1. **Base ONLY on data from played sessions.** Every event in `events.json` must be traceable to an action in `sessions/NNN.json` or explicit info in `world.json`/`npcs.json`.
 
 2. **NEVER assume time passage between sessions.** If Session 1 ended at noon and Session 2 starts, game time has NOT advanced unless the GM explicitly says so. Real time between sessions (24h, 3 days) is NOT game time.
 
-3. **Pre-campaign events (negative t) are the only ones "invented" from lore.** But even they must be based on established facts in `monde.json` (eras, dates, descriptions). No free extrapolation.
+3. **Pre-campaign events (negative t) are the only ones "invented" from lore.** But even they must be based on established facts in `world.json` (eras, dates, descriptions). No free extrapolation.
 
-4. **When building or updating the timeline, verify each event against its source** (session data, monde.json, pnj.json). If you can't trace an event, it's probably invented → delete it.
+4. **When building or updating the timeline, verify each event against its source** (session data, world.json, npcs.json). If you can't trace an event, it's probably invented → delete it.
 
-5. **When in doubt, add a source comment** (field `source` in evenements.json) : `source: "session_001"` or `source: "campaign_lore"` or `source: "manual"`. Events with `source: "manual"` must be validated by the admin before being considered canon.
+5. **When in doubt, add a source comment** (field `source` in events.json) : `source: "session_001"` or `source: "campaign_lore"` or `source: "manual"`. Events with `source: "manual"` must be validated by the admin before being considered canon.
 
 ### Phase 3 — State Save (Data Verification)
 
@@ -336,41 +336,41 @@ Before any save, verify these critical points. This is the iron rule — no wrap
 🛡️ DATA VERIFICATION — PRE-WRAP-UP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 □ INVENTORIES — Every item used, given, lost, or found during session
-   → Read personnages/<id>.json of each participant
+   → Read characters/<id>.json of each participant
    → Verify item-by-item what changed
    → Ex: consumable used → removed from inventory
    → Commit after correction
 
 □ LOCATIONS — Every location visited during session
    → Read lieux_visites[] in session file
-   → Verify their presence in monde.json > univers.regions > lieux
+   → Verify their presence in world.json > universe.regions > lieux
    → If a location is missing → add it with MINIMUM description in living format (conflit_central, questions_vitales, pnjs_cles, ambiance, horloge with evenement/echeance/consequence)
    → Each existing location that changed state in session must have conflit_central or horloge updated to reflect new state (ex: a cabin's lean-to advancing, a bucket cleaned, a road discovered)
    → Locations must be "living" — their state changes with game time and PC actions. Don't leave them in simple static format (description + conflict + ownership). ALL locations, without exception (including minor resources like Wild Privet), must have full format: conflit_central, questions_vitales (governance, reason_existence, critical_need, shameful_secret), pnjs_cles, ambiance, horloge with evenement/echeance/consequence. A location in simple static format is one that will be forgotten during updates.
 
 □ DISTANCES — Every journey narrated during session
-   → Verify monde.json > regles.temps.deplacements
+   → Verify world.json > rules.temps.movements
    → If journey durations were mentioned in narration
      but not in file → add them
    → Verify indirect ≥ direct rule for any new route
    → Commit after correction
 
 □ NPCs — Every NPC met or mentioned
-   → Verify pnj.json for each pnj_rencontres[] entry
+   → Verify npcs.json for each pnj_rencontres[] entry
    → If NPC already exists → update position/attitude/last interaction
    → If NPC doesn't exist → create sheet (stats, skills, limits, inventory)
    → Commit after correction
 
 □ OBJECT/SITE STATE — Everything that changed physically
-   → Verify monde.json > etat_global (state section specific to campaign, ex. tracked sites/structures)
+   → Verify world.json > global_state (state section specific to campaign, ex. tracked sites/structures)
    → Each visited site/object whose state changed (cleaned, repaired, activated, destroyed)
 
 □ ARTIFACTS — Important objects discovered or moved during session
-   → Verify monde.json > etat_global.artefacts_connus
+   → Verify world.json > global_state.artefacts_connus
    → If important object discovered → create entry with description, source, location, hypotheses
    → If existing object changed hands or location → update localisation_actuelle
    → Links between artifacts must be marked UNCONFIRMED HYPOTHESIS — never presented as facts
-   → If no artefacts_connus section exists in monde.json → create it
+   → If no artefacts_connus section exists in world.json → create it
 
 □ FACTIONS — Direct interactions with factions
    → Update attitude, last interaction, observed clues
@@ -517,7 +517,7 @@ Load context from last session to resume narration.
 5. **Handle time gap between sessions** — if game time elapsed between wrap-up and resumption :
    - **Rations** — recalculate consumed rations if GM announces ellipse (e.g. "you camped one night")
    - **NPCs** — GM decides if important NPCs acted in interval
-   - **Campaign time mechanics** — extra night may advance own mechanic (curse, gauge, cyclic magic defined in `monde.json > regles.temps`)
+   - **Campaign time mechanics** — extra night may advance own mechanic (curse, gauge, cyclic magic defined in `world.json > rules.temps`)
    - **Rest** — long rest between sessions heals minor wounds
    - **If no game time elapsed** (immediate resumption) → nothing to adjust
    - **⚠️ Critical distinction** : real time between sessions is NOT game time. If players resume next day in same room, 0 minutes passed in game, regardless of 24h real time. Game time only advances if GM explicitly decides.
@@ -535,7 +535,7 @@ Load context from last session to resume narration.
    ⚠️ DON'T confuse "structural verification" (file well-formed)
      and "narrative verification" (promised consequences were played in session).
      Both independent and both MANDATORY.
-6. **Update `monde.json > regles.temps.suivi`** if game time advanced
+6. **Update `world.json > rules.temps.suivi`** if game time advanced
 
 ### 5.7. **⚠️ STRUCTURAL VERIFICATION PRE-RESUMPTION — PERSISTENCE AUDIT**
 
@@ -544,16 +544,16 @@ Before initializing new session, verify **persistence structures** are in place.
 ```txt
 🛡️ PERSISTENCE AUDIT — PRE-RESUMPTION (short checklist)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ regles.temps.suivi present in monde.json (else: create from etat_fin, don't invent date)
-□ evenements.json present (else: optional, don't block)
+□ rules.temps.suivi present in world.json (else: create from etat_fin, don't invent date)
+□ events.json present (else: optional, don't block)
 □ sessions/{NNN+1}.json ready (else: step 7 creates it)
-□ etat_global synced with sessions/NNN.json > etat_fin (quete_active, population, phase…)
+□ global_state synced with sessions/NNN.json > etat_fin (quete_active, population, phase…)
 □ Character sheet in new format (historique[], connaissances_privees[], notes_privees[], session_id)
 □ Campaign git clean (working tree clean; commit untracked/modified before resumption)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> 📄 **Complete procedure** (minimal structure `regles.temps.suivi`, gentle migration of sheets, parent git handling, documented gaps) : `references/audit-persistance-dry-run.md`.
+> 📄 **Complete procedure** (minimal structure `rules.temps.suivi`, gentle migration of sheets, parent git handling, documented gaps) : `references/audit-persistance-dry-run.md`.
 
 **Process :** DON'T block resumption for these gaps. FIX them before sending opening narration (between step 5.7 and 6.5).
 
@@ -573,7 +573,7 @@ Before writing any opening narrative phrase (the reminder with summary, the scen
 
    (Real cases documented : `references/audit-persistance-dry-run.md`.)
 
-   → **Cure :** before writing opening narration, read `sessions/NNN.json → actions[]` + `etat_fin` entirely + `personnages/<id>.json` + faction clock. For each factual detail (time, object, location, NPC words), verify trace in logs. No trace = probably invented. Don't start narrative sentence before checking these 4 points.
+   → **Cure :** before writing opening narration, read `sessions/NNN.json → actions[]` + `etat_fin` entirely + `characters/<id>.json` + faction clock. For each factual detail (time, object, location, NPC words), verify trace in logs. No trace = probably invented. Don't start narrative sentence before checking these 4 points.
 
 7. **Display reminder**
 
@@ -626,7 +626,7 @@ Configurable option for the GM. If enabled in campaign context :
 
 2. **Explicit signal** : If GM or player explicitly requests wrap-up (even without exact `!cloture`), suggest command.
 
-3. **Configuration** : store in `monde.json` :
+3. **Configuration** : store in `world.json` :
    ```json
    {
      "meta": {
@@ -642,7 +642,7 @@ Configurable option for the GM. If enabled in campaign context :
 
 Each session event is logged **in two places** :
 
-### 1. `evenements.json` (structured timeline)
+### 1. `events.json` (structured timeline)
 - **Session start** → event type `meta` : `t=current, label="START Session N — ..."`
 - **Player action** → event type `personnage` : t, label, desc, participants, roll, duree_ut
 - **Location visit** → event type `ville_lieu` : t, label with location description
@@ -660,7 +660,7 @@ Use `outils/gestion_temps.py` (CLI or Python module) to add and validate events.
 - **Location visit** → add to `lieux_visites[]`
 - **Wrap-up** → action type `meta` : `"Session {N} wrapped up"`
 
-**Rule :** `evenements.json` captures factual truth (what, who, where, when, result). `sessions/NNN.json` captures narrative (how, why, reactions, mood). Both are complementary.
+**Rule :** `events.json` captures factual truth (what, who, where, when, result). `sessions/NNN.json` captures narrative (how, why, reactions, mood). Both are complementary.
 
 **⚠️ TIMING REQUIREMENT :** NPC interactions (questions, answers, dialogues) must be recorded in `sessions/NNN.json` **at the moment they are narrated**, not deferred until wrap-up. Don't delay — risk of forgetting is maximal between narration turns. If you narrate an NPC question without adding it to actions, stop, add it, then continue. Players checking files (via `!analyse-bug`) expect to find each interaction immediately.
 
@@ -672,7 +672,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 2. STOP — before sending, verify :
    - Each speaking NPC → an action in actions[] ?
    - Each named NPC → an entry in pnj_rencontres[] ?
-   - Unknown NPC until now? → sheet in pnj.json (name, role, description, attitude)
+   - Unknown NPC until now? → sheet in npcs.json (name, role, description, attitude)
    - Did PC respond to NPC? → record response in same action
 3. SEND the response
 
@@ -686,7 +686,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 |-------|-------------|
 | `mj-tonnerre` (hat) | This skill auto-loads on `!cloture`, `!reprendre`, `!session` |
 | `mj-tonnerre-personnage` | `!cloture` reads all sheets for group state; `!reprendre` too |
-| `mj-tonnerre-inventaire` | `!cloture` saves inventories via character sheets |
+| `mj-tonnerre-inventory` | `!cloture` saves inventories via character sheets |
 | `mj-tonnerre-outils` | Rolls/actions logged in `actions[]` formatted by `mj-tonnerre-outils` |
 | `mj-tonnerre-intendant` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
 | `mj-tonnerre-initiation` | Campaign first session created after `!init` |
@@ -697,7 +697,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | ❌ Avoid | ✅ Do |
 |------------|---------|
-| Wrap-up without saving character sheets | Save ALL `personnages/<id>.json` of participants |
+| Wrap-up without saving character sheets | Save ALL `characters/<id>.json` of participants |
 | Forget to ask for title and teaser | Ask both questions before displaying summary |
 | Generate summary without rereading actions | Go through `actions[]` and select key moments |
 | Create duplicate session | Check file existence before incrementing |
@@ -705,12 +705,12 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | `!reprendre` without checking current state | Load character sheets for real state (not just `etat_fin`) |
 | Leave `heure_fin` empty indefinitely | Auto wrap-up after 2h inactivity if enabled |
 | Log in wrong session file | Always identify correct `NNN.json` via last created file |
-| **Forget to update `evenements.json` at wrap-up** | **Add session events to `evenements.json` (key actions, locations, NPCs, session end)** |
+| **Forget to update `events.json` at wrap-up** | **Add session events to `events.json` (key actions, locations, NPCs, session end)** |
 | **Calculate t manually** | **Use `outils/gestion_temps.py` (CLI or module) to avoid calculation errors** |
-| **Log same event differently in both files** | **Keep same factual info (t, participants, location, result) in evenements.json and session/NNN.json** |
-| **Forget to update time tracking** | **After EVERY session, update `monde.json > regles.temps.suivi` : t_current, rations, mission constraint** |
+| **Log same event differently in both files** | **Keep same factual info (t, participants, location, result) in events.json and session/NNN.json** |
+| **Forget to update time tracking** | **After EVERY session, update `world.json > rules.temps.suivi` : t_current, rations, mission constraint** |
 | **Treat real time as game time** | **24h real between sessions ≠ 1 game day. Game time only advances if GM explicitly decides.** |
-| **Invent time jumps or unplayed days in evenements.json** | **Only add what was ACTUALLY played. If session continues same instant, t doesn't change. Only events traceable to played action are canon.** |
+| **Invent time jumps or unplayed days in events.json** | **Only add what was ACTUALLY played. If session continues same instant, t doesn't change. Only events traceable to played action are canon.** |
 | **Narrate `!reprendre` opening without checking logs first** | **Before any narrative sentence, check 4 points from step 6.5 (`actions[]`, `lieux_visites[]`, `pnj_rencontres[]`, `etat_fin`, `heure_fin`).** |
 
 > **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mj-tonnerre/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/audit-persistance-dry-run.md`.
@@ -742,11 +742,11 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | # | Point | Target File | Typical Command |
 |---|-------|--------------|---------------|
-| 1 | Add `regles.temps.suivi` | `monde.json` | `patch` / `write_file` |
-| 2 | Sync `etat_global` | `monde.json` | `patch` (quete, pop, phase, influence) |
+| 1 | Add `rules.temps.suivi` | `world.json` | `patch` / `write_file` |
+| 2 | Sync `global_state` | `world.json` | `patch` (quete, pop, phase, influence) |
 | 3 | Create next session | `sessions/NNN+1.json` | `write_file` (from last `etat_fin`) |
-| 4 | Migrate character sheet | `personnages/<id>.json` | `patch` (historique, connaissances_privées) |
-| 5 | Create/update NPC | `pnj.json` | `patch` (attitude, position) |
+| 4 | Migrate character sheet | `characters/<id>.json` | `patch` (historique, connaissances_privées) |
+| 5 | Create/update NPC | `npcs.json` | `patch` (attitude, position) |
 
 ### Pitfalls
 
@@ -781,9 +781,9 @@ GM: !cloture
 
 5. [Save]
    - sessions/003.json → heure_fin, resume, teaser, etat_fin
-   - monde.json → global state saved
-   - pnj.json → NPCs saved
-   - personnages/123.json, personnages/456.json, personnages/789.json → sheets saved
+   - world.json → global state saved
+   - npcs.json → NPCs saved
+   - characters/123.json, characters/456.json, characters/789.json → sheets saved
    - Create sessions/004.json (empty, ready)
 
 6. [Display formatted summary]
@@ -834,14 +834,14 @@ Minimal reminder : Banquier applies its 3 transactional controls (SOURCE → TRA
 - **Parent skill** : `mj-tonnerre` (auto-loads in RPG session — provides general time management, coherence checklist, multi-agent turn loop §3.3)
 > All paths below relative to `cwd` (= campaign directory).
 - **Files** : `./sessions/NNN.json`
-- **Files** : `./monde.json` (including `regles.temps.suivi` for game time tracking)
-- **Files** : `./evenements.json` (timeline structured in UT)
-- **Files** : `./pnj.json`
-- **Files** : `./personnages/<id>.json`
+- **Files** : `./world.json` (including `rules.temps.suivi` for game time tracking)
+- **Files** : `./events.json` (timeline structured in UT)
+- **Files** : `./npcs.json`
+- **Files** : `./characters/<id>.json`
 - **Scripts** : `./outils/gestion_temps.py` (t calculations, validation, queries)
 - **Required skills** : `mj-tonnerre-personnage` (sheet reading), `mj-tonnerre-outils` (action formatting), `mj-tonnerre-intendant` (Banquier — CSV collection)
 - **Files** : `collecte.csv` — diagnostic data (player evaluation written at wrap-up, Phase 1 step 5)
-- **Files** : `monde.json > meta.diagnostic` — enable/disable player collection at wrap-up
+- **Files** : `world.json > meta.diagnostic` — enable/disable player collection at wrap-up
 - **References** : `references/template-probleme-solution-consequence.md` (post-session fix template)
 - **No external tools** needed — everything via JSON files
 
@@ -852,17 +852,17 @@ Minimal reminder : Banquier applies its 3 transactional controls (SOURCE → TRA
 - [ ] `!session info` displays stats without error
 - [ ] `!session resume` generates formatted mid-session summary
 - [ ] `!cloture` asks title + teaser questions before summary
-- [ ] `!cloture` saves `monde.json`, `pnj.json`, and ALL character sheets
-- [ ] **`!cloture` updates `monde.json > regles.temps.suivi` (game date/time, t_current, rations, mission constraint)**
+- [ ] `!cloture` saves `world.json`, `npcs.json`, and ALL character sheets
+- [ ] **`!cloture` updates `world.json > rules.temps.suivi` (game date/time, t_current, rations, mission constraint)**
 - [ ] `!cloture` increments session number and creates next file
-- [ ] **`!cloture` adds session events to `evenements.json`**
+- [ ] **`!cloture` adds session events to `events.json`**
 - [ ] `!cloture` verifies rations consumed passively during session
-- [ ] **`!cloture` verifies spatial data current (routes, locations, NPCs) in monde.json and pnj.json**
+- [ ] **`!cloture` verifies spatial data current (routes, locations, NPCs) in world.json and npcs.json**
 - [ ] **`!cloture` advances `faction_actions_horloge`** and verifies reached deadlines
 - [ ] `!reprendre` finds correct session (last with filled `heure_fin`)
 - [ ] `!reprendre` initializes new session (`heure_debut`)
 - [ ] **`!reprendre` handles time gap between sessions (rations, NPCs, Mark, rest)**
-- [ ] **`!reprendre` performs pre-resumption structural verification (step 5.7) — regles.temps.suivi, evenements.json, etat_global vs etat_fin sync, character sheet, git**
+- [ ] **`!reprendre` performs pre-resumption structural verification (step 5.7) — rules.temps.suivi, events.json, global_state vs etat_fin sync, character sheet, git**
 - [ ] **`!reprendre` performs cross-check clock vs session (step 5.5)** to play unplayed consequences from previous session
 - [ ] **`!reprendre` doesn't confuse real time and game time**
 - [ ] **`!reprendre` checks 4 narrative points (step 6.5) before writing opening**

@@ -11,7 +11,7 @@
 > In case of divergence with `08-contrat-implementation.md`, **the contract takes precedence**; this file
 > merely **wires up** what the contract has frozen.
 >
-> **Golden rule of wiring:** *a failing branch must NEVER break a turn or a wrap-up.* Each hook point is (a) **behind a toggle** `monde.json > meta.hooks`,
+> **Golden rule of wiring:** *a failing branch must NEVER break a turn or a wrap-up.* Each hook point is (a) **behind a toggle** `world.json > meta.hooks`,
 > (b) **fail-open** (any failure → silent no-op + `stderr`), (c) **dry-run by default** for
 > anything that writes.
 
@@ -33,7 +33,7 @@
 > **Default activation = OFF.** Unlike the five historical toggles in `hooks_cfg`
 > (`injection_etat`, `banquier_persiste`, … default `True`), the **three new** living world toggles
 > are **`False` by default**: the engine is an **explicit opt-in** per campaign
-> (you need `geo.json` + `acteurs.json` present and aligned for it to make sense). A campaign that
+> (you need `geo.json` + `actors.json` present and aligned for it to make sense). A campaign that
 > doesn't yet have its spatial graph continues **exactly** as today, with zero side effects.
 
 ---
@@ -85,7 +85,7 @@ the extension described in `05`§5: *one extra line, rest of the loop unchanged.
 
 `scene_brief.py` requires the **location id of the current scene**. **Fact verified on the real
 campaign:** the PC `acteur:rubis` is **reserved** (contract §2.5) and **is NOT in
-`acteurs.json`** → `geo_query ou-est acteur:rubis` returns `{}`. We **cannot therefore** deduce
+`actors.json`** → `geo_query ou-est acteur:rubis` returns `{}`. We **cannot therefore** deduce
 the player's position from simulated actors. And it's **intentional**: the player decides where they are
 (SKILL.md « Localisation par défaut au démarrage » l. 602–611) — the code must never
 invent it.
@@ -194,7 +194,7 @@ invent it.
 - **`scene_brief.py` is itself fail-open** (contract §9.3: exit 0 always, minimal brief on
   failure). The double safeguard (here + in the script) makes the injection harmless.
 - **8 s timeout** aligned with the judge's network calls (`_lib.http_json` timeout 8). In practice
-  `scene_brief` is purely local (reads `geo.json`/`acteurs.json`/`evenements_programmes.json`)
+  `scene_brief` is purely local (reads `geo.json`/`actors.json`/`scheduled_events.json`)
   so well within.
 - **No writes**: B1 only **reads** and **injects** text.
 
@@ -228,7 +228,7 @@ We insert a **step 5** right after, **guarded by the toggle `tick_post`**, and *
      res_clock = lancer("clock.py", [str(campagne)])
 
 +    # 5. world_tick post --apply (LIVING WORLD) — reconciliation. NON-BLOCKING:
-+    #    guarded by meta.hooks.tick_post AND by presence of acteurs.json.
++    #    guarded by meta.hooks.tick_post AND by presence of actors.json.
 +    #    A failure here NEVER prevents wrap-up (just an alert).
 +    res_tick = _tick_post_si_actif(campagne, monde, num)
 +
@@ -290,13 +290,13 @@ just before `ok = len(blocs) == 0`):
 ```diff
 +def _tick_post_si_actif(campagne: Path, monde: dict, num: int) -> dict:
 +    """B2 — runs `world_tick.py post --apply` if meta.hooks.tick_post is true AND
-+    if acteurs.json exists. NON-BLOCKING: returns a trace dict, never raises.
++    if actors.json exists. NON-BLOCKING: returns a trace dict, never raises.
 +    {'lance':bool,'exit':int,'stdout':str,'stderr':str,'raison':str}."""
 +    hooks = (monde.get("meta") or {}).get("hooks") or {}
 +    if not hooks.get("tick_post", False):
 +        return {"lance": False, "raison": "toggle meta.hooks.tick_post=false"}
-+    if not (campagne / "acteurs.json").exists():
-+        return {"lance": False, "raison": "acteurs.json missing (living world not initialized)"}
++    if not (campagne / "actors.json").exists():
++        return {"lance": False, "raison": "actors.json missing (living world not initialized)"}
 +    # ⚠️ world_tick.py has SUB-COMMANDS: the verb 'post' comes FIRST,
 +    #    before the positional <campagne> (cf. §3.4). DO NOT write [campagne, "post", …].
 +    r = lancer("world_tick.py",
@@ -336,15 +336,15 @@ In `main()` of `close_session.py`, after the line `clock (dry-run) : exit …` (
 
 - **Toggle OFF (default)** → `_tick_post_si_actif` returns `{"lance": False}` immediately:
   wrap-up **identical** to current.
-- **`acteurs.json` missing** → same, clean skip (a campaign without living world is never
+- **`actors.json` missing** → same, clean skip (a campaign without living world is never
   penalized).
 - **Never blocking**: the result of `world_tick post` feeds **only** `alertes`, **never**
   `blocs`. The verdict `ok`/exit code of `close_session.py` is **unchanged** by B2. (A reconciliation
   failure is a GM matter, not a wrap-up refusal — consistent with the ALERT handling of `clock.py`, P5.)
-- **`--apply`** is deliberate here (wrap-up **is** the moment to write `acteurs.json` /
-  `evenements_programmes.json`). The timestamped snapshot (`on_session_end.py`) and the commit (proposed)
+- **`--apply`** is deliberate here (wrap-up **is** the moment to write `actors.json` /
+  `scheduled_events.json`). The timestamped snapshot (`on_session_end.py`) and the commit (proposed)
   capture these writes just after. Writes **only** to allowed files
-  (contract §0.2 / §14.3) — `world_tick post` doesn't touch `monde.json`/`evenements.json`.
+  (contract §0.2 / §14.3) — `world_tick post` doesn't touch `world.json`/`events.json`.
 
 ---
 
@@ -374,7 +374,7 @@ We **add a step 0** (before the existing steps), **guarded** by `meta.hooks.tick
 
 ```diff
  **Protocol — Starting a new session:**
-+0. ✅ **(Living world — if `monde.json > meta.hooks.tick_pre` = true AND `acteurs.json` present)**
++0. ✅ **(Living world — if `world.json > meta.hooks.tick_pre` = true AND `actors.json` present)**
 +   Before any narration, run the **world projection**:
 +   ```
 +   python3 <scripts>/world_tick.py pre <campagne> --apply
@@ -383,12 +383,12 @@ We **add a step 0** (before the existing steps), **guarded** by `meta.hooks.tick
 +     LOD distribution): this is the **opening context** that the world produced **without you**.
 +   - **DO NOT narrate the briefing as-is** to the player: it's a GM sheet. Use it to
 +     know *which clocks are ringing* and *who crosses the player's path*.
-+   - `--apply` persists advances (`acteurs.json`, `evenements_programmes.json`); if unsure, run
++   - `--apply` persists advances (`actors.json`, `scheduled_events.json`); if unsure, run
 +     **without** `--apply` first (dry-run, writes nothing).
 +   - **Player cone (optional):** if you know where the player plans to go, pass it as
 +     `--cone -` (JSON `{"lieux":["lieu:…"],"fenetre":[T0,T1]}` on stdin) to **sharpen** the
 +     intersections. Without a cone, the projection is still valid (global intersections).
-+   - **FAIL-OPEN:** if the script fails / `geo.json` or `acteurs.json` missing → **ignore** and
++   - **FAIL-OPEN:** if the script fails / `geo.json` or `actors.json` missing → **ignore** and
 +     start normally (living world is a bonus, never a game prerequisite).
 +   - **Scene hint (for B1):** once the player has **said where they are** (steps 2–3
 +     below), write their location in `.banquier/scene-<session_id>.json` (`{"lieu_id":"lieu:…"}`)
@@ -411,16 +411,16 @@ We **add a step 0** (before the existing steps), **guarded** by `meta.hooks.tick
   the **world** (actors, clocks). The player's position remains their choice (steps 2–3),
   **then** only recorded as a scene hint. The order is locked to avoid
   reintroducing the "default location" pitfall.
-- **`world_tick pre` is fail-open** (verified: without `evenements_programmes.json`, it prints a
+- **`world_tick pre` is fail-open** (verified: without `scheduled_events.json`, it prints a
   minimal briefing, exit 0). The instruction "ignore if fails" doubles this safeguard procedurally.
 - **Optional cone:** aligns with contract §7.1 (`--cone <file|->`) and the script's `_charger_cone_arg`
   (JSON file or stdin, `None` if absent → global projection).
 
 ---
 
-## 5. Summary of toggles `monde.json > meta.hooks`
+## 5. Summary of toggles `world.json > meta.hooks`
 
-Block to **add** in a campaign's `monde.json` to **activate** the living world (all three
+Block to **add** in a campaign's `world.json` to **activate** the living world (all three
 `false` = current behavior; set them to `true` one by one, in order B4→B3→B2→B1):
 
 ```json
@@ -443,7 +443,7 @@ Block to **add** in a campaign's `monde.json` to **activate** the living world (
 
 > **All defaults are `false`** (cf. B4): *wiring the engine is an explicit,
 > reversible choice per campaign*. Disable = set the toggle to `false` (no data purge:
-> `geo.json`/`acteurs.json`/`evenements_programmes.json` remain in place, simply ignored by
+> `geo.json`/`actors.json`/`scheduled_events.json` remain in place, simply ignored by
 > the loop).
 >
 > **Recommended joint activation:** `tick_pre` + `brief_scene` form the pair "the world
@@ -457,9 +457,9 @@ Block to **add** in a campaign's `monde.json` to **activate** the living world (
 
 - **No runtime file modified by this document.** The diffs above are **proposed**, to
   be applied manually. (Aligns with task instructions and invariant `08`§14.3.)
-- **`monde.json`, `pnj.json`, `evenements.json`** remain **read-only, never written** by the
-  branches. The only writes (B2/B3 `--apply`) target `acteurs.json` and
-  `evenements_programmes.json`, via `world_tick.py` (which already respects this rule).
+- **`world.json`, `npcs.json`, `events.json`** remain **read-only, never written** by the
+  branches. The only writes (B2/B3 `--apply`) target `actors.json` and
+  `scheduled_events.json`, via `world_tick.py` (which already respects this rule).
 - **The turn loop is intact** except for B1: `post_tool_call` (ledger + auto-commit),
   `transform_llm_output` (Steward + judge), `pre_tool_call` — **none** is modified. B1 only adds
   **one** call **after** the historical context (`05`§5: "one extra line").
@@ -478,7 +478,7 @@ Block to **add** in a campaign's `monde.json` to **activate** the living world (
    `["post", str(campagne), …]`, non-blocking). Re-read **§3.4 (argument trap)**.
 4. ☐ **B1** — patch `pre_llm_call.py` (`import subprocess` + `build_scene_brief` +
    `_scene_lieu_courant` + block in `handle`, guarded by `brief_scene`).
-5. ☐ Activate **progressively** in `monde.json > meta.hooks`: `tick_pre` → verify session-start briefing;
+5. ☐ Activate **progressively** in `world.json > meta.hooks`: `tick_pre` → verify session-start briefing;
    `brief_scene` → verify per-turn injection; `tick_post` → verify reconciliation at wrap-up.
 6. ☐ Run existing **tests** (`python3 -m unittest discover` in `scripts/`) **unchanged**:
    the branches don't alter the engine scripts, only their **callers**.

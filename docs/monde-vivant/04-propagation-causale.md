@@ -80,7 +80,7 @@ function propagate(evt, depth = 0):
 ## 3. Scheduled events: cold-zone coherence, free
 
 The cascade doesn't wait for the player: it **writes future dated events** (`status:
-"scheduled"`) in [`evenements.json`](../../data/mj-tonnerre/campagnes/la-naissance-dun-roi/evenements.json).
+"scheduled"`) in [`events.json`](../../data/mj-tonnerre/campaigns/la-naissance-dun-roi/events.json).
 The tick engine **resolves** them when `T` reaches them:
 
 - if the target is **cold** → the event stays a **macro fact** ("Tonnerre experienced a

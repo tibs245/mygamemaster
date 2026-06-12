@@ -16,7 +16,7 @@ While the PC examines an object, talks, or thinks, the NPCs present are not paus
 - ❌ "[NPC A] watches you work. [NPC B] waits for you. [NPC C] too."
 
 **② Personal goals in action**
-Each NPC has documented personal motivations (`motivations_personnelles` in `pnj.json`). They must *show* in his actions, not just in my notes:
+Each NPC has documented personal motivations (`motivations_personnelles` in `npcs.json`). They must *show* in his actions, not just in my notes:
 - An NPC who fears the forest → he glances toward the trees, startles at every sound, suggests retreating
 - An NPC with a mission for his faction → he takes notes, marks landmarks, may want to leave before the others
 - An NPC seeking a better life → he asks questions *on his own*, takes interest in the PC's projects, tests the waters

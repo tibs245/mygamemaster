@@ -40,11 +40,11 @@ the "profiles" functionality (see `profiles-vers-conteneurs.md`).
 | `/opt/modules/gaming/mj-tonnerre*` | our 15 skills | image (COPY modules/) | image, immutable |
 | `/opt/hermes-home/` | **Hermes HOME** : `config.yaml`, `SOUL.md` | Ansible-rendered (config volume) | ephemeral, regenerable |
 | `/opt/hermes-home/memory/` | campaign Hermes memory | **`memory` volume** | **persistent + backed up** |
-| `/opt/data/mj-tonnerre/campagnes/<slug>/` | game data | **`data` volume** | **persistent + backed up** |
+| `/opt/data/mj-tonnerre/campaigns/<slug>/` | game data | **`data` volume** | **persistent + backed up** |
 | `/opt/data/mj-tonnerre/base_items.yaml` | base items (shared) | data volume (or image) | persistent |
 
 `HOME=/opt/hermes-home` is the Hermes anchor. `config.yaml` is read from there; `skills.external_dirs`
-points to `/opt/modules`; `terminal.cwd` points to `/opt/data/mj-tonnerre/campagnes/<slug>`.
+points to `/opt/modules`; `terminal.cwd` points to `/opt/data/mj-tonnerre/campaigns/<slug>`.
 
 ## 3. Configuration Model
 
@@ -52,8 +52,8 @@ points to `/opt/modules`; `terminal.cwd` points to `/opt/data/mj-tonnerre/campag
   `clock.py`, `validate_schema.py`, `close_session.py`…) **within its own container**. No
   Docker-in-Docker: the container IS the sandbox.
 - `skills.external_dirs: [/opt/modules]` — loads our modules in addition to stock skills.
-- `terminal.cwd: /opt/data/mj-tonnerre/campagnes/<slug>` — skill scripts use relative
-  paths `.hermes/mj-tonnerre/campagnes/<x>` **or** read from cwd; we align cwd
+- `terminal.cwd: /opt/data/mj-tonnerre/campaigns/<slug>` — skill scripts use relative
+  paths `.hermes/mj-tonnerre/campaigns/<x>` **or** read from cwd; we align cwd
   with campaign data (borrowed from profile `terminal.cwd` idea).
 - `model.default` + `model.provider: openrouter` — configurable per campaign.
 - `discord.*` block — `require_mention`, `auto_thread`, `history_backfill`… (see original config).

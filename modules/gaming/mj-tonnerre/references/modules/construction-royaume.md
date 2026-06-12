@@ -2,7 +2,7 @@
 
 > **Conditional loading.** This module applies only if the campaign declares `world.json > modules.construction_royaume.active === true`. Relevant for campaigns where PCs build and govern (camp, outpost, village, kingdom).
 >
-> **The concrete campaign parameters are IN THE GAME** : they live in `world.json > systeme.construction_royaume` (type, principle, phases) and `world.json > regles.construction` (resources, first steps, domain state in `etat_global.royaume`). This module describes only the generic framework. This is the **reference for proper separation** already praised by the audit — do not copy values into it.
+> **The concrete campaign parameters are IN THE GAME** : they live in `world.json > system.construction_royaume` (type, principle, phases) and `world.json > rules.construction` (resources, first steps, domain state in `global_state.royaume`). This module describes only the generic framework. This is the **reference for proper separation** already praised by the audit — do not copy values into it.
 
 ## Principle
 
@@ -10,7 +10,7 @@ Domain construction transforms the PC from an adventurer into a builder: their d
 - **Narrative and diplomatic** — no resource table; each choice has visible consequences
 - **Numerical / management** — resources, population, treasure tracked numerically
 
-## Generic Phases (to be overridden by `systeme.construction_royaume.phases`)
+## Generic Phases (to be overridden by `system.construction_royaume.phases`)
 
 1. **Establish a camp** — first shelter, first fire, secure a point
 2. **Build a permanent outpost** — durable structures, first settlers
@@ -20,7 +20,7 @@ Domain construction transforms the PC from an adventurer into a builder: their d
 
 ## Domain State Tracking
 
-The living state of the domain is maintained in `world.json > etat_global` (e.g. `royaume` / `phase_construction`) with, depending on the type:
+The living state of the domain is maintained in `world.json > global_state` (e.g. `royaume` / `phase_construction`) with, depending on the type:
 - `nom`, `taille`, `population`, `tresor`/resources, `influence`
 - Progress of ongoing constructions (narrative or numerical sliders)
 

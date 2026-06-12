@@ -26,8 +26,8 @@ The choice of level depends on the importance of the NPC and the need for autono
 ## Level 0 — GM only (zero tokens)
 
 **How it works:**
-- The GM reads the NPC sheet in `pnj.json` (already loaded in context)
-- The GM improvises dialogue while respecting the NPC's `faits_etablis` (established facts)
+- The GM reads the NPC sheet in `npcs.json` (already loaded in context)
+- The GM improvises dialogue while respecting the NPC's `established_facts` (established facts)
 - The **Steward** validates (Check 1 — SOURCE) that the GM is not inventing facts the NPC doesn't know
 
 **Cost:** 0 tokens (the GM already has the files in context)
@@ -45,8 +45,8 @@ The choice of level depends on the importance of the NPC and the need for autono
 
 **How it works:**
 1. The GM calls `build_brief.py <campaign> <npc_name> --cache`
-   - Extracts from `pnj.json`: identity, faits_etablis, limits, inventory, skills, stats
-   - **Built-in cache**: checks MD5 checksum of `pnj.json` → if unchanged, uses stored cache
+   - Extracts from `npcs.json`: identity, established_facts, limits, inventory, skills, stats
+   - **Built-in cache**: checks MD5 checksum of `npcs.json` → if unchanged, uses stored cache
    - Cost: ~637 tokens for a typical NPC (Firmin)
 2. The GM builds the scene context (1-2 sentences)
 3. Direct call to a flash LLM (`deepseek/deepseek-v4-flash:free`) — **no Hermes profile**
@@ -59,8 +59,8 @@ The choice of level depends on the importance of the NPC and the need for autono
 **For which NPCs:** Recurring NPCs (Firmin, Berthe, Rousset, Drageon)
 
 **Cache:** The brief is stored in `~/.hermes/mj-tonnerre/cache-briefs/brief_<campaign>_<npc>.json`
-- MD5 checksum of `pnj.json` → automatic HIT/MISS
-- If `pnj.json` modified (new established fact) → MISS, regeneration
+- MD5 checksum of `npcs.json` → automatic HIT/MISS
+- If `npcs.json` modified (new established fact) → MISS, regeneration
 - If unchanged → HIT, cache use = zero re-read tokens
 
 **Scripts:** `scripts/build_brief.py`, `scripts/call_pnj.py`
@@ -113,8 +113,8 @@ profiles/pnj-firmin/
 ```
 1. GM: "I need Firmin to respond to Rubis"
 2. GM calls: python3 build_brief.py <campaign> Firmin --cache
-   → Cache HIT (pnj.json unchanged) → brief in 0 tokens
-   → Cache MISS (pnj.json modified) → regeneration, cache update
+   → Cache HIT (npcs.json unchanged) → brief in 0 tokens
+   → Cache MISS (npcs.json modified) → regeneration, cache update
 3. GM builds context: "You walk with Rubis... They ask you..."
 4. LLM call: prompt = brief + context + rules
 5. LLM returns: 🎭 RP / 🎯 INTENTION / ❓ TO GM / 🔒 NOTES
@@ -126,7 +126,7 @@ profiles/pnj-firmin/
 8. If ❌ REJECTED → GM corrects or replays
 ```
 
-**Pitfall confirmed by simulation:** In N1, the LLM invented "I passed through there once, years ago" even though this fact is not in Firmin's `faits_etablis` (established facts).
+**Pitfall confirmed by simulation:** In N1, the LLM invented "I passed through there once, years ago" even though this fact is not in Firmin's `established_facts` (established facts).
 → **The Steward Check 1 blocked** this invention.
 → The Steward architecture is therefore **necessary** as complement to N1/N2.
 
@@ -151,7 +151,7 @@ profiles/pnj-firmin/
 ## Dependencies
 
 - **Transactional Steward** : `mj-tonnerre-intendant` — validation of 3 checks (source, transfer, coherence)
-- **Brief cache** : `scripts/build_brief.py` — MD5-cached extraction from pnj.json
+- **Brief cache** : `scripts/build_brief.py` — MD5-cached extraction from npcs.json
 - **N1 call** : `scripts/call_pnj.py` — prompt construction + LLM call (dry-run/live)
 - **N2 profile** : `profiles/pnj-<slug>/` — minimal structure with linked skills (not copied)
 
@@ -162,5 +162,5 @@ profiles/pnj-firmin/
 | Copy the 28 skills into each agent profile | Create a symbolic link `skills → /opt/data/skills` |
 | Let the N1/N2 LLM speak without Steward verification | Always pass through Check 1 (SOURCE) after LLM response |
 | Use N2 for an NPC who speaks once | N0 is enough. Reserve N2 for NPCs with cross-session continuity |
-| Call the LLM without the NPC's brief | The brief (faits_etablis) is the single source of truth for what the NPC knows |
+| Call the LLM without the NPC's brief | The brief (established_facts) is the single source of truth for what the NPC knows |
 | Store the NPC's brief in the GM's volatile memory | The MD5 cache is the source of truth — agent memory is not reliable |

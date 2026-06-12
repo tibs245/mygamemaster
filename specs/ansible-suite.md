@@ -24,7 +24,7 @@
 inventory/
 ├── games.example.yml             # committed example — copy to games.yml to get started
 ├── games.yml                     # YOUR real table (git-ignored) — one row per game
-├── hermes_inventory.py           # dynamic inventory: reads games.yml → campagnes group
+├── hermes_inventory.py           # dynamic inventory: reads games.yml → campaigns group
 ├── group_vars/all/
 │   ├── main.yml                  # global defaults (image, paths, default model, feature flags)
 │   └── vault.yml                 # SECRETS encrypted with ansible-vault
@@ -35,7 +35,7 @@ inventory/
 
 `ansible.cfg` sets `inventory = inventory/hermes_inventory.py`. The script reads
 `games.yml` (falling back to `games.example.yml` if it does not exist yet) and exposes every
-entry under `games:` as an Ansible host in the `campagnes` group. The shared `connection:` block
+entry under `games:` as an Ansible host in the `campaigns` group. The shared `connection:` block
 is mapped to Ansible connection variables for the whole group.
 
 **To add a campaign: append ONE entry to `games.yml` and add its Discord token to the vault.
@@ -54,7 +54,7 @@ connection:
 
 games:
   - slug: mistfall                # short id → container / volumes / unit / env file
-    data_dir: example-mistfall    # folder under data/mj-tonnerre/campagnes/
+    data_dir: example-mistfall    # folder under data/mj-tonnerre/campaigns/
     title: "Mistfall"
     model: minimax/minimax-m3     # LLM model id (OpenRouter format)
     provider: openrouter
@@ -90,7 +90,7 @@ previous system.
 hermes_image_name: hermes-mj
 hermes_image_tag: latest
 hermes_base_image: docker.io/nikolaik/python-nodejs:python3.11-nodejs20
-container_data_root: /opt/data/mj-tonnerre/campagnes   # inside the container
+container_data_root: /opt/data/mj-tonnerre/campaigns   # inside the container
 container_home: /opt/hermes-home                        # inside the container
 repo_root: "{{ playbook_dir | dirname | dirname }}"    # mono-repo root
 backups_dir: "{{ repo_root }}/backups"
@@ -131,7 +131,7 @@ single aspect to be updated without replaying everything:
    deployment host.
 3. Create (if absent) the volumes `hermes-<deploy_id>-data` and `hermes-<deploy_id>-home`.
 4. **Initial data seed**: if the data volume is empty, copy
-   `data/mj-tonnerre/campagnes/<campagne_data_dir>/` into it (first deployment only).
+   `data/mj-tonnerre/campaigns/<campagne_data_dir>/` into it (first deployment only).
 5. Generate the Quadlet unit
    `~/.config/containers/systemd/hermes-<deploy_id>.container`.
 6. `systemctl --user daemon-reload` + `systemctl --user start hermes-<deploy_id>` (handler).
@@ -185,7 +185,7 @@ The per-campaign `.env` file (secrets resolved from the vault) is written at `06
 | `backup.yml` | `hermes_backup` | `… backup.yml` or `… backup.yml -e game=mistfall` |
 | `restore.yml` | `hermes_restore` | `… restore.yml -e game=mistfall -e snapshot=<file>` |
 | `redeploy.yml` | `hermes_image` + `hermes_deploy` | rebuild then redeploy (volumes preserved) |
-| `smoke-test.yml` | ad hoc | start, verify `hermes --version`, skills listed, `monde.json` readable |
+| `smoke-test.yml` | ad hoc | start, verify `hermes --version`, skills listed, `world.json` readable |
 | `update-config.yml` | `hermes_deploy` (`tasks_from: config`) | re-render config+SOUL, restart — no rebuild |
 | `update-credentials.yml` | `hermes_deploy` (`tasks_from: credentials`) | rewrite the `.env` from vault, restart |
 | `update-modules.yml` | `import_playbook: redeploy.yml` | rebuild image + recreate (explicit alias) |

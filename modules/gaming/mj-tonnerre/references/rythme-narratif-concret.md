@@ -49,4 +49,4 @@ GM: "The Douce flows before you, the traps are further down on the left bank.
 If an NPC needs to carry something but doesn't have the object in their sheet:
 - ✅ The NPC uses what they have: their blanket spread on the ground serves as a gathering mat
 - ❌ The NPC pulls out an "empty canvas sack" that doesn't exist in their inventory
-- ✅ Check in `pnj.json > inventaire` and `inventaire_<lieu>.contenu` before each interaction
+- ✅ Check in `npcs.json > inventory` and `inventaire_<lieu>.contenu` before each interaction

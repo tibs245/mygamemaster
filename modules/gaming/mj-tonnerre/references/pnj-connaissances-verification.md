@@ -17,9 +17,9 @@ He fell asleep ON the outer slab and woke up INSIDE.
 Before having an NPC speak about a location/artifact from their past:
 
 1. [ ] Has the NPC already visited this location?
-   → Check `pnj.json > faits_etablis` + `sessions/NNN.json`
+   → Check `npcs.json > established_facts` + `sessions/NNN.json`
 2. [ ] Did the artifact exist at that time?
-   → Check `monde.json > artefacts_connus`
+   → Check `world.json > artefacts_connus`
 3. [ ] Would the NPC have had a reason not to mention it before?
 4. [ ] Does the attributed knowledge contradict an established fact or hypothesis?
 5. [ ] Can it be rephrased to avoid the inconsistency?

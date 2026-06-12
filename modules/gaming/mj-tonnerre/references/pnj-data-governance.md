@@ -2,7 +2,7 @@
 
 ## Context
 
-A recurring NPC (2+ sessions or ally/companion) must have a structured record in `pnj.json` — not just informal GM notes. The classic mistake is writing a personal deduction as if it were an established fact.
+A recurring NPC (2+ sessions or ally/companion) must have a structured record in `npcs.json` — not just informal GM notes. The classic mistake is writing a personal deduction as if it were an established fact.
 
 ## Mandatory NPC Record Structure
 

@@ -107,3 +107,25 @@ The following French identifiers are **intentionally not** renamed in this pass
 
 These can be addressed in a follow-up; none affects the renames above, which are
 internally consistent (producers and consumers agree) and test-guarded.
+
+## Agent-facing documentation updated (follow-up pass)
+
+A second pass updated all **agent-facing SKILL.md files** and **docs/*** to point at
+the renamed identifiers. Files updated include:
+
+- `modules/gaming/mj-tonnerre*/SKILL.md` (all 15 skill modules) — file paths,
+  JSON key paths, and template field names now use the English identifiers.
+- `docs/AI-ONBOARDING-PROMPT.md`, `docs/CREATE-A-GAME.md`, `docs/MIGRATION-rename-fr-en.md`
+  — path references updated.
+- `docs/monde-vivant/**` — all 11 living-world architecture docs updated.
+- `docs/09-hooks-runtime.md`, `docs/02-deployer-une-campagne.md`,
+  `docs/03-backup-et-restauration.md`, and other operator docs.
+- `specs/hooks-runtime.md`, `specs/modele-de-donnees-campagne.md`,
+  `specs/ansible-suite.md`.
+- `modules/gaming/mj-tonnerre/references/**` — all reference docs updated.
+- `modules/gaming/mj-tonnerre/scripts/validate_schema.py` — help text updated
+  (`--schema monde` → `--schema world`; `monde|pnj|personnage|session` →
+  `world|npcs|character|session`).
+- `CONTRIBUTING.md` — "Keys stay as-is (French)" note rewritten to reflect
+  reality: structural identifiers are now English; intentionally-French cascade
+  keys are listed explicitly.

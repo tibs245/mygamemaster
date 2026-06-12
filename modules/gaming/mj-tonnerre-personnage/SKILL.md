@@ -37,27 +37,27 @@ Each player has ONE file. The filename = their Discord ID (ex: `1234567890123456
 ```json
 {
   "meta": {
-    "nom_joueur": "",
+    "player_name": "",
     "discord_id": "",
-    "nom_perso": "",
+    "character_name": "",
     "race": "",
-    "classe": "",
-    "niveau": 1
+    "class_": "",
+    "level": 1
   },
   "stats": {},
-  "equipement": [],
-  "inventaire": [],
-  "competences": [],
-  "sorts": [],
+  "equipment": [],
+  "inventory": [],
+  "skills": [],
+  "spells": [],
   "historique": [
     "Entry added automatically during migration — traceable",
     "Each entry is a persistent fact or event of the character"
   ],
-  "notes_perso": {
+  "personal_notes": {
     "objectifs": [],
     "relations": {
       "<nom>": {
-        "niveau": "Unknown|Acquaintance|Ally|Friend|Close|Wary|Hostile|Enemy",
+        "level": "Unknown|Acquaintance|Ally|Friend|Close|Wary|Hostile|Enemy",
         "description": ""
       }
     },
@@ -67,15 +67,15 @@ Each player has ONE file. The filename = their Discord ID (ex: `1234567890123456
   "notes_privees": [
     "(private layer — character's inner thoughts, seeded by the GM or persisted by the coordinator)"
   ],
-  "sante": {
-    "pv_max": 10,
-    "pv_actuels": 10,
-    "blessures": [],
-    "etats": []
+  "health": {
+    "hp_max": 10,
+    "hp_current": 10,
+    "wounds": [],
+    "conditions": []
   },
   "progression": {
     "xp": 0,
-    "niveau_suivant": 100
+    "next_level": 100
   },
   "session_id": ""
 }
@@ -94,8 +94,8 @@ Each player has ONE file. The filename = their Discord ID (ex: `1234567890123456
 
 When you **modify** an existing sheet (HP update, inventory, level, etc.), **add missing fields at the same time** :
 
-1. ✅ **Keep** all existing fields (`meta`, `stats`, `equipement`, `inventaire`, etc.)
-2. ✅ **Add** `historique` if absent → populate from `world.json > etat_global.chronologie` and session logs
+1. ✅ **Keep** all existing fields (`meta`, `stats`, `equipment`, `inventory`, etc.)
+2. ✅ **Add** `historique` if absent → populate from `world.json > global_state.chronologie` and session logs
 3. ✅ **Add** `connaissances_privees` and `notes_privees` if absent → leave them empty (`[]`)
 4. ✅ **Add** `session_id` if absent → leave empty (`""`) — filled when a dedicated level-2 agent session (NPC/Faction) is created for this character
 5. ❌ **Don't** rewrite the entire sheet — only touch modified fields + add missing ones
@@ -163,21 +163,21 @@ When you **modify** an existing sheet (HP update, inventory, level, etc.), **add
 | Command | Effect |
 |----------|--------|
 | `!char strength 16` | Sets `stats.strength = 16` |
-| `!char hp -8` | Reduces `sante.pv_actuels` by 8 |
-| `!char hp +5` | Increases `sante.pv_actuels` by 5 |
-| `!char hp 20` | Sets `sante.pv_actuels` to 20 (validated against hp_max) |
-| `!char hp_max 25` | Sets `sante.pv_max = 25` |
-| `!char class "Arcane Rogue"` | Sets `meta.classe` (strings in quotes) |
-| `!char spell "Fireball" add` | Adds `"Fireball"` to `sorts[]` |
-| `!char spell "Fireball" remove` | Removes `"Fireball"` from `sorts[]` |
-| `!char equip "Longsword" add` | Adds to `equipement[]` |
-| `!char equip "Longsword" remove` | Removes from `equipement[]` |
-| `!char skill "Stealth +2" add` | Adds to `competences[]` |
-| `!char skill "Stealth +2" remove` | Removes from `competences[]` |
-| `!char level 3` | Sets `meta.niveau = 3` |
+| `!char hp -8` | Reduces `health.hp_current` by 8 |
+| `!char hp +5` | Increases `health.hp_current` by 5 |
+| `!char hp 20` | Sets `health.hp_current` to 20 (validated against hp_max) |
+| `!char hp_max 25` | Sets `health.hp_max = 25` |
+| `!char class "Arcane Rogue"` | Sets `meta.class_` (strings in quotes) |
+| `!char spell "Fireball" add` | Adds `"Fireball"` to `spells[]` |
+| `!char spell "Fireball" remove` | Removes `"Fireball"` from `spells[]` |
+| `!char equip "Longsword" add` | Adds to `equipment[]` |
+| `!char equip "Longsword" remove` | Removes from `equipment[]` |
+| `!char skill "Stealth +2" add` | Adds to `skills[]` |
+| `!char skill "Stealth +2" remove` | Removes from `skills[]` |
+| `!char level 3` | Sets `meta.level = 3` |
 | `!char xp 150` | Sets `progression.xp = 150` |
-| `!char state "Poisoned" add` | Adds to `sante.etats[]` |
-| `!char state "Poisoned" remove` | Removes from `sante.etats[]` |
+| `!char state "Poisoned" add` | Adds to `health.conditions[]` |
+| `!char state "Poisoned" remove` | Removes from `health.conditions[]` |
 | `!char name "New Name"` | Changes character name (rarely used, typically init) |
 
 **Recognized Attributes (auto-mapping):**
@@ -185,23 +185,23 @@ When you **modify** an existing sheet (HP update, inventory, level, etc.), **add
 | Keyword | JSON Path | Type |
 |---------|-----------|------|
 | `strength`, `dex`, `constitution`, `intelligence`, `wisdom`, `charisma`, etc. (anything not reserved) | `stats.<word>` | number |
-| `hp` | `sante.pv_actuels` | number |
-| `hp_max` | `sante.pv_max` | number |
-| `class` | `meta.classe` | string |
+| `hp` | `health.hp_current` | number |
+| `hp_max` | `health.hp_max` | number |
+| `class` | `meta.class_` | string |
 | `race` | `meta.race` | string |
-| `name` | `meta.nom_perso` | string |
-| `level` | `meta.niveau` | number (≥1) |
+| `name` | `meta.character_name` | string |
+| `level` | `meta.level` | number (≥1) |
 | `xp` | `progression.xp` | number (≥0) |
-| `next_level` | `progression.niveau_suivant` | number |
-| `spell` | `sorts[]` | array operation |
-| `equip` | `equipement[]` | array operation |
-| `skill` | `competences[]` | array operation |
-| `inventory` | `inventaire[]` | array operation |
-| `state` | `sante.etats[]` | array operation |
-| `wound` | `sante.blessures[]` | array operation |
-| `goal` | `notes_perso.objectifs[]` | array operation |
-| `relation` | `notes_perso.relations` | key:value |
-| `secret` | `notes_perso.secrets[]` | array operation |
+| `next_level` | `progression.next_level` | number |
+| `spell` | `spells[]` | array operation |
+| `equip` | `equipment[]` | array operation |
+| `skill` | `skills[]` | array operation |
+| `inventory` | `inventory[]` | array operation |
+| `state` | `health.conditions[]` | array operation |
+| `wound` | `health.wounds[]` | array operation |
+| `goal` | `personal_notes.objectifs[]` | array operation |
+| `relation` | `personal_notes.relations` | key:value |
+| `secret` | `personal_notes.secrets[]` | array operation |
 
 ---
 
@@ -212,7 +212,7 @@ When you **modify** an existing sheet (HP update, inventory, level, etc.), **add
 **Flow:**
 
 1. Load the player's sheet
-2. Extract `notes_perso`
+2. Extract `personal_notes`
 3. Always spoilered in public channel (or offer DM)
 
 **Display Format:**
@@ -243,8 +243,8 @@ If empty: *"You haven't noted anything yet. Use `!char goal "..." add` to get st
 
 | Rule | Detail |
 |-------|--------|
-| **Max HP** | `pv_actuels` cannot exceed `pv_max` (except temporary effect → add to `states`). Message if exceeded: *"Your max HP is {max}. Cannot exceed this limit."* |
-| **Negative HP** | `pv_actuels` can drop to minimum 0 (no negative HP except custom system). If ≤ 0 → automatically add `unconscious` state to `sante.etats`. Message: *"💀 {Name} drops to 0 HP and loses consciousness!"* |
+| **Max HP** | `hp_current` cannot exceed `hp_max` (except temporary effect → add to `states`). Message if exceeded: *"Your max HP is {max}. Cannot exceed this limit."* |
+| **Negative HP** | `hp_current` can drop to minimum 0 (no negative HP except custom system). If ≤ 0 → automatically add `unconscious` state to `health.conditions`. Message: *"💀 {Name} drops to 0 HP and loses consciousness!"* |
 | **Level** | Cannot drop below 1. Message: *"Minimum level is 1."* |
 | **XP** | Cannot be negative. If XP ≥ `next_level` → suggest leveling up. *"⚡ You have enough XP to reach level {n+1}! Use `!char level {n+1}` if you want to level up."* |
 | **Stats** | Stat values must be numeric. If value is not a number → *"Value must be a number. Ex: `!char strength 16`"* |
@@ -332,4 +332,4 @@ This skill is a sub-skill of `mj-tonnerre`. It loads automatically when the trig
 | Creating a sheet under the wrong ID then needing to move/delete it | Check: *"Your Discord ID is really XXXXX?"* before writing the file |
 | **❗ Making up stats for an existing character** — The GM creates a sheet for an already-played character without checking if stats already exist (agent memory, player messages, prior conversation). Ex.: creating [the PC] with [stats A] when the player had defined it with [stats B] earlier. Critical error. | **BEFORE creating or modifying a PC sheet, check IN ORDER:** (1) Agent memory — are stats recorded there? (2) Player messages in history — have they already mentioned stats, class, or inventory? (3) File on disk — does `characters/<discord_id>.json` exist? If yes → read it, don't recreate it. (4) Campaign repo git logs (`git log --all --diff-filter=A -- 'characters/*.json'`) — did a sheet exist then get deleted? If nothing found → ASK the player: "What are your character's stats?" NEVER start from an empty template. NEVER make up stats. |
 | **❗ Using the sheet without player confirmation** — The GM narrates actions assuming PC stats without validating them with the player. | After creating or updating a sheet, confirm the stats with the player BEFORE using them in narration. A simple "Here's your sheet, is this right?" is enough. |
-| **❗ NPC and location inventory not documented** — The GM tracks the PC's inventory but forgets that of accompanying NPCs and inhabited locations. Inconsistency guaranteed. | **Requirement:** Each recurring NPC (2+ sessions) has an `inventaire` field (free strings) in npc.json. Each key location (cabin, camp, base) has an `inventaire_<location>` field (ex. `inventaire_cabane`) = `{description, contents[]}`. Update with each transfer (via Steward). See `mj-tonnerre-inventory`. |
+| **❗ NPC and location inventory not documented** — The GM tracks the PC's inventory but forgets that of accompanying NPCs and inhabited locations. Inconsistency guaranteed. | **Requirement:** Each recurring NPC (2+ sessions) has an `inventory` field (free strings) in npc.json. Each key location (cabin, camp, base) has an `inventaire_<location>` field (ex. `inventaire_cabane`) = `{description, contents[]}`. Update with each transfer (via Steward). See `mj-tonnerre-inventory`. |

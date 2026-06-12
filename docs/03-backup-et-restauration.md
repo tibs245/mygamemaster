@@ -6,7 +6,7 @@ Each campaign has **two** persistent stores (Podman volumes, isolated per `deplo
 
 | Volume | Mounted at | Contents | Backed up by |
 |---|---|---|---|
-| `hermes-<id>-data` | `/opt/data/mj-tonnerre/campagnes` | **Game data**: `monde.json`, `pnj.json`, `personnages/`, `sessions/`, `evenements.json`, `geo.json`, `images/`, `collecte.csv`, **`.banquier/`** (ledger + snapshots) | volume export → `tar.gz` |
+| `hermes-<id>-data` | `/opt/data/mj-tonnerre/campaigns` | **Game data**: `world.json`, `npcs.json`, `characters/`, `sessions/`, `events.json`, `geo.json`, `images/`, `collecte.csv`, **`.banquier/`** (ledger + snapshots) | volume export → `tar.gz` |
 | `hermes-<id>-home` | `/opt/hermes-home` (all of `HERMES_HOME`) | **Agent state / memory**: `state.db`, `memories/`, Hermes `sessions/`, `kanban.db`, gateway state | `hermes backup` → `zip` (hot, consistent) |
 
 > **Note**: the full `HERMES_HOME` is mounted (not just the `memory/` subdirectory). The old
@@ -140,7 +140,7 @@ podman run --rm -v hermes-mistfall-data:/d:ro,Z \
   sh -c "cp -a /d/. /out/"
 ```
 
-> **Initial data** remains versioned in `data/mj-tonnerre/campagnes/<data_dir>/` (the seed).
+> **Initial data** remains versioned in `data/mj-tonnerre/campaigns/<data_dir>/` (the seed).
 > **Live data** (modified during play) is in the volume — **backups are the source of truth**.
 
 ## Recommended strategy

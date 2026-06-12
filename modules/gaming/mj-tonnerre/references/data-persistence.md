@@ -10,20 +10,20 @@
 
 After each significant narrative action (NPC dialogue, discovery, combat, event), verify:
 
-- [ ] `pnj.json` — every new NPC named, described, with their role, attitude, location
-- [ ] `monde.json` — every new location visited or mentioned added to `regions` or `lieux`
-- [ ] **`monde.json > regles.temps.suivi`** — game time elapsed? rations consumed? mission constraint advanced?
-- [ ] `personnages/<id>.json` — equipment updated, `notes_perso.relations` enriched, `notes_perso.secrets` if new personal info, **rations deducted if the day changed**
+- [ ] `npcs.json` — every new NPC named, described, with their role, attitude, location
+- [ ] `world.json` — every new location visited or mentioned added to `regions` or `lieux`
+- [ ] **`world.json > rules.temps.suivi`** — game time elapsed? rations consumed? mission constraint advanced?
+- [ ] `characters/<id>.json` — equipment updated, `personal_notes.relations` enriched, `personal_notes.secrets` if new personal info, **rations deducted if the day changed**
 - [ ] `sessions/NNN.json` — action logged in `actions[]`, NPC in `pnj_rencontres[]`, location in `lieux_visites[]`
 
 ## Common Pitfalls
 
 | ❌ Pitfall | ✅ Fix |
 |----------|--------|
-| Create an NPC in narration without saving it to `pnj.json` | Save immediately after first mention |
+| Create an NPC in narration without saving it to `npcs.json` | Save immediately after first mention |
 | Give equipment without updating the character sheet | Patch `equipement[]` right away |
-| Establish a relationship between PC/NPC without writing it in `notes_perso.relations` | Add to the relations in the relevant character sheets |
-| Narrate a flashback/background without adding it to `notes_perso.secrets` | Log in the character's secrets |
+| Establish a relationship between PC/NPC without writing it in `personal_notes.relations` | Add to the relations in the relevant character sheets |
+| Narrate a flashback/background without adding it to `personal_notes.secrets` | Log in the character's secrets |
 | Forget to log an action in `sessions/NNN.json > actions[]` | Log immediately after resolution |
 
 ## Why This Matters
@@ -67,12 +67,12 @@ Campaign files are versioned to enable rollback and history.
 cd ~/.hermes/mj-tonnerre/
 git init
 echo -e "*.log\n.env\n__pycache__/\n*.pyc\n.DS_Store" > .gitignore
-git add .gitignore campagnes/
+git add .gitignore campaigns/
 git commit -m "Initialize MJ Tonnerre — campaign <name>"
 
 # After each session
 cd ~/.hermes/mj-tonnerre/
-git add campagnes/<campaign-name>/
+git add campaigns/<campaign-name>/
 git commit -m "🎲 <Campaign Name> — Session <N> wrapped: <episode title>"
 
 # Verification
@@ -81,9 +81,9 @@ git status  # should display "nothing to commit, working tree clean"
 
 ### What Gets Committed
 
-- `monde.json` — world, rules, chronology, secrets
-- `pnj.json` — all NPCs
-- `personnages/<id>.json` — player character sheets
+- `world.json` — world, rules, chronology, secrets
+- `npcs.json` — all NPCs
+- `characters/<id>.json` — player character sheets
 - `sessions/NNN.json` — session logs
 - `images/` — generated illustrations (portraits, maps, scenes)
 
@@ -116,10 +116,10 @@ Exit codes: `0` = OK, `1` = deviation detected, `2` = usage error. **NEVER commi
 
 ## Apple Double Artifacts (`._*`)
 
-On macOS, copying/moving a file into a non-native folder creates a **ghost file** `._<name>` (e.g., `._monde.json`) that stores metadata. These files:
+On macOS, copying/moving a file into a non-native folder creates a **ghost file** `._<name>` (e.g., `._world.json`) that stores metadata. These files:
 
 - **pollute git** (committed by mistake, they create noise),
-- **break scripts** that iterate over `*.json` (`._monde.json` is NOT valid JSON → false positive validation).
+- **break scripts** that iterate over `*.json` (`._world.json` is NOT valid JSON → false positive validation).
 
 ### Rules
 
@@ -136,9 +136,9 @@ Recommended addition to `.gitignore` (see Versioning section):
 
 ---
 
-## Movement Governance — `deplacements.gouvernance`
+## Movement Governance — `movements.gouvernance`
 
-The `regles.temps.deplacements.gouvernance` block is **injected at campaign creation** (do NOT copy it by hand). It encodes the **4 spatial coherence rules** that `validator-distances.py` verifies after each route is added:
+The `rules.temps.movements.gouvernance` block is **injected at campaign creation** (do NOT copy it by hand). It encodes the **4 spatial coherence rules** that `validator-distances.py` verifies after each route is added:
 
 1. **Fixed durations** — once set, the duration of a journey does not change without explicit narrative reason.
 2. **Indirect ≥ direct** — a journey passing through an intermediate point takes at least as long as the direct route between the same two endpoints.
@@ -148,15 +148,15 @@ The `regles.temps.deplacements.gouvernance` block is **injected at campaign crea
 ### Template (reference — already injected at creation)
 
 ```json
-"deplacements": {
+"movements": {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "durees_fixes: une durée figée ne change pas sans justification narrative",
       "indirect_superieur_ou_egal_direct",
       "allers_simples: aller-retour + travail <= 12h (journée jouable)",
       "point_lointain_superieur_ou_egal_point_proche"
     ],
-    "validation": "python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <campaign>/monde.json"
+    "validation": "python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <campaign>/world.json"
   },
   "depuis_<base_location>_vers": {
     "<destination>": "<duration> — <path description>"
@@ -170,8 +170,8 @@ The `regles.temps.deplacements.gouvernance` block is **injected at campaign crea
 ### Verification
 
 ```bash
-python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <path/campaign>/monde.json
+python3 /opt/modules/gaming/mj-tonnerre/scripts/validator-distances.py <path/campaign>/world.json
 # → 0 OK, 1 warning (inconsistent route), 2 error
 ```
 
-Run **after every route addition** in `regles.temps.deplacements`. If a route breaks one of the 4 rules, correct the duration or document the narrative reason before committing.
+Run **after every route addition** in `rules.temps.movements`. If a route breaks one of the 4 rules, correct the duration or document the narrative reason before committing.

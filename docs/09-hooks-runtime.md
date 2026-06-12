@@ -18,7 +18,7 @@
 
 ## Enabling / disabling
 
-Everything is configured in `monde.json > meta` for the campaign (no redeploy needed for
+Everything is configured in `world.json > meta` for the campaign (no redeploy needed for
 toggles — read live):
 
 ```jsonc

@@ -1,6 +1,6 @@
 # ✅ INFO Level — PC-Focused Summary (DEFAULT)
 
-> ℹ️ **The `transform_llm_output` hook generates this block automatically** (labeled `✅ Persisted Information:` when `meta.verbosite=INFO`). Format reference below = fallback (hook disabled / bypass `⏸️`).
+> ℹ️ **The `transform_llm_output` hook generates this block automatically** (labeled `✅ Persisted Information:` when `meta.verbosity=INFO`). Format reference below = fallback (hook disabled / bypass `⏸️`).
 
 > **Usage:** Normal play. The Steward reports what directly concerns the player.
 > **Reported:** PC-related transactions + persisted data (inventory, stats, weather, time). **Not reported:** Internal checks, purely technical operations.

@@ -49,7 +49,7 @@ Declared action → Verification → Validation → Application
 |---|---|
 | **Transaction** | Transfer of a resource from a source entity to a target entity |
 | **Resource** | Object, knowledge, time, HP, state, position |
-| **Entity** | PC (personnages/<id>.json), NPC (pnj.json), Location (monde.json > univers.regions[].lieux) |
+| **Entity** | PC (characters/<id>.json), NPC (npcs.json), Location (world.json > universe.regions[].lieux) |
 
 **The Steward never creates narrative content.** It verifies, applies, or refuses. Period.
 
@@ -63,19 +63,19 @@ For every declared action, the Steward applies 3 checks in order:
 
 | Resource type | Source to verify | Example |
 |---|---|---|
-| Object | `inventory[]` of the entity (PC in personnages/<id>.json, NPC in pnj.json) | Does [the PC] have a sausage? |
-| Knowledge | `faits_etablis[]` or `connaissances_privees` of the NPC (pnj.json) | Does [NPC] know [a location]? |
-| HP / Health | `sante.pv_actuels`, `etats[]` (PC sheet) | Does [the PC] have enough HP to walk? |
-| Position | `localisation_actuelle` (pnj.json) | Is [NPC] at [a location]? |
-| Time | `regles.temps.suivi.jour_courant` + `heure_courante` (monde.json) | Is enough time available? |
-| Hard line | `limites.lignes_rouges[]` (pnj.json) | Does the action violate an NPC's limit? |
-| **Named NPCs** (mentioned in PC or NPC dialogue) | Verify if the name exists in `pnj.json`. If absent → 🔍 INSUFFICIENTLY DOCUMENTED | [NPC A] mentions « [NPC B], [NPC C], [NPC D] » → verify existence in pnj.json |
+| Object | `inventory[]` of the entity (PC in characters/<id>.json, NPC in npcs.json) | Does [the PC] have a sausage? |
+| Knowledge | `established_facts[]` or `connaissances_privees` of the NPC (npcs.json) | Does [NPC] know [a location]? |
+| HP / Health | `health.hp_current`, `conditions[]` (PC sheet) | Does [the PC] have enough HP to walk? |
+| Position | `localisation_actuelle` (npcs.json) | Is [NPC] at [a location]? |
+| Time | `rules.temps.suivi.jour_courant` + `heure_courante` (world.json) | Is enough time available? |
+| Hard line | `limites.lignes_rouges[]` (npcs.json) | Does the action violate an NPC's limit? |
+| **Named NPCs** (mentioned in PC or NPC dialogue) | Verify if the name exists in `npcs.json`. If absent → 🔍 INSUFFICIENTLY DOCUMENTED | [NPC A] mentions « [NPC B], [NPC C], [NPC D] » → verify existence in npcs.json |
 
 **If the resource does not exist → REFUSAL or 🔍 INSUFFICIENTLY DOCUMENTED:**
-> ❌ *Inventory: [the PC] does not have a sausage. Source: personnages/<id>.json → inventory[]*
-> ❌ *Knowledge: [NPC] does not know that. Source: pnj.json → [NPC] → faits_etablis[] + connaissances_privees*
-> ❌ *Hard line: [NPC] does not kill innocents. Source: pnj.json → [NPC] → limites.lignes_rouges[0]*
-> 🔍 *Named NPC: « [NPC B] » mentioned by [NPC A] but absent from pnj.json. Source: pnj.json → . No entry found. → Document as NPC of [a faction] or flag as narrative invention.*
+> ❌ *Inventory: [the PC] does not have a sausage. Source: characters/<id>.json → inventory[]*
+> ❌ *Knowledge: [NPC] does not know that. Source: npcs.json → [NPC] → established_facts[] + connaissances_privees*
+> ❌ *Hard line: [NPC] does not kill innocents. Source: npcs.json → [NPC] → limites.lignes_rouges[0]*
+> 🔍 *Named NPC: « [NPC B] » mentioned by [NPC A] but absent from npcs.json. Source: npcs.json → . No entry found. → Document as NPC of [a faction] or flag as narrative invention.*
 
 ### Check 2 — TRANSFER: Is the action mechanically valid?
 
@@ -83,32 +83,32 @@ For every declared action, the Steward applies 3 checks in order:
 |---|---|
 | Eat / consume | Is the object consumable? Quantity ≥ 1? |
 | Give / transfer | Does the recipient exist? Is their inventory accessible? |
-| Walk / travel | Does the route exist in `regles.temps.deplacements` (monde.json)? |
+| Walk / travel | Does the route exist in `rules.temps.movements` (world.json)? |
 | Speak / reveal info | Does the knowledge exist at the source? Are witnesses present? |
 | Attack / injure | Are system stats and rules respected? |
 | Rest / sleep | Does the location allow it? (safety, minimal comfort) |
 | Build / repair | Are resources and time available? |
 
 **If the action is not mechanically valid → REFUSAL:**
-> ❌ *Route: The path [location A] → [location B] in 30min does not exist. Source: regles.temps.deplacements → 2h50 documented via [a location].*
-> ❌ *Transfer: The target '[a location]' has no 'inventaire_lieu' field open. Source: pnj.json.*
+> ❌ *Route: The path [location A] → [location B] in 30min does not exist. Source: rules.temps.movements → 2h50 documented via [a location].*
+> ❌ *Transfer: The target '[a location]' has no 'inventaire_lieu' field open. Source: npcs.json.*
 > ❌ *Time: Eating takes ~15min. The clock shows 'late afternoon D7' — time available. OK.*
 
 ### Check 3 — COHERENCE: Is the result logical?
 
 | Question | Verification |
 |---|---|
-| Do present people hear / see? | Who is in the same scene/location? (position in pnj.json + sessions/NNN.json) |
-| Do witnesses retain the information? | If yes → add the knowledge to their `faits_etablis` |
-| Does the action respect entity limits/relationships? | Hard lines, fears, motivations (pnj.json > limites) |
+| Do present people hear / see? | Who is in the same scene/location? (position in npcs.json + sessions/NNN.json) |
+| Do witnesses retain the information? | If yes → add the knowledge to their `established_facts` |
+| Does the action respect entity limits/relationships? | Hard lines, fears, motivations (npcs.json > limites) |
 | Is the timing coherent with world state? | No impossible actions at the current time (night, rain, hunger, fatigue) |
-| **Is the emotional state justified?** | **Is the current emotion coherent with the date and cause of the last emotional marker? (Check `memoire_emotionnelle` in pnj.json)** |
+| **Is the emotional state justified?** | **Is the current emotion coherent with the date and cause of the last emotional marker? (Check `memoire_emotionnelle` in npcs.json)** |
 
 **If the result is not coherent → REFUSAL:**
 > ❌ *Coherence: [NPC]'s men left (on route to [a location]). No one hears this revelation. No knowledge propagated.*
-> ❌ *Coherence: It is night, no fire. Impossible to read [NPC]'s notebook. Source: regles.meteo.conditions_actuelles.*
+> ❌ *Coherence: It is night, no fire. Impossible to read [NPC]'s notebook. Source: rules.meteo.conditions_actuelles.*
 > ❌ *Relationship: [NPC] has a hard line « Does not betray [an NPC] ». The action '[NPC] reveals [a faction]'s plan' is refused without valid reason.*
-> ❌ *Emotion: [NPC] cannot be "calmed" when the cause was an event 3 months ago and a new threat just appeared. Source: pnj.json → [NPC] → memoire_emotionnelle[last].*
+> ❌ *Emotion: [NPC] cannot be "calmed" when the cause was an event 3 months ago and a new threat just appeared. Source: npcs.json → [NPC] → memoire_emotionnelle[last].*
 
 ---
 
@@ -120,10 +120,10 @@ If the 3 checks pass, the Steward automatically executes operations correspondin
 |---|---|---|---|
 | 1 | **Deduct from source inventory** | `qty -= 1`. If `qty = 0` → remove entire entry | Consumption, gift, loss |
 | 2 | **Add to target inventory** | Create entry if it does not exist, increment `qty` if exists | Receipt, purchase, gift received |
-| 3 | **Propagate knowledge** | Add to `faits_etablis` or `connaissances_privees` of ALL present and witnessing entities | Revelation, dialogue, discovery |
+| 3 | **Propagate knowledge** | Add to `established_facts` or `connaissances_privees` of ALL present and witnessing entities | Revelation, dialogue, discovery |
 | 4 | **Deduct from time** | `heure_courante += duration`. If crossing night threshold → `jour_courant += 1, heure = 'morning'` | Action that takes time |
-| 5 | **Apply state changes** | HP, fatigue, states, wounds — per system rules (monde.json > systeme) | Combat, rest, illness |
-| 6 | **Update positions** | `localisation_actuelle` of entity in pnj.json | Movement |
+| 5 | **Apply state changes** | HP, fatigue, states, wounds — per system rules (world.json > systeme) | Combat, rest, illness |
+| 6 | **Update positions** | `localisation_actuelle` of entity in npcs.json | Movement |
 | 7 | **Log the action** | Add action to `sessions/NNN.json > actions[]` with detail: who, what, when, where, transaction | EVERY transaction |
 
 ---
@@ -136,7 +136,7 @@ If the 3 checks pass, the Steward automatically executes operations correspondin
 DECLARATION: [the PC] eats a sausage (walking on [a location])
 
 CHECK 1 — SOURCE:
-  → inventory [the PC] (personnages/<id>.json): "sausage" exists? QTY ≥ 1?
+  → inventory [the PC] (characters/<id>.json): "sausage" exists? QTY ≥ 1?
   → Result: ✅ "sausage x2" found in inventory[]
 
 CHECK 2 — TRANSFER:
@@ -160,12 +160,12 @@ APPLICATION:
 DECLARATION: [NPC] says "I know this symbol" (speaking about [a location])
 
 CHECK 1 — SOURCE:
-  → faits_etablis [NPC] (pnj.json): [a location] mentioned?
+  → established_facts [NPC] (npcs.json): [a location] mentioned?
   → connaissances_privees [NPC]: info about the location?
-  → Result: ❌ None of the 17 entries in faits_etablis covers knowledge of [a location]
+  → Result: ❌ None of the 17 entries in established_facts covers knowledge of [a location]
 
 REFUSAL: "[NPC] does not know this symbol / location.
-  Source: pnj.json → [NPC] → faits_etablis[0..16] + connaissances_privees.
+  Source: npcs.json → [NPC] → established_facts[0..16] + connaissances_privees.
   No entry mentions knowledge of [a location]."
 ```
 
@@ -186,8 +186,8 @@ CHECK 3 — COHERENCE:
   → No hard lines violated ✅
 
 APPLICATION:
-  → Op.3: Add to [NPC]'s faits_etablis: "[the PC] seeks [a location] to the northwest"
-  → Op.3: Add to other present witnesses' faits_etablis: same
+  → Op.3: Add to [NPC]'s established_facts: "[the PC] seeks [a location] to the northwest"
+  → Op.3: Add to other present witnesses' established_facts: same
   → Op.7: Log
 ```
 
@@ -201,7 +201,7 @@ CHECK 1 — SOURCE:
   → Clock: early afternoon D7
 
 CHECK 2 — TRANSFER:
-  → Valid route (documented in regles.temps.deplacements) ✅
+  → Valid route (documented in rules.temps.movements) ✅
 
 CHECK 3 — COHERENCE:
   → Estimated arrival: early afternoon + 2h50 = late afternoon D7 ✅
@@ -232,7 +232,7 @@ CHECK 3 — COHERENCE:
 
 APPLICATION:
   → Op.4: jour_courant = 8, heure_courante = "morning"
-  → Op.5: HP restored (if campaign rule — check in regles.construction or systeme.sante)
+  → Op.5: HP restored (if campaign rule — check in rules.construction or system.health)
   → Op.7: Log
 ```
 
@@ -310,12 +310,12 @@ becomes hard after migration to **structured** inventory (`{name, qty, type}`) �
 |---|---|
 | **GM (narrator)** | Declares action → Steward validates → GM narrates result → Steward applies updates |
 | **Player (PC)** | Indirect — GM mediates all interaction. Steward never speaks directly to players |
-| **NPC (pnj.json)** | Their actions are declared by GM → Steward verifies (knowledge, inventory, limits). If an NPC speaks, Steward verifies what it knows |
-| **Inventory (personnages/<id>.json)** | Primary source of Check 1 (objects). Target of operations 1 and 2 |
-| **Knowledge (pnj.json > faits_etablis, connaissances_privees)** | Source of Check 1 (knowledge). Target of operation 3 (propagation) |
-| **Time clock (monde.json > regles.temps.suivi)** | Source of Check 2 (time available). Target of operation 4 |
+| **NPC (npcs.json)** | Their actions are declared by GM → Steward verifies (knowledge, inventory, limits). If an NPC speaks, Steward verifies what it knows |
+| **Inventory (characters/<id>.json)** | Primary source of Check 1 (objects). Target of operations 1 and 2 |
+| **Knowledge (npcs.json > established_facts, connaissances_privees)** | Source of Check 1 (knowledge). Target of operation 3 (propagation) |
+| **Time clock (world.json > rules.temps.suivi)** | Source of Check 2 (time available). Target of operation 4 |
 | **Sessions (sessions/NNN.json)** | Target of operation 7 (logging). Check 3 (verify previous actions) |
-| **Positions (pnj.json > localisation_actuelle)** | Source of Check 1 (presence). Target of operation 6 |
+| **Positions (npcs.json > localisation_actuelle)** | Source of Check 1 (presence). Target of operation 6 |
 | **Wrap-up module (mj-tonnerre-session)** | Post-session verification pipeline. Ensures all transactions were properly logged during session — protocol: `references/audit-cloture.md` |
 
 ---
@@ -352,7 +352,7 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 | Skip the 3 checks because the check is "mental" | Apply the 3 checks (§2) and write the 7 operations (§3) to files. The *Persisted* block is emitted by the `transform_llm_output` hook on real diff — you do not write it |
 | Allow an action without checking source inventory | Always verify SOURCE (Check 1) before applying |
 | Add knowledge to an NPC without verifying they were present | Check position and scene (Check 3) |
-| Make an NPC say something it does not know | REFUSAL: "X cannot know that. Source: pnj.json → X → faits_etablis[] + connaissances_privees" |
+| Make an NPC say something it does not know | REFUSAL: "X cannot know that. Source: npcs.json → X → established_facts[] + connaissances_privees" |
 | Modify `jour_courant` without narrative reason (rest, ellipse, long action) | Only modify when time has actually passed — and log it |
 | Invent an object not in files to justify an action | REFUSAL or flag "insufficiently documented — this object is not in files" |
 | Apply a transaction without logging it | Log EVERY transaction (Op.7) — this enables post-session audit |
@@ -372,7 +372,7 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 
 ## 11. Verbosity mode
 
-> **Verbosity is applied AUTOMATICALLY by the `transform_llm_output` hook** (it reads `monde.json > meta.verbosite` and formats the *Persisted* block accordingly — cf. `specs/hooks-runtime.md §3`). Default: `INFO`. **You do not format by level yourself.**
+> **Verbosity is applied AUTOMATICALLY by the `transform_llm_output` hook** (it reads `world.json > meta.verbosity` and formats the *Persisted* block accordingly — cf. `specs/hooks-runtime.md §3`). Default: `INFO`. **You do not format by level yourself.**
 
 | Level | What is reported |
 |--------|---------------------|
@@ -386,15 +386,15 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 
 **Escalation rule:** a REFUSAL (Check failed) is **always** reported, regardless of level — even in ERROR.
 
-**Hot change (player command):** `!verbosite TRACE|DEBUG|INFO|WARN|ERROR` updates `monde.json > meta.verbosite`. Hook reads the level each turn — no restart needed.
+**Hot change (player command):** `!verbosite TRACE|DEBUG|INFO|WARN|ERROR` updates `world.json > meta.verbosity`. Hook reads the level each turn — no restart needed.
 
 ---
 
 ## 12. CSV improvement collection
 
-> **The CSV line is written AUTOMATICALLY by the `transform_llm_output` hook** (in+out of each turn — cf. `specs/hooks-runtime.md §3`), if `monde.json > meta.diagnostic.actif == true`. **The model does NOT write the CSV.**
+> **The CSV line is written AUTOMATICALLY by the `transform_llm_output` hook** (in+out of each turn — cf. `specs/hooks-runtime.md §3`), if `world.json > meta.diagnostic.actif == true`. **The model does NOT write the CSV.**
 
-**Path:** `campagnes/<name>/collecte.csv` (UTF-8, comma delimiter, double-quote escape).
+**Path:** `campaigns/<name>/collecte.csv` (UTF-8, comma delimiter, double-quote escape).
 
 Columns: `timestamp, session, verbosite, origine_type, origine_detail, action_type, prompt_resume, sortie, consequence, erreur, type_erreur, correction_immediate, exactitude, completude, conteste, modele, notes` — **all filled automatically by the hook** (except player wrap-up evaluation below).
 
@@ -409,12 +409,12 @@ Columns: `timestamp, session, verbosite, origine_type, origine_detail, action_ty
 - `mj-tonnerre/SKILL.md` — GM heading (persona, rules, sections to update)
 - `mj-tonnerre/SKILL.md §6.7` — Sequential action protocol
 - `mj-tonnerre-outils/SKILL.md` — Dice rolls and action resolution
-- `monde.json > regles.temps` — campaign time rules
-- `monde.json > meta.verbosite` — active verbosity level (TRACE → ERROR), see §11
-- `monde.json > meta.diagnostic` — CSV collection configuration (columns, frequency rules), see §12
-- `monde.json > etat_global.factions[].limites` — NPC hard lines
-- `pnj.json` — NPC sheets (faits_etablis, knowledge, inventory)
-- `personnages/<discord_id>.json` — PC sheets (inventory, stats, state)
+- `world.json > rules.temps` — campaign time rules
+- `world.json > meta.verbosity` — active verbosity level (TRACE → ERROR), see §11
+- `world.json > meta.diagnostic` — CSV collection configuration (columns, frequency rules), see §12
+- `world.json > global_state.factions[].limites` — NPC hard lines
+- `npcs.json` — NPC sheets (established_facts, knowledge, inventory)
+- `characters/<discord_id>.json` — PC sheets (inventory, stats, state)
 - `sessions/NNN.json` — session action log
 - `collecte.csv` — diagnostic file per campaign (format, columns), see §12
 - `references/verbosite/README.md` — emoji convention, data type mapping, formats by level, scenario templates — **unique reference**

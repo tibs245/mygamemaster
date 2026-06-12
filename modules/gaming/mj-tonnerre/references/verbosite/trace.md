@@ -1,6 +1,6 @@
 # 🔍 TRACE Level — Every sub-step detailed
 
-> ℹ️ **The `transform_llm_output` hook produces the "Persisted" block automatically** according to `meta.verbosite`. Reference format below = net (hook disabled / bypass `⏸️`).
+> ℹ️ **The `transform_llm_output` hook produces the "Persisted" block automatically** according to `meta.verbosity`. Reference format below = net (hook disabled / bypass `⏸️`).
 
 > **Usage:** Complete audit, data debugging, post-bug verification.
 > **What is reported:** The 3 Controls + the 7 Operations, with values read/written and file line numbers.
@@ -18,10 +18,10 @@ Each TRACE block follows the complete Steward sequence:
 [CTRL3-COHERENCE] <emoji> <check> — <detail>
 [OP1-DEDUCE] <emoji> <entity>: <old>→<new> (file updated L:<line>)
 [OP2-ADD] <emoji> <entity>: +<value> (file updated L:<line>)
-[OP3-PROPAGATE] 💬 <entity>: knowledge added to faits_etablis[] (pnj.json L:<line>)
+[OP3-PROPAGATE] 💬 <entity>: knowledge added to established_facts[] (npcs.json L:<line>)
 [OP4-TIME] 🕒 heure_courante +<duration> (→ <new time>)
 [OP5-STATE] <emoji> <entity>: <old state>→<new state>
-[OP6-POSITION] 🗺️ <entity>: <old>→<new> (pnj.json L:<line>)
+[OP6-POSITION] 🗺️ <entity>: <old>→<new> (npcs.json L:<line>)
 [OP7-LOG] 📝 sessions/<NNN>.json > actions[] +1 entry (L:<line>)
 ```
 
@@ -51,18 +51,18 @@ Each TRACE block follows the complete Steward sequence:
 [CTRL2-TRANSFER] 🎒 Add to Rubis inventory — inventory accessible ✅
 [CTRL3-COHERENCE] 💬 The statuette emits a glow — Firmin is present (witness) ✅
 [OP2-ADD] ⭐ statuette-appelant → Rubis inventory (file updated L:152)
-[OP3-PROPAGATE] 💬 Firmin: "statuette emits a bluish glow" → faits_etablis[] (pnj.json L:234)
+[OP3-PROPAGATE] 💬 Firmin: "statuette emits a bluish glow" → established_facts[] (npcs.json L:234)
 [OP7-LOG] 📝 sessions/009.json > actions[] +1 entry (L:92)
 ```
 
 ### Transaction refused (missing knowledge)
 
 ```
-[CTRL1-SOURCE] 💬 faits_etablis Firmin (pnj.json:89)
+[CTRL1-SOURCE] 💬 established_facts Firmin (npcs.json:89)
   → "temple des Marqueurs" NOT FOUND ❌
   → 17 entries scanned, no match
 REFUSAL — ❌ Firmin cannot say "I know this temple".
-  Source: pnj.json → Firmin → faits_etablis[0..16]
+  Source: npcs.json → Firmin → established_facts[0..16]
 [OP7-LOG] 📝 sessions/009.json > actions[] +1 entry (REFUSAL documented)
 ```
 

@@ -1,10 +1,10 @@
 # Module — Artefacts: tracking important world objects
 
-> **Conditional loading.** This module applies only if the campaign declares `monde.json > modules.artefacts.actif === true`.
+> **Conditional loading.** This module applies only if the campaign declares `world.json > modules.artefacts.actif === true`.
 
 **Principle:** Objects that are narratively important (artefacts, relics, mysterious objects, physical signs) deserve their own structured tracking, just like NPCs or factions. Do not leave them floating orphaned in the narration.
 
-**Standard structure in `monde.json > etat_global.artefacts_connus`:** each documented artefact must have:
+**Standard structure in `world.json > global_state.artefacts_connus`:** each documented artefact must have:
 - `nom` — unique, descriptive identifier
 - `type` — nature of the object (Ritual Figurine, Ancient Artefact, Weapon, Sign, Document, etc.)
 - `description` — what we know about it physically
@@ -18,7 +18,7 @@
 2. ✅ The `liens_hypotheses` must be explicitly marked as hypotheses, not facts. Use the prefix `UNCONFIRMED HYPOTHESIS — `.
 3. ✅ Update `localisation_actuelle` with each movement or change of hands.
 4. ❌ Do not leave an object narrated but unfiled — it is an object that exists only in the GM's memory, lost at the next session.
-5. ✅ See also the distinction `faits_etablis` vs `hypotheses_mj` (section §4.1 and `references/pnj-data-governance.md`) — the same principle applies to artefacts.
+5. ✅ See also the distinction `established_facts` vs `hypotheses_mj` (section §4.1 and `references/pnj-data-governance.md`) — the same principle applies to artefacts.
 
 **Generic example:**
 ```json
