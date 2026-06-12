@@ -136,12 +136,73 @@ Never post `MEDIA:` if code ≠ 0.
 
 ---
 
+## Voice selection — per-language defaults
+
+MiniMax voice and `language_boost` are selected automatically based on the campaign
+language. The lookup table lives in `scripts/tts_generate.py` (`LANGUAGE_DEFAULTS`).
+
+### Default table
+
+| Language | voice_id | language_boost |
+|---|---|---|
+| `fr` (French) | `French_Female_Speech_New` | `French` |
+| `en` (English) | `Serene_Female` | `English` |
+| _(unknown / fallback)_ | `French_Female_Speech_New` | `French` |
+
+Adding a new language is one line in `LANGUAGE_DEFAULTS` — no other code changes needed.
+
+### Resolution order (highest wins)
+
+1. **Explicit CLI flags** `--voice` / `--language-boost` (direct `tts_generate.py` / `tts_render.py` calls).
+2. **Campaign override** in `monde.json > meta.audio` — fields `voice` and `language_boost`.
+3. **Language auto-select** via `monde.json > meta.langue` (or env `MJ_LANGUAGE` / `MJ_LANGUE`).
+4. **Built-in fallback** — `French_Female_Speech_New` / `French` (existing default, unchanged).
+
+**Fail-open**: an unknown language code, a missing `monde.json`, or any read error falls
+through to the built-in default — nothing breaks.
+
+### Guided setup flow (for GM / admin at campaign creation)
+
+1. **Check available voices** (no key required):
+   ```bash
+   python3 /opt/modules/gaming/mj-tonnerre-tts/scripts/tts_generate.py --list-voices
+   ```
+2. **Set the campaign language** in `monde.json > meta.langue` (e.g. `"en"` or `"fr"`).
+   The matching voice is then selected automatically.
+3. **Optionally override** for this campaign (e.g. to use a different English voice):
+   ```json
+   "meta": {
+     "langue": "en",
+     "audio": {
+       "voice": "Serene_Female",
+       "language_boost": "English"
+     }
+   }
+   ```
+4. **Test the voice** in mock mode (no key, no cost):
+   ```bash
+   MJ_TTS_MOCK=1 printf 'The mist thickens.' | \
+     python3 /opt/modules/gaming/mj-tonnerre-tts/scripts/tts_render.py \
+     --out /tmp/test.mp3 --json --campaign-dir .
+   # Check "voice" and "language_boost" in the JSON output.
+   ```
+5. **Live test** (key required): same command without `MJ_TTS_MOCK=1`.
+
+To add a new language, open `scripts/tts_generate.py` and add one entry to
+`LANGUAGE_DEFAULTS` following the existing `fr`/`en` pattern.
+
+---
+
 ## Configuration
 
 | Lever | Where | Effect |
 |---|---|---|
 | `tts` axis | `monde.json > meta.features.tts` / `MJ_FEATURE_TTS` / `!feature tts on\|off` | activate/cut **all** voice (auto **and** `!raconte`) — live |
 | `meta.hooks.tts_auto` | `monde.json` | cuts **auto-voice** while keeping `!raconte` (default `true`, governed by `tts` axis) |
+| `meta.langue` | `monde.json` | campaign language code (e.g. `"fr"`, `"en"`) — selects the default voice/boost |
+| `meta.audio.voice` | `monde.json` | campaign voice override (takes priority over `meta.langue`) |
+| `meta.audio.language_boost` | `monde.json` | campaign language_boost override |
+| `MJ_LANGUAGE` / `MJ_LANGUE` | env | instance-level language code (same effect as `meta.langue`, lower priority) |
 | `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = silent no-op |
 | `MJ_TTS_MIN_CHARS` | env | auto-voice length threshold (default 280) |
 | `MJ_TTS_FORMAT_MODEL` | env | format step model (default `minimax/minimax-m3`) |

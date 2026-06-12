@@ -64,9 +64,13 @@
       "description_complete": ""
     },
     "audio": {
+      "_note": "TTS voice config. 'voice' and 'language_boost' override the per-language default set by meta.langue (or env MJ_LANGUAGE). Omit both to let the engine choose automatically. See modules/gaming/mj-tonnerre-tts/SKILL.md § Voice selection.",
+      "voice": "",
+      "language_boost": "",
       "profils": [],
       "moments": []
-    }
+    },
+    "langue": ""
   },
   "systeme": {
     "_note": "Système de jeu minimal — adapter stats/résolution à la campagne. crunch 1 (très léger) à 5 (très technique).",

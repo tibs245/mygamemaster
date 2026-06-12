@@ -53,6 +53,65 @@ AMBIANCE_VOLUME = float(os.environ.get("MJ_TTS_AMBIANCE_VOLUME", "0.16"))
 DEFAULT_THRESHOLD_CHARS = 320
 
 
+def _load_monde_json(campaign_dir=None):
+    """Load monde.json from the campaign directory (or cwd). Returns {} on failure (fail-open)."""
+    candidates = []
+    if campaign_dir:
+        candidates.append(os.path.join(campaign_dir, "monde.json"))
+    candidates.append(os.path.join(os.getcwd(), "monde.json"))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+    return {}
+
+
+def resolve_voice_and_boost(monde=None, explicit_voice=None, explicit_boost=None,
+                             campaign_dir=None):
+    """Determine the voice_id and language_boost to use for this render call.
+
+    Priority (highest wins):
+    1. Caller-supplied explicit_voice / explicit_boost (CLI flags --voice/--language-boost).
+    2. monde.json > meta.audio.voice / meta.audio.language_boost (campaign override).
+    3. Per-language default from ``tts_generate.voice_for_language()`` using
+       monde.json > meta.langue (or env MJ_LANGUAGE / MJ_LANGUE).
+    4. Built-in default (French_Female_Speech_New / "French").
+
+    Always fail-open: missing keys, bad JSON, unknown language → next level.
+    """
+    # -- level 1: explicit caller override (CLI) ---------------------------------
+    if explicit_voice and explicit_boost:
+        return explicit_voice, explicit_boost
+
+    # -- load monde.json once (cheap; fail-open) ----------------------------------
+    if monde is None:
+        monde = _load_monde_json(campaign_dir)
+    audio_cfg = (monde.get("meta") or {}).get("audio") or {}
+
+    # -- level 2: campaign audio config in monde.json ----------------------------
+    camp_voice = audio_cfg.get("voice") or None
+    camp_boost = audio_cfg.get("language_boost") or None
+    if explicit_voice:
+        camp_voice = explicit_voice   # CLI flag still wins for voice
+    if explicit_boost:
+        camp_boost = explicit_boost
+
+    # -- level 3: language-based default -----------------------------------------
+    lang = (
+        (monde.get("meta") or {}).get("langue")
+        or os.environ.get("MJ_LANGUAGE")
+        or os.environ.get("MJ_LANGUE")
+        or ""
+    )
+    default_voice, default_boost = tts_generate.voice_for_language(lang)
+
+    voice = camp_voice or default_voice
+    boost = camp_boost or default_boost
+    return voice, boost
+
+
 def die(msg, code):
     print("ERROR: %s" % msg, file=sys.stderr)
     sys.exit(code)
@@ -84,7 +143,8 @@ def _concat_mp3(ff, paths, out_path, bitrate=128000):
     return r.returncode == 0 and os.path.isfile(out_path) and os.path.getsize(out_path) > 0
 
 
-def _synthesize_segmented(segments, api_key, *, model, voice, retries, timeout):
+def _synthesize_segmented(segments, api_key, *, model, voice, language_boost="French",
+                          retries, timeout):
     """Synthesizes EACH segment with its own emotion, then concatenates into a single MP3.
     Returns (audio_bytes, [emotions]). Raises RuntimeError if a segment or the concat
     fails (the caller then falls back to mono-call = fail-open)."""
@@ -96,6 +156,7 @@ def _synthesize_segmented(segments, api_key, *, model, voice, retries, timeout):
         for i, seg in enumerate(segments):
             clip = tts_generate.synthesize(
                 seg["text"], api_key, model=model, voice=voice, emotion=seg["emotion"],
+                language_boost=language_boost,
                 retries=retries, timeout=timeout)  # RuntimeError → mono fallback upstream
             p = os.path.join(td, "seg%02d.mp3" % i)
             with open(p, "wb") as f:
@@ -134,11 +195,18 @@ def mix_ambiance(voice_path, ambiance_path, out_path, bitrate=128000):
     return r.returncode == 0 and os.path.isfile(out_path) and os.path.getsize(out_path) > 0
 
 
-def render(text, out_path, *, voice=tts_generate.DEFAULT_VOICE, model=tts_generate.DEFAULT_MODEL,
+def render(text, out_path, *, voice=None, model=tts_generate.DEFAULT_MODEL,
            ambiance_dir=DEFAULT_AMBIANCE_DIR, allow_ambiance=True,
            threshold_chars=DEFAULT_THRESHOLD_CHARS, retries=2, timeout=120,
-           format_model=None):
-    """Full pipeline. Returns a report dict. Raises RuntimeError on synthesis failure."""
+           format_model=None, language_boost=None, campaign_dir=None):
+    """Full pipeline. Returns a report dict. Raises RuntimeError on synthesis failure.
+
+    ``voice`` and ``language_boost`` are resolved via ``resolve_voice_and_boost()``:
+    explicit args > monde.json meta.audio > per-language default > built-in default.
+    Pass ``campaign_dir`` to read monde.json from a specific path (defaults to cwd).
+    """
+    voice, language_boost = resolve_voice_and_boost(
+        explicit_voice=voice, explicit_boost=language_boost, campaign_dir=campaign_dir)
     fmt = tts_format.format_narration(text, model=format_model)
     script = fmt["script"]
     emotion = fmt["emotion"]
@@ -155,13 +223,15 @@ def render(text, out_path, *, voice=tts_generate.DEFAULT_VOICE, model=tts_genera
     if _segment_enabled() and len(segments) > 1 and _ffmpeg():
         try:
             audio, seg_emotions = _synthesize_segmented(
-                segments, api_key, model=model, voice=voice, retries=retries, timeout=timeout)
+                segments, api_key, model=model, voice=voice, language_boost=language_boost,
+                retries=retries, timeout=timeout)
             segmented = True
         except RuntimeError:
             audio = None  # fallback to mono-call below (fail-open)
     if audio is None:
         audio = tts_generate.synthesize(
             clean_text, api_key, model=model, voice=voice, emotion=emotion,
+            language_boost=language_boost,
             retries=retries, timeout=timeout)  # raises RuntimeError → exit 1 upstream
         seg_emotions = [emotion]
 
@@ -204,6 +274,7 @@ def render(text, out_path, *, voice=tts_generate.DEFAULT_VOICE, model=tts_genera
         "fallback_format": bool(fmt.get("_fallback")),
         "model": model,
         "voice": voice,
+        "language_boost": language_boost,
         "bytes": os.path.getsize(out_path),
         "script": script,
     }
@@ -226,7 +297,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     p.add_argument("--out", required=True, help="Path to the final MP3 file.")
     p.add_argument("--text-file", default="-", help="Text file, or '-' for stdin (default).")
-    p.add_argument("--voice", default=tts_generate.DEFAULT_VOICE, help="voice_id Minimax.")
+    p.add_argument("--voice", default=None,
+                   help="voice_id Minimax (default: resolved from langue/monde.json).")
+    p.add_argument("--language-boost", default=None,
+                   help="Minimax language_boost (default: resolved from langue/monde.json).")
     p.add_argument("--model", default=tts_generate.DEFAULT_MODEL, help="Minimax TTS model.")
     p.add_argument("--format-model", default=None,
                    help="Format-step model (default: env MJ_TTS_FORMAT_MODEL / minimax-m3).")
@@ -237,6 +311,8 @@ def main():
     p.add_argument("--no-meta", action="store_true", help="Do not write the sidecar <out>.json.")
     p.add_argument("--retries", type=int, default=2, help="Transient retries (default 2).")
     p.add_argument("--timeout", type=int, default=120, help="Synthesis timeout in s (default 120).")
+    p.add_argument("--campaign-dir", default=None,
+                   help="Campaign directory (to read monde.json from). Defaults to cwd.")
     p.add_argument("--json", action="store_true", dest="as_json", help="Machine output on stdout.")
     args = p.parse_args()
 
@@ -259,7 +335,8 @@ def main():
             text, args.out, voice=args.voice, model=args.model,
             ambiance_dir=args.ambiance_dir, allow_ambiance=not args.no_ambiance,
             threshold_chars=args.threshold_chars, retries=args.retries, timeout=args.timeout,
-            format_model=args.format_model)
+            format_model=args.format_model, language_boost=args.language_boost,
+            campaign_dir=args.campaign_dir)
     except RuntimeError as e:
         die(str(e), 1)
 

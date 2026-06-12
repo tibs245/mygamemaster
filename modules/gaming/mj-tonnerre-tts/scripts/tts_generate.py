@@ -43,6 +43,50 @@ import urllib.request
 API_URL = os.environ.get("MINIMAX_API_URL", "https://api.minimax.io/v1/t2a_v2")
 DEFAULT_MODEL = "speech-2.8-turbo"
 DEFAULT_VOICE = "French_Female_Speech_New"
+
+# ── Per-language voice/language_boost defaults ───────────────────────────────
+# Each entry: (voice_id, language_boost).  Override per-campaign in
+# monde.json > meta.audio.voice (and optionally meta.audio.language_boost).
+# Add new languages here: structure is trivial — one line per language code.
+# Language codes are lower-cased ISO-639-1 (e.g. "fr", "en", "de", "es").
+#
+# voice_id catalogue (Minimax T2A v2):
+#   French_Female_Speech_New  — female, native French, warm narrator
+#   Serene_Female             — female, smooth, language-neutral (good default for EN)
+#   (add more as Minimax releases them; keep this table the single source of truth)
+LANGUAGE_DEFAULTS = {
+    "fr": {
+        "voice": "French_Female_Speech_New",
+        "language_boost": "French",
+    },
+    "en": {
+        "voice": "Serene_Female",
+        "language_boost": "English",
+    },
+    # Sentinel: used when the language code is unknown/absent (fail-open).
+    "_default": {
+        "voice": DEFAULT_VOICE,
+        "language_boost": "French",
+    },
+}
+
+
+def voice_for_language(language_code=None):
+    """Return ``(voice_id, language_boost)`` for a given BCP-47/ISO-639-1 code.
+
+    Resolution order (fail-open — never raises):
+    1. ``language_code`` looked up in ``LANGUAGE_DEFAULTS`` (lower-cased, only the
+       primary subtag, e.g. ``"fr-CA"`` → ``"fr"``).
+    2. ``_default`` entry if the code is unknown or absent.
+
+    The caller (tts_render) may still override both values when
+    ``monde.json > meta.audio.voice`` is set explicitly.
+    """
+    lang = (language_code or "").strip().lower().split("-")[0].split("_")[0]
+    entry = LANGUAGE_DEFAULTS.get(lang) or LANGUAGE_DEFAULTS["_default"]
+    return entry["voice"], entry["language_boost"]
+
+
 # Emotions supported by T2A v2 (see Minimax docs). Any other value → ignored.
 VALID_EMOTIONS = {"happy", "sad", "angry", "fearful", "disgusted",
                   "surprised", "calm", "fluent", "whisper"}
@@ -171,7 +215,9 @@ def main():
     p = argparse.ArgumentParser(
         description="Text-to-speech via Minimax T2A v2 (MJ Tonnerre narrative voice).",
         formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
-    p.add_argument("--out", required=True, help="Output MP3 path.")
+    p.add_argument("--list-voices", action="store_true",
+                   help="Print the per-language voice/language_boost table and exit.")
+    p.add_argument("--out", default=None, help="Output MP3 path (required unless --list-voices).")
     p.add_argument("--text-file", default="-",
                    help="Text file, or '-' for stdin (default: stdin).")
     p.add_argument("--model", default=DEFAULT_MODEL, help="Minimax model (default %s)." % DEFAULT_MODEL)
@@ -192,6 +238,31 @@ def main():
     p.add_argument("--timeout", type=int, default=120, help="HTTP timeout in s (default 120).")
     p.add_argument("--json", action="store_true", dest="as_json", help="Machine-readable output on stdout.")
     args = p.parse_args()
+
+    # ── Guided selector: list known voices/boosts then exit ─────────────────
+    if args.list_voices:
+        print("Per-language MiniMax voice defaults (LANGUAGE_DEFAULTS table):")
+        print("")
+        print("  %-6s  %-32s  %-10s" % ("lang", "voice_id", "language_boost"))
+        print("  " + "-" * 56)
+        for lang, cfg in LANGUAGE_DEFAULTS.items():
+            if lang == "_default":
+                label = "(fallback)"
+            else:
+                label = lang
+            print("  %-6s  %-32s  %-10s" % (label, cfg["voice"], cfg["language_boost"]))
+        print("")
+        print("To override for a campaign, set in monde.json > meta.audio:")
+        print('  "audio": { "voice": "<voice_id>", "language_boost": "<boost>" }')
+        print("")
+        print("To set the language (auto-selects voice), set monde.json > meta.langue:")
+        print('  "langue": "en"   (or "fr", etc.)')
+        print("")
+        print("Environment overrides: MJ_LANGUAGE or MJ_LANGUE (same codes).")
+        sys.exit(0)
+
+    if not args.out:
+        die("--out is required (or use --list-voices).", 2)
 
     api_key = os.environ.get("MINIMAX_API_KEY")
     if not api_key and not os.environ.get("MJ_TTS_MOCK"):

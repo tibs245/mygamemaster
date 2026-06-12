@@ -208,6 +208,80 @@ def main():
             rc, _, _ = run("last_narration.py", [d2])
             check("no narration → exit 1", rc == 1)
 
+    # ── 6. voice_for_language — per-language default selection ───────────────
+    print("[6] tts_generate.voice_for_language — language → voice/boost selection")
+    total += 9
+
+    # French (explicit)
+    v, b = tts_generate.voice_for_language("fr")
+    check("fr → French_Female_Speech_New", v == "French_Female_Speech_New", "got %s" % v)
+    check("fr → language_boost French", b == "French", "got %s" % b)
+
+    # French with regional subtag (fr-CA, fr-BE, …)
+    v, b = tts_generate.voice_for_language("fr-CA")
+    check("fr-CA → same as fr", v == "French_Female_Speech_New", "got %s" % v)
+
+    # English
+    v, b = tts_generate.voice_for_language("en")
+    check("en → Serene_Female", v == "Serene_Female", "got %s" % v)
+    check("en → language_boost English", b == "English", "got %s" % b)
+
+    # English subtag (en-US, en-GB, …)
+    v, b = tts_generate.voice_for_language("en-US")
+    check("en-US → same as en", v == "Serene_Female", "got %s" % v)
+
+    # Unknown language → _default (fail-open, no exception)
+    v, b = tts_generate.voice_for_language("xx")
+    check("unknown 'xx' → _default voice", v == tts_generate.DEFAULT_VOICE, "got %s" % v)
+
+    # None / empty → _default
+    v, b = tts_generate.voice_for_language(None)
+    check("None → _default voice", v == tts_generate.DEFAULT_VOICE, "got %s" % v)
+    v, b = tts_generate.voice_for_language("")
+    check("'' → _default voice", v == tts_generate.DEFAULT_VOICE, "got %s" % v)
+
+    # ── 6b. resolve_voice_and_boost (tts_render integration) ────────────────
+    print("[6b] tts_render.resolve_voice_and_boost — priority chain")
+    total += 6
+
+    # Level 3: language-based via env MJ_LANGUAGE
+    saved_lang = os.environ.pop("MJ_LANGUAGE", None)
+    saved_langue = os.environ.pop("MJ_LANGUE", None)
+    try:
+        os.environ["MJ_LANGUAGE"] = "en"
+        v, b = tts_render.resolve_voice_and_boost()
+        check("MJ_LANGUAGE=en → Serene_Female", v == "Serene_Female", "got %s" % v)
+        check("MJ_LANGUAGE=en → boost English", b == "English", "got %s" % b)
+
+        # Level 2: monde.json meta.audio.voice overrides language default
+        with tempfile.TemporaryDirectory() as d:
+            monde = {"meta": {"langue": "en", "audio": {"voice": "CustomVoice",
+                                                         "language_boost": "English"}}}
+            with open(os.path.join(d, "monde.json"), "w", encoding="utf-8") as f:
+                json.dump(monde, f)
+            v, b = tts_render.resolve_voice_and_boost(campaign_dir=d)
+            check("meta.audio.voice overrides language default", v == "CustomVoice",
+                  "got %s" % v)
+
+        # Level 1: explicit caller arg overrides everything
+        v, b = tts_render.resolve_voice_and_boost(explicit_voice="ExplicitVoice",
+                                                   explicit_boost="Japanese")
+        check("explicit_voice overrides all", v == "ExplicitVoice", "got %s" % v)
+        check("explicit_boost overrides all", b == "Japanese", "got %s" % b)
+
+        # Fail-open: missing monde.json → no error, language env used
+        with tempfile.TemporaryDirectory() as d:
+            v, b = tts_render.resolve_voice_and_boost(campaign_dir=d)
+            check("missing monde.json → env language (Serene_Female)",
+                  v == "Serene_Female", "got %s" % v)
+    finally:
+        if saved_lang is not None:
+            os.environ["MJ_LANGUAGE"] = saved_lang
+        else:
+            os.environ.pop("MJ_LANGUAGE", None)
+        if saved_langue is not None:
+            os.environ["MJ_LANGUE"] = saved_langue
+
     print("\n" + "=" * 56)
     print("RESULT: %d/%d tests OK" % (_OK, total))
     return 0 if _OK == total else 1

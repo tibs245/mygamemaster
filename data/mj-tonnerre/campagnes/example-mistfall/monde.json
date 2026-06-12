@@ -69,6 +69,9 @@
       "description_complete": "Images feel like illuminated manuscript pages left out in the rain: slightly warped, ink bleeding at the edges, figures emerging from negative space rather than drawn into it."
     },
     "audio": {
+      "_note": "English campaign — voice resolved automatically from meta.langue='en'. Explicit overrides are shown here for reference; remove them to use the per-language default (Serene_Female / English).",
+      "voice": "Serene_Female",
+      "language_boost": "English",
       "profils": [
         "ambient_mist",
         "fae_ritual",
@@ -79,7 +82,8 @@
         {"label": "A bargain is struck", "profil": "fae_ritual"},
         {"label": "The village grows suspicious", "profil": "village_tension"}
       ]
-    }
+    },
+    "langue": "en"
   },
   "systeme": {
     "_note": "Generic d20 — Crunch 3/5. More mechanical weight than a pure narrative system, but still story-first.",
