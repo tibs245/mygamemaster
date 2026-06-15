@@ -10,7 +10,7 @@
 #
 # To restore the memory afterwards: restore.yml -e set=<the pre-reset-memory set> -e restore_what=home.
 - name: Reset Hermes agent memory (game data preserved)
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   environment: "{{ systemd_user_env }}"
   vars:
@@ -21,7 +21,7 @@
     - name: Safety guard
       ansible.builtin.assert:
         that:
-          - campagne_slug is defined
+          - campaign_slug is defined
           - confirm | default('') == 'yes'
         fail_msg: >-
           This reset OVERWRITES the agent memory (game data stays intact).

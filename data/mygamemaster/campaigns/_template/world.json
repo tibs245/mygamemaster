@@ -1,0 +1,170 @@
+{
+  "_description": "MJ Tonnerre campaign TEMPLATE — COPY this folder (_template) for each new campaign, then fill in the empty fields. Structure aligned with real campaigns (example-mistfall) and conforming to scripts/schemas/world.schema.json. Key sections: meta (identity + time + features), system (base rules), modules (thematic toggles), rules (time/movements), global_state (living factions), universe (regions + locations). Location id convention: 'lieu:<region-slug>/<location-slug>' (sub-location: 'lieu:<region-slug>/<parent-slug>/<location-slug>') — geo_query.py derives containment from this hierarchical id. A 'geo_query build' on this template must succeed (worst case: 0 edges): never commit geo.json in _template.",
+  "meta": {
+    "name": "",
+    "theme": "",
+    "tone": "",
+    "gm": "MJ Tonnerre",
+    "date_creation": "",
+    "langue": "",
+    "inspirations": [],
+    "time": {
+      "_note": "regime = type of time tracking. 'Narrative' (GM estimates durations) OR 'UT' (strict Time Units, e.g. 1 UT = 10 min, 144 UT/day). 'tracking' holds the start point (day/hour) — see also rules.time.tracking.",
+      "regime": "Narrative",
+      "tracking": {
+        "day": 1,
+        "hour": "morning"
+      }
+    },
+    "verbosity": "INFO",
+    "cloture_auto": true,
+    "delai_inactivite_minutes": 120,
+    "diagnostic": {
+      "actif": true,
+      "fichier": "collecte.csv",
+      "colonnes": [
+        "timestamp",
+        "session",
+        "verbosity",
+        "origine_type",
+        "origine_detail",
+        "action_type",
+        "prompt_resume",
+        "sortie",
+        "consequence",
+        "erreur",
+        "type_erreur",
+        "correction_immediate",
+        "exactitude",
+        "completude",
+        "conteste",
+        "modele",
+        "notes"
+      ],
+      "rules": {
+        "log_systematique": ["TRACE", "DEBUG"],
+        "log_erreurs_uniquement": ["ERROR"],
+        "log_erreurs_plus_echantillon": ["INFO", "WARN"],
+        "echantillon_frequence": 5
+      }
+    },
+    "features": {
+      "_schema": "Five main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/monde-vivant/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill.",
+      "traceability": true,
+      "verbosity": true,
+      "living_npcs_factions": true,
+      "temporality": true,
+      "images": true
+    },
+    "_pj_ids": "actor ids of PCs, e.g. [\"acteur:name\"] ; the engine links 'towards-player' relationships to these ids. Keep [] until PCs are created.",
+    "pj_ids": [],
+    "style_visuel": {
+      "technique": "",
+      "palette": "",
+      "ambiance": "",
+      "description_complete": ""
+    },
+    "audio": {
+      "_note": "TTS voice config. 'voice' and 'language_boost' override the per-language default set by meta.langue (or env MGM_LANGUAGE). Omit both to let the engine choose automatically. See modules/gaming/mygamemaster-tts/SKILL.md § Voice selection.",
+      "voice": "",
+      "language_boost": "",
+      "profils": [],
+      "moments": []
+    },
+    "langue": ""
+  },
+  "system": {
+    "_note": "Minimal game system — adapt stats/resolution to the campaign. crunch 1 (very light) to 5 (very technical).",
+    "name": "d20 narrative",
+    "crunch": 2,
+    "stats": [
+      "Strength",
+      "Dexterity",
+      "Constitution",
+      "Intelligence",
+      "Wisdom",
+      "Charisma"
+    ],
+    "resolution": "d20 + stat modifier (+ skill bonus if applicable) ≥ DC (10 easy, 15 medium, 20 hard)",
+    "nat20": "Critical success — the best possible outcome for the situation",
+    "nat1": "Critical failure — the worst possible outcome for the situation",
+    "skills": "Bonus of +3 (proficient) on d20 based on specialization",
+    "health": "Hit Points (HP) — HP = 10 + Constitution modifier at level 1",
+    "combat": "Simple and narrative — no grid, focus on choice and consequence"
+  },
+  "modules": {
+    "_schema": "Each module is loaded/applied by the main skill only if actif==true (pattern following meta.time.regime). params={} = module default values; override here to adjust without touching the skill. See skills/gaming/mygamemaster/references/modules/README.md",
+    "travel": { "actif": true, "params": {} },
+    "factions": { "actif": true, "params": {} },
+    "proactivite_pnj": { "actif": true, "params": {} },
+    "artefacts": { "actif": true, "params": {} },
+    "politique": { "actif": false, "params": {} },
+    "weather": { "actif": true, "params": {} },
+    "worldbuilding_lieux": { "actif": true, "params": {} },
+    "construction_royaume": { "actif": false, "params": {} }
+  },
+  "rules": {
+    "time": {
+      "principe": "Narrative time — the GM announces durations and advances the clock in blocks. Adapt if the campaign switches to strict UT (see meta.time.regime).",
+      "movements": {
+        "gouvernance": {
+          "rules": [
+            "These durations are fixed — modifying a route = breaking map coherence",
+            "Any new route must be coherent with existing ones: indirect ≥ direct",
+            "Durations are one-way trips (round-trip = duration × 2). 1 day's march = 12h of daylight",
+            "A distant point cannot be reachable in less time than a nearby neighbor point"
+          ],
+          "verification": "Before adding a route: verify the 4 rules above + compare with neighboring routes",
+          "procedure": "Whenever I describe a new journey in the narration (distance or estimated duration), I record the route IMMEDIATELY in world.json → rules.time.movements BEFORE writing the rest. Never close the narrative response without the route being committed."
+        },
+        "_exemple_route": "EXAMPLE route to copy (key then value): \"from_<location-a>_to\": { \"<location-b>\": \"40min — westward, follow the stream to the embankment, climb the embankment\" }. geo_query reads the duration (40min) and direction (west) from this description and derives an edge. Labels (<location-a>, <location-b>) are resolved to ids via the name/alias of universe.regions locations."
+      },
+      "tracking": {
+        "_note": "Current position in the game timeline — update at each session.",
+        "current_day": 1,
+        "current_hour": "morning",
+        "jalons_temporels": []
+      }
+    }
+  },
+  "global_state": {
+    "quete_active": "",
+    "timeline": "",
+    "factions": [],
+    "faction_actions_horloge": {
+      "gouvernance": {
+        "rules": [
+          "Each faction ALWAYS has at least 1 short-term action (deadline ≤ 7 days) and 1 long-term action (deadline ≥ 14 days) in its actions_en_cours",
+          "Objectives (short and long term in the 'factions' section) are INDEPENDENT of PCs — they exist and evolve even if PCs never intervene",
+          "When a short-term objective is achieved, exceeded, or superseded → renew it immediately with a new objective, coherent with the long term",
+          "PCs can encounter these actions (endure them, observe them, influence them) but NOT cancel them — an action that becomes impossible transforms, does not disappear"
+        ],
+        "renouvellement": "At the start of each session: check every faction. If its short-term objective is moot → replace it."
+      },
+      "actions": []
+    },
+    "gm_secrets": [],
+    "artefacts_connus": []
+  },
+  "universe": {
+    "description": "",
+    "regions": [
+      {
+        "id": "region:exemple",
+        "name": "Example Region",
+        "type": "Region",
+        "description": "Example region to replace. The id 'region:<slug>' is the containment root: all locations belonging to it encode its slug in their own id ('lieu:exemple/...').",
+        "ambiance": "",
+        "locations": [
+          {
+            "id": "lieu:exemple/lieu-dexemple",
+            "name": "Example Location",
+            "type": "habitation",
+            "alias": [],
+            "description": "Example location to replace. Id convention: 'lieu:<region-slug>/<location-slug>' (here region-slug='exemple'). For a sub-location (a room in this location): 'lieu:exemple/lieu-dexemple/<sub-location-slug>'. The 'alias' field lists short names used in rules.time.movements to link routes to this location."
+          }
+        ]
+      }
+    ]
+  }
+}

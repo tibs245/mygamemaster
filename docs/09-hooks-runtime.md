@@ -18,7 +18,7 @@
 
 ## Enabling / disabling
 
-Everything is configured in `monde.json > meta` for the campaign (no redeploy needed for
+Everything is configured in `world.json > meta` for the campaign (no redeploy needed for
 toggles — read live):
 
 ```jsonc
@@ -33,7 +33,7 @@ toggles — read live):
     "snapshot_fin_session": true,
     "judge": {                                  // LLM rule checker — INACTIVE by default
       "actif": false,
-      "modele": "",                            // use a SMALL model (or env MJ_JUDGE_MODEL)
+      "modele": "",                            // use a SMALL model (or env MGM_JUDGE_MODEL)
       "echantillon": 1,                        // judge 1 turn in N (reduces cost)
       "gate_max_tentatives": 2                 // anti-loop budget for the gate
     }
@@ -44,7 +44,7 @@ toggles — read live):
 ## LLM rule checker (judge) — flexible Banker + strict conduct
 
 **Enabled by default at deploy time** with `google/gemma-4-31b-it` (set in
-`group_vars/all/main.yml`: `mj_judge_actif` / `mj_judge_model`). A model with a narrow scope
+`group_vars/all/main.yml`: `mgm_judge_actif` / `mgm_judge_model`). A model with a narrow scope
 checks every GM response on two axes:
 
 - **Banker** (lenient): does the PC actually own the item? Is the action possible? It **tolerates**
@@ -66,7 +66,7 @@ verbosity.
 
 ```bash
 # inside the container, from the campaign folder:
-python3 /opt/modules/gaming/mj-tonnerre/hooks/scoreboard.py
+python3 /opt/modules/gaming/mygamemaster/hooks/scoreboard.py
 ```
 
 Shows, **per model**: number of turns, **clean turns** (judge OK + Banker not triggered),
@@ -82,7 +82,7 @@ disable hooks** for a game, set `hooks_enabled: false` in its `games.yml` entry 
 To play or debug without the Banker augmentation:
 
 - prefix / include **`⏸️`** in the message, **or**
-- be a user ID listed in `meta.admins` (or the `MJ_ADMIN_IDS` environment variable).
+- be a user ID listed in `meta.admins` (or the `MGM_ADMIN_IDS` environment variable).
 
 CSV collection continues (marked `bypass`) — only the Banker display is suppressed.
 

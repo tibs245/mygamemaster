@@ -1,0 +1,114 @@
+# Quadlet — Podman systemd (user) unit for the campaign "{{ campaign_title }}"
+# Rendered to ~/.config/containers/systemd/hermes-{{ deploy_id }}.container
+[Unit]
+Description=Hermes MJ Tonnerre — {{ campaign_title }}
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image={{ hermes_image_name }}:{{ hermes_image_tag }}
+ContainerName=hermes-{{ deploy_id }}
+# Before starting the gateway, COPY config.yaml (mounted RO as a source, below) into
+# a NORMAL writable file inside HERMES_HOME. REQUIRED (R1): Hermes persists the hook
+# approval allowlist INSIDE config.yaml (tools.approval); if config.yaml is a bind-mount,
+# the atomic rename fails ("EBUSY: Device or resource busy") → approval never saved →
+# hooks never registered → NEVER executed (collecte.csv/.steward empty, 0 commits).
+# Idempotent copy, replayed on every (re)start → covers new-install AND update; Ansible
+# remains the source of truth (re-render → cp -f overwrites). Hermes 0.16 = `gateway run`.
+Entrypoint=/bin/sh
+Exec=-c 'cp -f /opt/hermes-cfg-src/config.yaml {{ container_home }}/config.yaml && exec /opt/hermes/venv/bin/hermes gateway run --accept-hooks'
+Environment=HOME={{ container_home }}
+# HERMES_HOME — REQUIRED. Without it, Hermes falls back to ~/.hermes and generates a default
+# SOUL.md (generic persona "You are Hermes Agent") + ignores our config/persona/skills.
+# The Hermes source states: "systemd/subprocess should pass HERMES_HOME explicitly". We pin
+# it to the instance HOME → Hermes reads config.yaml, SOUL.md (MJ Tonnerre persona), skills here.
+Environment=HERMES_HOME={{ container_home }}
+# Visible logs: Python buffers stdout outside a TTY → without this, podman logs stays empty
+# (Hermes output gets stuck in the buffer). Immediate flush for observability.
+Environment=PYTHONUNBUFFERED=1
+# Rootless: "root" inside the container = the rocky user on the host (userns), so
+# there is no real privilege escalation — the gateway is allowed to run as container root.
+Environment=HERMES_ALLOW_ROOT_GATEWAY=1
+# Access: without an allowlist, the gateway DENIES all users. On a private Discord server
+# (server membership handles access control), we open it up. To restrict:
+# replace with DISCORD_ALLOWED_USERS=<ids> (the character files characters/*.json hold Discord IDs).
+Environment=GATEWAY_ALLOW_ALL_USERS=true
+# Explicit PATH to the Hermes venv (/opt/hermes/venv/bin). Safety net: an image built
+# before the .venv→venv fix would have a wrong PATH; this override makes it startable
+# without a rebuild. On a fresh image (fixed Containerfile) this is simply redundant.
+Environment=PATH=/opt/hermes/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile={{ host_env_dir }}/{{ deploy_id }}.env
+{% if mgm_judge_actif | default(false) | bool %}
+# LLM Judge (rules checker) — enabled at deployment level.
+# world.json > meta.hooks.judge can override per campaign (at runtime).
+Environment=MGM_JUDGE_ACTIF=1
+Environment=MGM_JUDGE_MODEL={{ mgm_judge_model | default('') }}
+{% endif %}
+# Feature flags — INSTANCE defaults (cascade: world.json > MGM_FEATURE_<AXE> > True).
+# A variable is injected ONLY if the Ansible var mgm_feature_<axe> is defined; otherwise
+# the runtime falls back to its default of True. world.json > meta.features takes priority
+# (per-campaign override, at runtime). See docs/monde-vivant/10-features.md.
+{% if mgm_feature_traceability is defined %}
+Environment=MGM_FEATURE_TRACEABILITY={{ '1' if (mgm_feature_traceability | bool) else '0' }}
+{% endif %}
+{% if mgm_feature_verbosity is defined %}
+Environment=MGM_FEATURE_VERBOSITY={{ '1' if (mgm_feature_verbosity | bool) else '0' }}
+{% endif %}
+{% if mgm_feature_living_npcs_factions is defined %}
+Environment=MGM_FEATURE_LIVING_NPCS_FACTIONS={{ '1' if (mgm_feature_living_npcs_factions | bool) else '0' }}
+{% endif %}
+{% if mgm_feature_temporality is defined %}
+Environment=MGM_FEATURE_TEMPORALITY={{ '1' if (mgm_feature_temporality | bool) else '0' }}
+{% endif %}
+{% if mgm_feature_images is defined %}
+Environment=MGM_FEATURE_IMAGES={{ '1' if (mgm_feature_images | bool) else '0' }}
+{% endif %}
+{% if mgm_feature_tts is defined %}
+Environment=MGM_FEATURE_TTS={{ '1' if (mgm_feature_tts | bool) else '0' }}
+{% endif %}
+{% if mgm_tts_min_chars is defined %}
+# TTS setting: minimum length (characters) of a narration to trigger auto-voice.
+Environment=MGM_TTS_MIN_CHARS={{ mgm_tts_min_chars | int }}
+{% endif %}
+
+# Game data (persistent + backed up).
+# ⚠️ `:z` LOWERCASE (SHARED SELinux label, no MCS category) and NOT `:Z` (per-instance
+# private): on a persistent named volume, `:Z` freezes the MCS categories of one instance;
+# on recreate, Podman skips re-labelling the volume → the new container (different
+# categories) gets denied by SELinux (Permission denied, even as root) → the agent
+# can no longer enter its cwd. `:z` remains accessible regardless of the instance.
+Volume=hermes-{{ deploy_id }}-data:{{ container_data_root }}:z
+# FULL Hermes state, isolated per campaign (persistent + backed up).
+# ⚠️ We mount ALL of HERMES_HOME, not just memory/: agent state (state.db, memories/,
+# sessions/, kanban.db, gateway_state.json…) lives at the ROOT of HERMES_HOME. Mounting only
+# .../memory (singular) — the old default — left everything else in the ephemeral layer,
+# WIPED on every recreate, and missed the real memory (Hermes writes to memories/, plural).
+# `:z` (shared) for the same reason as the data volume above (robustness on recreate).
+# config.yaml/SOUL.md (bind RO below) are layered on top of this volume.
+Volume=hermes-{{ deploy_id }}-home:{{ container_home }}:z
+# config.yaml: mounted RO as a SOURCE outside the volume, then copied as a writable file
+# into HERMES_HOME by the Exec wrapper (see R1 above). We NO LONGER bind-mount it directly
+# onto {{ container_home }}/config.yaml: Hermes must be able to rewrite it (hook approval
+# allowlist), and an atomic rename over a bind-mount fails (EBUSY).
+Volume={{ rendered_dir }}/config.yaml:/opt/hermes-cfg-src/config.yaml:ro,Z
+# SOUL.md: read-only persona (Hermes never rewrites it) — direct bind RO is fine.
+Volume={{ rendered_dir }}/SOUL.md:{{ container_home }}/SOUL.md:ro,Z
+{% if dev_modules | default(false) | bool %}
+# Dev mode: bind-mounted modules (iterate without rebuilding)
+Volume={{ repo_root }}/modules:{{ container_modules }}:ro,Z
+{% endif %}
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+{% if container_memory_max | default('') | length > 0 %}
+# Memory cap (cgroup v2) — bounds a runaway process to avoid freezing the deployment host.
+MemoryMax={{ container_memory_max }}
+{% endif %}
+{% if container_cpu_quota | default('') | length > 0 %}
+# CPU quota — only takes effect if the cpu controller is delegated to --user slices.
+CPUQuota={{ container_cpu_quota }}
+{% endif %}
+
+[Install]
+WantedBy=default.target

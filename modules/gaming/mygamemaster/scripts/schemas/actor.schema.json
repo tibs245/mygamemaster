@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/actor.schema.json",
+  "title": "actor — living world actor (key NPC, faction, town)",
+  "description": "UNIFIED actor model (doc 02 §1, contract §6.1): goal → plan → trajectory → relations, all timestamped at T (UT). Extends (does not replace) npcs.json / global_state.factions on the simulation side. This schema accepts TWO forms: (a) a STANDALONE actor; (b) the actors.json FILE {meta, actors:[...]} (source of truth for major actors), in the spirit of npcs.schema.json which tolerates two containers. Trajectory / plan (intention) / relation definitions are embedded ($defs) to remain self-contained (the in-house validator resolves only local $ref), STRICTLY coherent with trajectory.schema.json, plan.schema.json, intention.schema.json, relation.schema.json. Permissive (additionalProperties:true).",
+  "oneOf": [
+    { "$ref": "#/$defs/actor" },
+    { "$ref": "#/$defs/fichier_actors" }
+  ],
+  "$defs": {
+    "fichier_actors": {
+      "type": "object",
+      "description": "Container for actors.json file (contract §6).",
+      "required": ["meta", "actors"],
+      "additionalProperties": true,
+      "properties": {
+        "meta": {
+          "type": "object",
+          "required": ["campagne", "version"],
+          "additionalProperties": true,
+          "properties": {
+            "campagne": { "type": "string" },
+            "version": { "type": "integer" },
+            "t_reference": {
+              "type": "integer",
+              "description": "T (UT) reference timestamp for actors snapshot (e.g., 936 = Day 7)."
+            },
+            "note": { "type": "string" }
+          }
+        },
+        "actors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/actor" }
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "description": "Major actor (or frozen reactive sheet if majeur:false). Fixed id 'acteur:…'/'faction:…'/'comte:…' (contract §2.3).",
+      "required": ["id", "name", "type", "lod", "majeur", "but_long_terme", "situation", "ressources", "trajectory", "plan", "relations"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Fixed identifier, format 'type:kebab' (e.g., 'faction:raven-band', 'acteur:berthe')."
+        },
+        "name": { "type": "string", "description": "Free-form name." },
+        "type": {
+          "type": "string",
+          "description": "Scale of the actor.",
+          "enum": ["npcs", "faction", "ville"]
+        },
+        "lod": {
+          "type": "string",
+          "description": "Level of Detail calculated by tick and persisted.",
+          "enum": ["chaud", "tiede", "froid"]
+        },
+        "majeur": {
+          "type": "boolean",
+          "description": "true = simulated actor (plan + agent); false = frozen reactive sheet (always 'froid')."
+        },
+        "but_long_terme": {
+          "type": "string",
+          "description": "Goal INDEPENDENT of the PC (a goal cannot be 'wait for the PC's arrival')."
+        },
+        "motivations": {
+          "type": "array",
+          "description": "Actor's driving forces. Optional.",
+          "items": { "type": "string" }
+        },
+        "situation": {
+          "type": "string",
+          "description": "Current state, summarized."
+        },
+        "ressources": {
+          "type": "object",
+          "description": "Conserved quantities (e.g., vivres_jours, hommes, or). Can be {}.",
+          "additionalProperties": true
+        },
+        "localisation_id": {
+          "type": ["string", "null"],
+          "description": "id of 'base' location (fallback if no/expired trajectory). Optional."
+        },
+        "trajectory": { "$ref": "#/$defs/trajectory" },
+        "plan": {
+          "type": "array",
+          "description": "Timestamped intentions (can be []).",
+          "items": { "$ref": "#/$defs/intention" }
+        },
+        "relations": {
+          "type": "array",
+          "description": "Outgoing causal graph (can be []).",
+          "items": { "$ref": "#/$defs/relation" }
+        },
+        "source": {
+          "type": "string",
+          "description": "Source (e.g., 'npcs.json[Berthe]', 'global_state.factions'). Optional."
+        }
+      }
+    },
+    "trajectory": {
+      "type": "array",
+      "description": "Position = f(time): list of segments (stay | movement) sorted by 'de' ascending, with no gaps or overlaps. At least one stay (see trajectory.schema.json).",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/sejour" },
+          { "$ref": "#/$defs/deplacement" }
+        ]
+      }
+    },
+    "sejour": {
+      "type": "object",
+      "required": ["lieu", "de"],
+      "additionalProperties": true,
+      "properties": {
+        "lieu": { "type": "string", "description": "id of stay location." },
+        "de": { "type": "integer", "description": "T start time (UT)." },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "T end time (UT); null = ongoing/undefined."
+        }
+      }
+    },
+    "deplacement": {
+      "type": "object",
+      "required": ["type", "de", "a", "chemin"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string", "enum": ["deplacement"] },
+        "de": { "type": "integer", "description": "T departure (UT)." },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "T arrival (UT)."
+        },
+        "chemin": {
+          "type": "array",
+          "description": "Sequence of location ids following consecutive edges.",
+          "items": { "type": "string" }
+        },
+        "motif": { "type": "string" }
+      }
+    },
+    "intention": {
+      "type": "object",
+      "description": "Atomic plan intention (see intention.schema.json / contract §6.2).",
+      "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "description": "'intent:<slug>' unique in the plan." },
+        "action": { "type": "string" },
+        "lieu": { "type": ["string", "null"] },
+        "echeance": {
+          "type": "integer",
+          "description": "T (UT) at latest — deterministic integer."
+        },
+        "echeance_source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["texte", "unite", "ancre"],
+              "additionalProperties": true,
+              "properties": {
+                "texte": { "type": "string" },
+                "unite": { "type": "string", "enum": ["jour", "ut"] },
+                "min": { "type": ["integer", "null"] },
+                "max": { "type": ["integer", "null"] },
+                "ancre": { "type": "integer" },
+                "statut": {
+                  "type": "string",
+                  "enum": ["en_cours", "echue", "resolue"]
+                }
+              }
+            },
+            { "type": "string" }
+          ]
+        },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "consequence_attendue": { "type": "string" },
+        "consequence_effets": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "ressources": { "type": "object", "additionalProperties": true },
+            "relations": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/relation" }
+            },
+            "event": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "significativite": { "type": "number", "description": "0–1." },
+        "visible_par_pj": { "type": "boolean" },
+        "statut": {
+          "type": "string",
+          "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "description": "Edge of the causal graph (see relation.schema.json / contract §6.3).",
+      "required": ["vers", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "description": "Optional 'rel:<src>-<type>-<dst>'." },
+        "vers": { "type": "string", "description": "id of target actor/location." },
+        "type": {
+          "type": "string",
+          "enum": [
+            "approvisionnement",
+            "vassalite",
+            "alliance",
+            "hostilite",
+            "route_commerciale",
+            "parente",
+            "rivalite",
+            "predation",
+            "commandement",
+            "trahison",
+            "concurrence",
+            "tutelle"
+          ]
+        },
+        "intensite": { "type": "number", "description": "0–1." },
+        "bien": { "type": "string" },
+        "part": { "type": "number" },
+        "delai_ut": { "type": "integer" },
+        "poids": { "type": "number" }
+      }
+    }
+  }
+}

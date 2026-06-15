@@ -47,9 +47,9 @@ discord_token_mistfall: "…"              # one Discord bot token per game (key
 To avoid retyping the vault password on every command:
 
 ```bash
-mkdir -p ~/.config/hermes-mj
-printf '%s' 'MY_VAULT_PASSWORD' > ~/.config/hermes-mj/.vault_pass
-chmod 600 ~/.config/hermes-mj/.vault_pass
+mkdir -p ~/.config/mygamemaster
+printf '%s' 'MY_VAULT_PASSWORD' > ~/.config/mygamemaster/.vault_pass
+chmod 600 ~/.config/mygamemaster/.vault_pass
 # then uncomment vault_password_file in ansible/ansible.cfg
 ```
 

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/relation.schema.json",
+  "title": "relation — edge in the causal graph between actors (living world)",
+  "description": "The CAUSAL graph tells who DEPENDS ON whom (doc 04 §1, contract §6.3). Distinct from the spatial graph (adjacency). A relation is identified by the tuple (source_actor, vers, type); the 'id' field is optional (rel:<src>-<type>-<dst>). The 'delai_ut' encodes CAUSAL CONSERVATION (no instantaneous effects at a distance). 'poids' and 'delai_ut' drive bounded propagation (contract §8). This schema validates an ISOLATED relation and is reused by actor.schema.json ($defs.relation). Permissive (additionalProperties:true).",
+  "type": "object",
+  "required": ["vers", "type"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "OPTIONAL identifier 'rel:<src-slug>-<type>-<dst-slug>' if the relation needs to be referenced."
+    },
+    "vers": {
+      "type": "string",
+      "description": "ID of the target actor or location (e.g. 'acteur:berthe', 'lieu:marche-aux-trois-rivieres/gue-du-corbeau')."
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of causal edge. Enum extensible per campaign; unknown (event_type, type) pairs have no propagation effect.",
+      "enum": [
+        "approvisionnement",
+        "vassalite",
+        "alliance",
+        "hostilite",
+        "route_commerciale",
+        "parente",
+        "rivalite",
+        "predation",
+        "commandement",
+        "trahison",
+        "concurrence",
+        "tutelle"
+      ]
+    },
+    "intensite": {
+      "type": "number",
+      "description": "0–1: strength of the bond."
+    },
+    "bien": {
+      "type": "string",
+      "description": "For 'approvisionnement'/'route_commerciale': the transported good (e.g. 'vivres', 'bois', 'ble')."
+    },
+    "part": {
+      "type": "number",
+      "description": "Fraction (0–1) of the flow that depends on this relation."
+    },
+    "delai_ut": {
+      "type": "integer",
+      "description": "Propagation delay in UT (causal conservation): offset before the wave affects the target."
+    },
+    "poids": {
+      "type": "number",
+      "description": "Multiplicative propagation factor. Application default = intensite (or 0.5)."
+    }
+  }
+}

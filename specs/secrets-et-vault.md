@@ -4,7 +4,7 @@
 
 **No secrets in plain text in the repository.** Secrets live only in
 `ansible/inventory/group_vars/all/vault.yml`, **encrypted with `ansible-vault`**. At deployment,
-they are rendered into a file `~/.config/hermes-mj/<slug>.env` (mode `0600`, outside the repository) and
+they are rendered into a file `~/.config/mygamemaster/<slug>.env` (mode `0600`, outside the repository) and
 injected into the container via `EnvironmentFile` (Quadlet) or `--env-file`.
 
 ## Inventory of secrets (mapped from the old `.env`)
@@ -46,7 +46,7 @@ ansible-vault view    ansible/inventory/group_vars/all/vault.yml
 
 # Run a playbook that needs secrets
 ansible-playbook playbooks/deploy.yml -e campagne=naissance-dun-roi --ask-vault-pass
-# or: --vault-password-file ~/.config/hermes-mj/.vault_pass   (mode 0600, outside repo)
+# or: --vault-password-file ~/.config/mygamemaster/.vault_pass   (mode 0600, outside repo)
 ```
 
 An example file **unencrypted** `vault.example.yml` documents the expected keys and is

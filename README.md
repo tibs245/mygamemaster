@@ -28,27 +28,27 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 ### 16 Skill Modules
 
 **Session management**
-- `mj-tonnerre-initiation` — `!init` onboarding questionnaire: theme, rules, world, players → generates all campaign files
-- `mj-tonnerre-session` — structured session wrap-up and resume: formatted summaries, full state snapshots, stats
-- `mj-tonnerre-help` — in-Discord guide: how to use the GM, available commands
+- `mygamemaster-initiation` — `!init` onboarding questionnaire: theme, rules, world, players → generates all campaign files
+- `mygamemaster-session` — structured session wrap-up and resume: formatted summaries, full state snapshots, stats
+- `mygamemaster-help` — in-Discord guide: how to use the GM, available commands
 
 **Game mechanics**
-- `mj-tonnerre-outils` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
-- `mj-tonnerre-intendant` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
-- `mj-tonnerre-inventaire` — player inventories: display, add, use, discard, transfer; extensible YAML item base
-- `mj-tonnerre-personnage` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
+- `mygamemaster-outils` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
+- `mygamemaster-intendant` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
+- `mygamemaster-inventaire` — player inventories: display, add, use, discard, transfer; extensible YAML item base
+- `mygamemaster-personnage` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
 
 **Living world**
-- `mj-tonnerre-pnj` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
-- `mj-tonnerre-faction` — persistent Faction agents: each faction runs as a collective intelligence agent
-- `mj-tonnerre-images` — image generation pipeline: deterministic map layer (`carte_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
-- `mj-tonnerre-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (auto via hook + manual `!raconte`)
+- `mygamemaster-pnj` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
+- `mygamemaster-faction` — persistent Faction agents: each faction runs as a collective intelligence agent
+- `mygamemaster-images` — image generation pipeline: deterministic map layer (`carte_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
+- `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (auto via hook + manual `!raconte`)
 
 **Quality and output**
-- `mj-tonnerre-analyste` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
-- `mj-tonnerre-bug-report` — players can file structured bug reports (context / expected / got) for deferred review
-- `mj-tonnerre-game-report` — factual session report: actions, locations, NPCs, decisions, inventory — no spoilers
-- `mj-tonnerre-write-history` — novelization of the session as a readable chapter, no mechanics, no spoilers
+- `mygamemaster-analyste` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
+- `mygamemaster-bug-report` — players can file structured bug reports (context / expected / got) for deferred review
+- `mygamemaster-game-report` — factual session report: actions, locations, NPCs, decisions, inventory — no spoilers
+- `mygamemaster-write-history` — novelization of the session as a readable chapter, no mechanics, no spoilers
 
 ### Runtime Hooks (systematic, model-independent)
 
@@ -62,7 +62,7 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 
 Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice
 
-All flags fail-open (absent = ON). Toggled live in `monde.json > meta.features` — no redeploy needed.
+All flags fail-open (absent = ON). Toggled live in `world.json > meta.features` — no redeploy needed.
 
 ### Living-World Engine
 
@@ -94,7 +94,7 @@ Discord channel
 │         │ skills               │  TTS, ...)  │  │
 │  ┌──────▼───────────────────┐  └─────────────┘  │
 │  │  16 skill modules        │                   │
-│  │  (mj-tonnerre-*)         │                   │
+│  │  (mygamemaster-*)         │                   │
 │  └──────────────────────────┘                   │
 │                                                 │
 │  Volumes:                                       │
@@ -216,16 +216,16 @@ For the full walkthrough (world files, data structure, NPC setup):
 
 ```
 hermesv5/
-├── modules/gaming/          # the 16 skill modules (mj-tonnerre-*)
-│   └── mj-tonnerre/
+├── modules/gaming/          # the 16 skill modules (mygamemaster-*)
+│   └── mygamemaster/
 │       ├── hooks/           # runtime hooks (pre_llm_call, post_tool_call, …)
 │       ├── scripts/         # shared Python/Bash utilities (roll.py, clock.py, …)
 │       └── references/      # rules, thematic modules, JSON schemas
 ├── data/                    # campaign data (one subfolder per game slug)
-│   └── mj-tonnerre/campagnes/<slug>/
-│       ├── monde.json       # world config, rules, feature flags
-│       ├── pnj.json         # NPC sheets
-│       ├── evenements.json  # event timeline (T clock)
+│   └── mygamemaster/campaigns/<slug>/
+│       ├── world.json       # world config, rules, feature flags
+│       ├── npcs.json         # NPC sheets
+│       ├── events.json  # event timeline (T clock)
 │       └── ...
 ├── ansible/                 # deployment suite
 │   ├── inventory/
@@ -271,7 +271,7 @@ See [ansible/inventory/group_vars/all/vault.example.yml](ansible/inventory/group
 The default GM model is `minimax/minimax-m3` (via OpenRouter). The LLM judge ideally runs on a
 separate, smaller model (default: `google/gemma-4-31b-it`) to keep costs low and avoid self-grading.
 
-In-game toggles (`monde.json > meta`) are read at runtime — no redeploy needed to change verbosity,
+In-game toggles (`world.json > meta`) are read at runtime — no redeploy needed to change verbosity,
 enable/disable the judge, or adjust feature flags.
 
 ---
@@ -287,7 +287,7 @@ incurred on your OpenRouter and MiniMax accounts.
 - Image generation is triggered per explicit request or scene event.
 
 Use the `echantillon` setting on the judge and the feature flags to control spending.
-The [scoreboard script](modules/gaming/mj-tonnerre/hooks/scoreboard.py) helps you find the cheapest model that maintains quality.
+The [scoreboard script](modules/gaming/mygamemaster/hooks/scoreboard.py) helps you find the cheapest model that maintains quality.
 
 ---
 
@@ -313,7 +313,7 @@ The [scoreboard script](modules/gaming/mj-tonnerre/hooks/scoreboard.py) helps yo
 
 **MyGameMaster** is the name of this project and its repository.
 **MJ Tonnerre** is the default GM persona that comes bundled with it — a proper noun, not translated.
-Internal code identifiers (`mj-tonnerre*` module paths, data directories) reflect that persona name
+Internal code identifiers (`mygamemaster*` module paths, data directories) reflect that persona name
 and are intentionally unchanged.
 
 ---

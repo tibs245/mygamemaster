@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/plan.schema.json",
+  "title": "plan — ordered list of dated intentions for an actor (living world)",
+  "description": "A plan is the generalization of faction_actions_horloge (doc 02 §1, contract §6.1). It is a LIST of intentions (may be []) dated at T (UT), which the tick engine consumes and which preprocessing projects onto the player. Each id 'intent:<slug>' is unique within the plan. This schema validates an ISOLATED plan; the intention definition is embedded ($defs.intention) to remain self-contained (the custom validator only resolves local $refs). It is kept STRICTLY coherent with intention.schema.json.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/intention" },
+  "$defs": {
+    "intention": {
+      "type": "object",
+      "description": "Atomic intention (cf. intention.schema.json — same contract §6.2).",
+      "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier 'intent:<slug>' unique within the plan."
+        },
+        "action": { "type": "string", "description": "What: action label." },
+        "lieu": {
+          "type": ["string", "null"],
+          "description": "target location id, or null if non-spatial."
+        },
+        "echeance": {
+          "type": "integer",
+          "description": "T (UT) at the latest — deterministic integer (upper bound if range)."
+        },
+        "echeance_source": {
+          "description": "Original pinned deadline (trace) — clock.py object OR free string. Optional.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["texte", "unite", "ancre"],
+              "additionalProperties": true,
+              "properties": {
+                "texte": { "type": "string" },
+                "unite": { "type": "string", "enum": ["jour", "ut"] },
+                "min": { "type": ["integer", "null"] },
+                "max": { "type": ["integer", "null"] },
+                "ancre": { "type": "integer" },
+                "statut": {
+                  "type": "string",
+                  "enum": ["en_cours", "echue", "resolue"]
+                }
+              }
+            },
+            { "type": "string" }
+          ]
+        },
+        "preconditions": {
+          "type": "array",
+          "description": "Numeric comparisons 'resources.<key> <op> <number>'. Unknown → True (fail-open). Optional.",
+          "items": { "type": "string" }
+        },
+        "consequence_attendue": {
+          "type": "string",
+          "description": "Expected effects (text). Seeds propagation if significant."
+        },
+        "consequence_effets": {
+          "type": "object",
+          "description": "Optional machine deltas (resources/relations/event) applied by the extended Steward.",
+          "additionalProperties": true,
+          "properties": {
+            "ressources": { "type": "object", "additionalProperties": true },
+            "relations": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/relation_effet" }
+            },
+            "event": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "significativite": {
+          "type": "number",
+          "description": "0–1: propagation seed. Application default 0.5."
+        },
+        "visible_par_pj": {
+          "type": "boolean",
+          "description": "Can the PC observe this intention?"
+        },
+        "statut": {
+          "type": "string",
+          "description": "Lifecycle.",
+          "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
+        }
+      }
+    },
+    "relation_effet": {
+      "type": "object",
+      "description": "Relation mutation embedded in a consequence (cf. relation.schema.json).",
+      "required": ["vers", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "vers": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "approvisionnement",
+            "vassalite",
+            "alliance",
+            "hostilite",
+            "route_commerciale",
+            "parente",
+            "rivalite",
+            "predation",
+            "commandement",
+            "trahison",
+            "concurrence",
+            "tutelle"
+          ]
+        },
+        "intensite": { "type": "number" },
+        "bien": { "type": "string" },
+        "part": { "type": "number" },
+        "delai_ut": { "type": "integer" },
+        "poids": { "type": "number" }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+---
+# .yamllint — relaxed configuration so existing YAML passes without mass edits.
+# Extends the default ruleset; overrides noisy rules.
+
+extends: default
+
+rules:
+  # Ansible playbooks and role files use long lines extensively (commands, templates, etc.)
+  line-length: disable
+
+  # Many YAML files in this repo omit the "---" document start marker (inventory,
+  # data files, harness config). Disabling avoids spurious warnings on those files.
+  document-start: disable
+
+  # Comment indentation varies in Ansible group_vars; disabling avoids false positives.
+  comments-indentation: disable
+
+  # Ansible YAML uses 'yes'/'no'/'on'/'off' as truthy values in many places.
+  truthy:
+    allowed-values:
+      - "true"
+      - "false"
+      - "yes"
+      - "no"

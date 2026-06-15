@@ -2,7 +2,7 @@
 FROM {{ hermes_base_image }}
 
 # 1. Base tools + skill-script dependencies
-#    ffmpeg : mixes the ambient soundbed under the narrative voice (skill mj-tonnerre-tts).
+#    ffmpeg : mixes the ambient soundbed under the narrative voice (skill mygamemaster-tts).
 #    If absent → voice is still generated (fail-open), only the ambient layer is skipped.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates git jq tini ffmpeg \
@@ -18,20 +18,20 @@ RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 ENV PATH="/opt/hermes/venv/bin:${PATH}"
 # Record the actually-installed version (audit + rollback diagnostics).
 RUN /opt/hermes/venv/bin/hermes --version > /opt/hermes/INSTALLED_VERSION 2>&1 || true
-LABEL org.hermes-mj.hermes_version_requested="{{ hermes_version | default('latest') }}"
-LABEL org.hermes-mj.built="{{ ansible_date_time.iso8601 | default('manual') }}"
+LABEL org.mygamemaster.hermes_version_requested="{{ hermes_version | default('latest') }}"
+LABEL org.mygamemaster.built="{{ ansible_date_time.iso8601 | default('manual') }}"
 
 # 3. Our modules (baked in for reproducibility)
 COPY modules/ {{ container_modules }}/
 
 # 4. Python dependencies for skill scripts (if a requirements.txt is present)
-RUN if [ -f {{ container_modules }}/gaming/mj-tonnerre/scripts/requirements.txt ]; then \
+RUN if [ -f {{ container_modules }}/gaming/mygamemaster/scripts/requirements.txt ]; then \
       /opt/hermes/venv/bin/pip install --no-cache-dir \
-        -r {{ container_modules }}/gaming/mj-tonnerre/scripts/requirements.txt ; \
+        -r {{ container_modules }}/gaming/mygamemaster/scripts/requirements.txt ; \
     fi
 
 # 4b. Executable bit on runtime hooks (safety net — they are invoked via explicit interpreter)
-RUN chmod +x {{ container_modules }}/gaming/mj-tonnerre/hooks/*.py 2>/dev/null || true
+RUN chmod +x {{ container_modules }}/gaming/mygamemaster/hooks/*.py 2>/dev/null || true
 
 # 5. Hermes HOME + mount-point directories
 ENV HOME={{ container_home }}

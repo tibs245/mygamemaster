@@ -7,7 +7,7 @@ The image bundles Hermes + all modules and is shared by every game instance.
 ```bash
 cd ansible
 ansible-playbook playbooks/build-image.yml
-podman images | grep hermes-mj          # sanity check
+podman images | grep mygamemaster          # sanity check
 ```
 
 Only rebuild when you **modify a module** (see [`04`](04-ameliorer-les-modules.md)).
@@ -20,7 +20,7 @@ one entry under `games:`:
 ```yaml
 games:
   - slug: mistfall                # short id — names the container, volumes, systemd unit
-    data_dir: example-mistfall    # folder under data/mj-tonnerre/campagnes/
+    data_dir: example-mistfall    # folder under data/mygamemaster/campaigns/
     title: "Mistfall"             # human-readable name
     model: minimax/minimax-m3     # LLM the GM runs on (OpenRouter model id)
     provider: openrouter
@@ -46,7 +46,7 @@ ansible-vault edit ansible/inventory/group_vars/all/vault.yml
 ```
 
 That is everything to declare. The dynamic inventory (`hermes_inventory.py`) reads `games.yml`
-and exposes each entry as an Ansible host of the `campagnes` group.
+and exposes each entry as an Ansible host of the `campaigns` group.
 
 ## 3. Deploy
 
@@ -65,7 +65,7 @@ What `deploy` does:
 1. Verifies the image exists.
 2. Renders `config.yaml` + `SOUL.md` (the campaign persona).
 3. Creates volumes `hermes-<slug>-data` and `hermes-<slug>-home`.
-4. **Seed**: on the very first deploy, copies `data/mj-tonnerre/campagnes/<data_dir>/` into the
+4. **Seed**: on the very first deploy, copies `data/mygamemaster/campaigns/<data_dir>/` into the
    data volume.
 5. Writes the environment file (secrets, mode `0600`).
 6. Installs the **Quadlet** unit and starts the container.
@@ -78,7 +78,7 @@ systemctl --user status hermes-mistfall
 podman logs -f hermes-mistfall
 ```
 
-The smoke-test checks: `hermes --version`, presence of all 15 skills, readability of `monde.json`.
+The smoke-test checks: `hermes --version`, presence of all 15 skills, readability of `world.json`.
 
 ## Stop / restart / start
 
@@ -92,9 +92,9 @@ systemctl --user restart hermes-<slug>
 
 1. Create the game data folder:
    ```bash
-   cp -r data/mj-tonnerre/campagnes/_template data/mj-tonnerre/campagnes/<your-data-dir>
+   cp -r data/mygamemaster/campaigns/_template data/mygamemaster/campaigns/<your-data-dir>
    ```
-   Then fill in `monde.json` (the `mj-tonnerre-initiation` skill drives a questionnaire that helps
+   Then fill in `world.json` (the `mygamemaster-initiation` skill drives a questionnaire that helps
    build it, or run `!init` in Discord).
 2. Add **one entry** to `ansible/inventory/games.yml` (see format above).
 3. Add `discord_token_<slug>` to the vault.

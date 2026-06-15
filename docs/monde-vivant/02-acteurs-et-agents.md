@@ -41,7 +41,7 @@ moving along a **trajectory** ([`01`](01-horloge-et-espace.md)) and maintaining
 ```
 
 > **Continuity with existing code.** The fields `goal`, `motivations`, `situation`, `relationships`
-> already exist in `pnj.json` and `global_state.factions`. The **plan** is the generalization
+> already exist in `npcs.json` and `global_state.factions`. The **plan** is the generalization
 > of `faction_actions_horloge` (`trigger` → `preconditions`, `deadline` → `deadline` in
 > `T`, `consequence` → `expected_consequence`). The **`lod`** and **trajectory** are new.
 
@@ -82,8 +82,8 @@ and becomes a reactive sheet again (simulation economy).
 ## 3. Orchestration by Separated Agents
 
 Each major actor is driven by an **isolated agent** — exactly the **level 2** already started
-in the project (skills [`mj-tonnerre-pnj`](../../modules/gaming/mj-tonnerre-pnj/SKILL.md) and
-[`mj-tonnerre-faction`](../../modules/gaming/mj-tonnerre-faction/SKILL.md)).
+in the project (skills [`mygamemaster-pnj`](../../modules/gaming/mygamemaster-pnj/SKILL.md) and
+[`mygamemaster-faction`](../../modules/gaming/mygamemaster-faction/SKILL.md)).
 
 ```
                        ┌───────────────────────────────────────────┐
@@ -134,11 +134,11 @@ violates a conservation law (teleportation, resource created), it is **rejected*
 ## 4. Safe Writing and Anti-Divergence
 
 - **Single source of truth: files.** An agent never mutates state directly; the
-  engine applies the validated intention via [`faction_slice.py`](../../modules/gaming/mj-tonnerre/scripts/faction_slice.py)
+  engine applies the validated intention via [`faction_slice.py`](../../modules/gaming/mygamemaster/scripts/faction_slice.py)
   (slice reintegration, anti-concurrency) and `geo_query.py` (trajectories).
 - **The extended Steward** verifies each consequence (resources, position, relationships) before
   writing.
-- **The judge** ([`llm_judge.py`](../../modules/gaming/mj-tonnerre/hooks/llm_judge.py)) controls
+- **The judge** ([`llm_judge.py`](../../modules/gaming/mygamemaster/hooks/llm_judge.py)) controls
   **plausibility** of generated intentions (a pauper does not raise an army in one night).
 - **Deterministic dominates**: the LLM only proposes at *seams*; everything else is code.
 

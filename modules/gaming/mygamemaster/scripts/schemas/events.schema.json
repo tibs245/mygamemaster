@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/events.schema.json",
+  "title": "events.json — campaign HISTORICAL timeline",
+  "description": "Timeline of PAST events, generated from sessions (who/what/when played). NOT to be confused with scheduled_event.schema.json (= scheduled_events.json, FUTURE events of causal propagation / world_tick). Container {meta, events[]}; each entry is traceable to a session.",
+  "type": "object",
+  "required": ["meta", "events"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": { "type": "object" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["t", "type", "label", "session", "description", "source"],
+        "additionalProperties": true,
+        "properties": {
+          "t": { "type": "string", "description": "Narrative time anchor (e.g. \"Day 1\")." },
+          "type": { "type": "string", "description": "Category: artifact|meta|character|npc|quest|city_location|…" },
+          "label": { "type": "string" },
+          "session": { "type": ["integer", "string"] },
+          "description": { "type": "string" },
+          "source": { "type": "string", "description": "Traceable origin (e.g. \"session_001\")." }
+        }
+      }
+    }
+  }
+}

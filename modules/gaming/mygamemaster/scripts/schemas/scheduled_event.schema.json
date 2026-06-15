@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/scheduled_event.schema.json",
+  "title": "scheduled_event — FUTURE dated event emitted by causal propagation (living world)",
+  "description": "A 'scheduled' event is a FUTURE and DETERMINISTIC trace (who/what/when) written by causal_propagate.py / world_tick.py into scheduled_events.json (contract §8.3, doc 04 §3). Its topology (target) and timing (T = T_cause + delay_ut) are computed by graph traversal; its NARRATIVE QUALIFICATION ('narratif') is DEFERRED to an LLM seam, filled only at resolution and only if observable by the PC (lazy generation). This schema validates TWO forms: (a) an ISOLATED event; (b) the FILE scheduled_events.json {meta, events:[...]} (SEPARATE file, non-destructive: NEVER merge into events.json without GM decision). Tolerant (additionalProperties:true).",
+  "oneOf": [
+    { "$ref": "#/$defs/fichier" },
+    { "$ref": "#/$defs/event" }
+  ],
+  "$defs": {
+    "fichier": {
+      "type": "object",
+      "description": "Container for scheduled_events.json: meta + list of scheduled/resolved events.",
+      "required": ["meta", "events"],
+      "additionalProperties": true,
+      "properties": {
+        "meta": {
+          "type": "object",
+          "required": ["campagne", "version"],
+          "additionalProperties": true,
+          "properties": {
+            "campagne": { "type": "string" },
+            "version": { "type": "integer" },
+            "note": {
+              "type": "string",
+              "description": "Warning: SEPARATE file, NEVER merge into events.json without GM decision."
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "description": "Scheduled (future) or resolved (reached by tick) events.",
+          "items": { "$ref": "#/$defs/event" }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "description": "Isolated scheduled event (contract §8.3). id 'evt:<type>-<T>' unique (T zero-padded for uniqueness). T is a FUTURE instant in UT (never earlier than the cause).",
+      "required": ["id", "T", "type", "cible", "cause", "significativite", "statut"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier 'evt:<type>-<T>' unique (e.g., 'evt:raid-43200', 'evt:shortage-008320')."
+        },
+        "T": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scheduled instant in UT (1 UT = 10 min, T=0 at creation). ALWAYS future: T >= T of cause."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of propagated effect (e.g., 'raid', 'shortage', 'distress_call', 'local_pressure', 'migration', 'migrant_departure', 'fortification', 'requisition'). Campaign-extensible enum."
+        },
+        "cible": {
+          "type": "string",
+          "description": "id of the location OR actor affected by the effect (e.g., 'lieu:market-of-three-rivers/berthe-cottage', 'faction:silver-bank-counts')."
+        },
+        "actor": {
+          "type": ["string", "null"],
+          "description": "id of the actor originating the effect, or null if unattributable. Optional."
+        },
+        "cause": {
+          "type": "string",
+          "description": "id of the causal event or intention (cascade chaining; allows tracing back to the root)."
+        },
+        "significativite": {
+          "type": "number",
+          "description": "0–1: STRICTLY decreases with each hop (× weight × ATTENUATION). Below THRESHOLD, the wave extinguishes (anti-cycle, guaranteed termination)."
+        },
+        "statut": {
+          "type": "string",
+          "description": "Lifecycle: 'programme' (future, not yet arrived) | 'resolu' (reached by tick) | 'annule'.",
+          "enum": ["programme", "resolu", "annule"]
+        },
+        "profondeur": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Depth in the cascade (0 = root). Bounded by PROFONDEUR_MAX. Optional (audit trail)."
+        },
+        "label": {
+          "type": ["string", "null"],
+          "description": "Short readable title (e.g., 'Raven Band Supply Raid'). null until qualified. Optional."
+        },
+        "consequence_attendue": {
+          "type": ["string", "null"],
+          "description": "Expected narrative effect (text). null until qualified (deferred to LLM seam). Optional."
+        },
+        "visible_par_pj": {
+          "type": "boolean",
+          "description": "Is the event observable by the PC? Conditions deferred narrative qualification. Optional."
+        },
+        "narratif": {
+          "type": ["string", "null"],
+          "description": "DEFERRED LLM qualification: null until resolved/unobservable; filled at resolution if observable (lazy generation, doc 04 §2). DO NOT compute here."
+        },
+        "source": {
+          "type": "string",
+          "description": "Emitting script (e.g., 'causal_propagate.py', 'world_tick.py'). Optional."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/character.schema.json",
+  "title": "characters/<id>.json — player character sheet",
+  "type": "object",
+  "required": ["meta", "stats", "inventory", "health"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["character_name"],
+      "additionalProperties": true,
+      "properties": {
+        "character_name": { "type": "string" },
+        "discord_id": { "type": ["string", "integer"] }
+      }
+    },
+    "stats": { "type": "object" },
+    "inventory": { "type": "array" },
+    "skills": { "type": ["array", "object"] },
+    "health": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "HP / wound thresholds. Exact fields vary by system."
+    },
+    "progression": { "type": ["object", "array"] },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Player meta/out-of-fiction game preferences (pacing, tone, combat verbosity, spotlight, content limits, enjoys_deception, custom). All optional — re-injected to GM each turn (fail-open)."
+    }
+  }
+}

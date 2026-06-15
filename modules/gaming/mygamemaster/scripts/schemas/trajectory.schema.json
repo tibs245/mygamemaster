@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/trajectory.schema.json",
+  "title": "trajectory — position of an entity = function of time (4D)",
+  "description": "A trajectory is a LIST of segments sorted by ascending 'de', with no gaps or overlaps (invariant 01 §5.3, contract §3.7). Two segment forms: stay {lieu, de, a} and movement {type:'deplacement', de, a, chemin[...], motif}. 'a':null = current/undefined segment. This schema validates an ISOLATED trajectory; it is also reused by actor.schema.json ($defs.trajectoire). Dynamic invariants (continuity, no teleportation, monotonicity vs current T) are verified by worldlib.valider_trajectoire — not expressible in pure JSON Schema.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/segment" },
+  "$defs": {
+    "segment": {
+      "description": "Trajectory segment: stay OR movement. The distinction is made on the 'type' field (== 'deplacement' for movement, absent/other for stay).",
+      "oneOf": [
+        { "$ref": "#/$defs/sejour" },
+        { "$ref": "#/$defs/deplacement" }
+      ]
+    },
+    "sejour": {
+      "type": "object",
+      "description": "Stay: the entity remains at location 'lieu' from instant 'de' to instant 'a' (T in UT).",
+      "required": ["lieu", "de"],
+      "additionalProperties": true,
+      "properties": {
+        "lieu": {
+          "type": "string",
+          "description": "id of the stay location (must exist in geo.json)."
+        },
+        "de": {
+          "type": "integer",
+          "description": "Start time (UT, ≥ 0)."
+        },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "End time (UT). null = current/undefined (open segment)."
+        }
+      }
+    },
+    "deplacement": {
+      "type": "object",
+      "description": "Movement: the entity travels along 'chemin' (sequence of location ids, consecutive real edges) from 'de' to 'a'. The duration (a-de) must be ≥ sum of times_ut along the path (no teleportation).",
+      "required": ["type", "de", "a", "chemin"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Discriminant: equals 'deplacement'.",
+          "enum": ["deplacement"]
+        },
+        "de": {
+          "type": "integer",
+          "description": "Departure time (UT)."
+        },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "Arrival time (UT). null allowed for undefined ongoing movement."
+        },
+        "chemin": {
+          "type": "array",
+          "description": "Ordered sequence of location ids following consecutive existing edges.",
+          "items": { "type": "string" }
+        },
+        "motif": {
+          "type": "string",
+          "description": "Narrative reason for movement (ex. \"migration — famine (evt:incendie-champs)\"). Optional."
+        }
+      }
+    }
+  }
+}

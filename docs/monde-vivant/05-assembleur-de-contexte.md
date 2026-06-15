@@ -3,7 +3,7 @@
 > You've seen it clearly: *the GM must know these concepts to judge what applies*. But you can't
 > load everything into a small model's head — it drowns and hallucinates. The solution:
 > **assemble the relevant slice** for it before each scene. This is the evolution of your
-> [`pre_llm_call.py`](../../modules/gaming/mj-tonnerre/hooks/pre_llm_call.py).
+> [`pre_llm_call.py`](../../modules/gaming/mygamemaster/hooks/pre_llm_call.py).
 
 ## 1. The problem: knowing without drowning
 
@@ -59,7 +59,7 @@ A compact, stable format that the GM learns to read (like the "Persisted" block 
 │           possible crossing if player takes the pass road              │
 │ RECENT    D55 market brawl ; D52 bread price increase                  │
 │ IMMINENT  ⏰ wheat-shortage "rings" at T≈8320 → rationing (scheduled)   │
-│ STAKES    tonnerre depends on wheat from bléville (burned D28) ;       │
+│ STAKES    tonnerre depends on wheat from bleville (burned D28) ;       │
 │           bande-du-corbeau (predation .4) prowls at ford              │
 └────────────────────────────────────────────────────────────────────────┘
 ```

@@ -31,7 +31,7 @@ We **explicitly separate**:
   days later").
 
 The player never sees `T`. The engine sees only `T`. The conversion `T ↔ day/hour` is already
-done by [`outils/gestion_temps.py`](../../data/mj-tonnerre/campagnes/jusquau-bout-de-mon-monde/outils/gestion_temps.py)
+done by [`outils/gestion_temps.py`](../../data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/outils/gestion_temps.py)
 and remains the only bridge between the two.
 
 > **Why quantify.** Trajectory intersections and causal delays require
@@ -125,7 +125,7 @@ space **4D** and solves the migration example.
 ```json
 {
   "id": "lieu:tonnerre/place-du-marche/eglise",
-  "nom": "Église Saint-Aubin",
+  "nom": "Saint-Aubin Church",
   "parent": "lieu:tonnerre/place-du-marche",
   "type": "edifice",
   "altitude": 215,
@@ -138,7 +138,7 @@ space **4D** and solves the migration example.
 }
 ```
 
-> **Where to store it.** Either a `univers.graphe` section in `monde.json`, or a dedicated
+> **Where to store it.** Either a `universe.graphe` section in `world.json`, or a dedicated
 > `geo.json` file per campaign (recommended: isolates the graph, simplifies validation and
 > concurrent writes). To decide in [`07`](07-plan-de-mise-en-oeuvre.md).
 
@@ -163,7 +163,7 @@ two locations with the same name (reliable entity resolution).
 
 ## 5. The Invariants (the Spatial Validator)
 
-In the spirit of [`validator-distances.py`](../../modules/gaming/mj-tonnerre/scripts/validator-distances.py),
+In the spirit of [`validator-distances.py`](../../modules/gaming/mygamemaster/scripts/validator-distances.py),
 the code **refuses writes** that would violate a conservation:
 
 1. **Attachment** — every new location has a valid `parent` **and** ≥ 1 edge (no islands).

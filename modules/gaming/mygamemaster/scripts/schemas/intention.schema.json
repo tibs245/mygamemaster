@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/intention.schema.json",
+  "title": "intention — atomic unit of an actor's plan (living world)",
+  "description": "An intention specifies WHAT, WHERE, and BY WHEN AT LATEST (deadline as T/UT), under which PRECONDITIONS, with what expected CONSEQUENCE (doc 02 §1, contract §6.2). It is also the OUTPUT FORMAT of the LLM seam agent_decide (contract §7.5): all outputs are validated against this schema THEN against invariants before entering the plan. id 'intent:<slug>' unique WITHIN an actor's PLAN (not globally). deadline is a DETERMINISTIC T (integer UT): the LLM never produces raw T — it is derived from a pinned deadline (echeance_source) via worldlib.echeance_en_t. Permissive (additionalProperties:true).",
+  "type": "object",
+  "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Identifier 'intent:<slug>' unique within the actor's plan (e.g., 'intent:winter-raid')."
+    },
+    "action": {
+      "type": "string",
+      "description": "What: action label."
+    },
+    "lieu": {
+      "type": ["string", "null"],
+      "description": "target location id, or null if the intention is not spatial."
+    },
+    "echeance": {
+      "type": "integer",
+      "description": "T (UT) BY LATEST — deterministic integer. For a pinned range, this is the UPPER bound (by latest)."
+    },
+    "echeance_source": {
+      "description": "Original « pinned » deadline (trace), format clock.py {texte,unite,min,max,ancre,statut} OR free string. Optional — kept for audit (contract §3.9).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["texte", "unite", "ancre"],
+          "additionalProperties": true,
+          "properties": {
+            "texte": { "type": "string" },
+            "unite": { "type": "string", "enum": ["jour", "ut"] },
+            "min": { "type": ["integer", "null"] },
+            "max": { "type": ["integer", "null"] },
+            "ancre": { "type": "integer" },
+            "statut": {
+              "type": "string",
+              "enum": ["en_cours", "echue", "resolue"]
+            }
+          }
+        },
+        {
+          "type": "string",
+          "description": "Free string not machine-datable (e.g., « In 2-3 weeks… ») — flagged, not advanceable."
+        }
+      ]
+    },
+    "preconditions": {
+      "type": "array",
+      "description": "Evaluable expressions — SAFE subset: numeric comparisons 'ressources.<key> <op> <number>' (e.g., 'ressources.vivres_jours < 14'). Unknown/unparseable → True (fail-open). Optional.",
+      "items": { "type": "string" }
+    },
+    "consequence_attendue": {
+      "type": "string",
+      "description": "Expected effects (text). Triggers causal propagation if significant."
+    },
+    "consequence_effets": { "$ref": "#/$defs/consequence_effets" },
+    "significativite": {
+      "type": "number",
+      "description": "0–1: seed for causal propagation (contract §8). Application default 0.5 if absent."
+    },
+    "visible_par_pj": {
+      "type": "boolean",
+      "description": "Can a PC observe this intention?"
+    },
+    "statut": {
+      "type": "string",
+      "description": "Intention lifecycle.",
+      "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
+    }
+  },
+  "$defs": {
+    "consequence_effets": {
+      "type": "object",
+      "description": "Optional MACHINE deltas applied by the extended Steward (apply_consequence). All optional.",
+      "additionalProperties": true,
+      "properties": {
+        "ressources": {
+          "type": "object",
+          "description": "Resource deltas (key → number, can be negative). A violated conservation (negative resource created) causes the consequence to be REFUSED.",
+          "additionalProperties": true
+        },
+        "relations": {
+          "type": "array",
+          "description": "Relation mutations to apply (same fields as a relation, cf. relation.schema.json).",
+          "items": { "$ref": "#/$defs/relation_effet" }
+        },
+        "event": {
+          "type": "object",
+          "description": "Event template to emit (partial) — completed by tick/propagation.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "relation_effet": {
+      "type": "object",
+      "description": "Relation mutation embedded in a consequence (lightweight form of the causal graph relation).",
+      "required": ["vers", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "vers": { "type": "string", "description": "id of target actor/location." },
+        "type": {
+          "type": "string",
+          "description": "Relation type (cf. relation.schema.json).",
+          "enum": [
+            "approvisionnement",
+            "vassalite",
+            "alliance",
+            "hostilite",
+            "route_commerciale",
+            "parente",
+            "rivalite",
+            "predation",
+            "commandement",
+            "trahison",
+            "concurrence",
+            "tutelle"
+          ]
+        },
+        "intensite": { "type": "number", "description": "0–1." },
+        "bien": { "type": "string" },
+        "part": { "type": "number" },
+        "delai_ut": { "type": "integer" },
+        "poids": { "type": "number" }
+      }
+    }
+  }
+}

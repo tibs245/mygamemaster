@@ -18,7 +18,7 @@ reproducible mechanism: **isolation via Podman container**.
 | `profiles/<campaign>/memory/` (isolated) | volume `hermes-<slug>-memory` |
 | `profiles/<campaign>/sessions/` | runtime state in the container (volume if needed) |
 | `config.model.default` per profile | `host_vars/<campaign>.model` |
-| `terminal.cwd` → campaign folder | `terminal.cwd: /opt/data/mj-tonnerre/campaigns/<slug>` |
+| `terminal.cwd` → campaign folder | `terminal.cwd: /opt/data/mygamemaster/campaigns/<slug>` |
 | profile `admin-mj` (maintenance) | not carried forward in runtime: **module maintenance**
   is done in this repository (editing `modules/` → `redeploy`). See note below. |
 | `hermes profile create … --clone-from admin-mj` | `ansible-playbook deploy.yml -e campaign=<slug>` |
@@ -37,7 +37,7 @@ reproducible mechanism: **isolation via Podman container**.
 The old `admin-mj` profile served to **maintain cross-cutting rules and modules**. In the
 new architecture, this maintenance is **no longer a production agent** but a **development
 workflow on this repository**:
-1. edit a skill under `modules/gaming/mj-tonnerre*`;
+1. edit a skill under `modules/gaming/mygamemaster*`;
 2. `redeploy.yml` (rebuild image + recreate containers);
 3. campaigns run on the improved modules, with no data loss.
 

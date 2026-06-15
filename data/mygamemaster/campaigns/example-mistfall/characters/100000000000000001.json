@@ -1,0 +1,91 @@
+{
+  "_description": "Player character file — Mistfall campaign. Player: Alex (discord 100000000000000001). Character: Oryn Ashveil.",
+  "meta": {
+    "player_name": "Alex",
+    "discord_id": "100000000000000001",
+    "character_name": "Oryn Ashveil",
+    "race": "Human",
+    "class_": "Investigator (Wisdom-based — the one who notices what others miss)",
+    "level": 1,
+    "history": "Oryn grew up on the chalk downs east of Thornwick and left as a teenager after their family lost a legal dispute to a local lord. They have spent five years as a travelling scribe and amateur archivist — copying records, notarising agreements, and quietly becoming expert in reading the fine print of any contract. They returned west after receiving an unsigned letter that said only: 'The old debt is coming due. You know what to look for.'",
+    "portrait_url": ""
+  },
+  "stats": {
+    "strength": 9,
+    "dexterity": 13,
+    "constitution": 12,
+    "intelligence": 15,
+    "wisdom": 16,
+    "charisma": 11
+  },
+  "modificateurs": {
+    "strength": -1,
+    "dexterity": 1,
+    "constitution": 1,
+    "intelligence": 2,
+    "wisdom": 3,
+    "charisma": 0
+  },
+  "skills": [
+    { "name": "Investigation", "stat": "Intelligence", "bonus": 5, "maitrise": true },
+    { "name": "History (contracts, lore)", "stat": "Intelligence", "bonus": 5, "maitrise": true },
+    { "name": "Insight", "stat": "Wisdom", "bonus": 6, "maitrise": true },
+    { "name": "Perception", "stat": "Wisdom", "bonus": 6, "maitrise": true },
+    { "name": "Persuasion", "stat": "Charisma", "bonus": 3, "maitrise": true }
+  ],
+  "spells": [],
+  "health": {
+    "hp_max": 11,
+    "hp_current": 11,
+    "wounds": [],
+    "conditions": []
+  },
+  "equipment": [
+    { "name": "Scribe's satchel", "description": "Worn leather, ink-stained. Holds quills, wax, a small knife, and a blank journal." },
+    { "name": "Cold-iron penknife", "description": "A small folding knife with a cold-iron blade. Oryn uses it for sharpening quills. Functions as a cold-iron weapon." },
+    { "name": "Traveller's cloak (wool, grey)", "description": "Practical and forgettable. Good in the rain." },
+    { "name": "Walking staff", "description": "Ash wood, iron-tipped." }
+  ],
+  "inventory": [
+    "Blank journal (half-filled with copied records from various towns)",
+    "3 quills",
+    "2 inkpots (black, red)",
+    "5 days of rations",
+    "Purse with 12 silver coins",
+    "Unsigned letter ('The old debt is coming due...')",
+    "A worn copy of 'Common Forms of Contract in the Borderlands' — a legal reference booklet"
+  ],
+  "personal_notes": {
+    "goals": [
+      "Find out who sent the unsigned letter and why",
+      "Understand the nature of the fae bargain before trying to void it — a poorly-read contract can make things worse",
+      "Do not make any promises to anyone until the fine print is clear"
+    ],
+    "relations": {
+      "acteur:sable-morrow": "Travelling companion of three days. Oryn does not fully understand why Sable is here but finds their instincts useful.",
+      "acteur:mosswick": "First impression: hiding something. The steadiness of the handwriting on the note suggests someone used to authority — and to not being caught in a lie.",
+      "acteur:petra-dawnhollow": "Practical, scared, and honest about both. Oryn trusts her more than she expected."
+    },
+    "secrets": [
+      "Oryn's family surname is Ashveil — the same as the crossing. Their grandfather may have been involved in the original bargain. They have not looked too closely at the family genealogy records for this reason.",
+      "The unsigned letter used a specific legal phrasing ('the old debt is coming due') that only someone who had read the original Thornwick charter would know. Oryn suspects the sender may be from the Pale Court itself."
+    ]
+  },
+  "progression": {
+    "xp": 0,
+    "next_level": 300
+  },
+  "preferences": {
+    "_description": "Out-of-fiction, table-style play preferences for Alex. Surfaced to the GM each turn so play is tailored. Private to this player.",
+    "pacing": "Slow-burn investigation — let me read documents and ask questions before any action escalates.",
+    "tone_likes": ["mystery", "moral ambiguity", "lore and worldbuilding"],
+    "tone_dislikes": ["slapstick comedy", "gore"],
+    "combat_verbosity": "concise",
+    "spotlight": "Happy to share the spotlight; nudge me in if I've gone quiet for a while.",
+    "content_boundaries": ["no harm to children on-screen"],
+    "enjoys_deception": true,
+    "custom": {
+      "note": "Loves a well-foreshadowed twist — does not mind being deceived if the clues were fair in hindsight."
+    }
+  }
+}

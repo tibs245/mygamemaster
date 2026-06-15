@@ -1,0 +1,44 @@
+{
+  "_description": "Character template — one file per player",
+  "meta": {
+    "player_name": "",
+    "discord_id": "",
+    "character_name": "",
+    "race": "",
+    "class_": "",
+    "level": 1,
+    "history": "",
+    "portrait_url": ""
+  },
+  "stats": {},
+  "equipment": [],
+  "inventory": [],
+  "skills": [],
+  "spells": [],
+  "personal_notes": {
+    "goals": [],
+    "relations": {},
+    "secrets": []
+  },
+  "preferences": {
+    "_description": "Player preferences (meta / out-of-fiction) specific to THIS player. Recorded when the player expresses one (\"remember that I like X\") and re-injected to the GM at each turn to adapt the experience. Free-form but structured: keys documented below + a \"custom\" object for the rest. Private to the player (same per-player isolation as the sheet). All optional — an empty/missing block changes nothing (fail-open).",
+    "pacing": "",
+    "tone_likes": [],
+    "tone_dislikes": [],
+    "combat_verbosity": "",
+    "spotlight": "",
+    "content_boundaries": [],
+    "enjoys_deception": null,
+    "custom": {}
+  },
+  "health": {
+    "hp_max": 10,
+    "hp_current": 10,
+    "wounds": [],
+    "conditions": []
+  },
+  "progression": {
+    "xp": 0,
+    "next_level": 100
+  }
+}

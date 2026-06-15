@@ -3,7 +3,7 @@
 
 Reads `games.yml` (your real table, git-ignored) — or falls back to
 `games.example.yml` if it does not exist yet — and turns every entry under
-`games:` into a host of the `campagnes` group. Each game's fields are mapped to
+`games:` into a host of the `campaigns` group. Each game's fields are mapped to
 the variables the `hermes_deploy` role already expects, so the playbooks and the
 role stay unchanged.
 
@@ -27,9 +27,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Map a game-table field -> the variable name the role/templates consume.
 FIELD_TO_VAR = {
-    "slug": "campagne_slug",
-    "data_dir": "campagne_data_dir",
-    "title": "campagne_titre",
+    "slug": "campaign_slug",
+    "data_dir": "campaign_data_dir",
+    "title": "campaign_title",
     "model": "model",
     "provider": "provider",
     "language": "default_language",
@@ -93,7 +93,7 @@ def build_inventory():
         hosts.append(slug)
         hostvars[slug] = _hostvars(game)
     return {
-        "campagnes": {
+        "campaigns": {
             "hosts": hosts,
             "vars": _group_vars(connection),
         },

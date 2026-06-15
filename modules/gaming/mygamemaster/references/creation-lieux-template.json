@@ -1,0 +1,49 @@
+{
+  "name": "Location-Name",
+  "essence": "Strong concept — 1 sentence that sums it all up",
+  "conflit_central": "What tears apart or threatens the location",
+  "questions_vitales": {
+    "gouvernance": "Who governs here?",
+    "raison_existence": "Why does this location exist?",
+    "besoin_critique": "What is lacking or desperately protected",
+    "secret_honteux": "What the inhabitants hide"
+  },
+  "pnjs_cles": {
+    "visage": {"name": "", "desire": "", "weakness": ""},
+    "probleme": {"name": "", "desire": "", "weakness": ""},
+    "ombre": {"name": "", "desire": "", "weakness": ""}
+  },
+  "ambiance": ["sensation1", "sensation2", "sensation3"],
+  "horloge": {
+    "event": "What WILL happen if the PCs do nothing",
+    "echeance": "Deadline in game time",
+    "consequence": "What happens if the deadline is reached",
+    "leviers_pj": ["lever1", "lever2"]
+  },
+  "liens_monde": {
+    "routes": ["distance and direction to neighboring locations"],
+    "dependances": ["water, food, protection, knowledge"],
+    "frictions": ["conflicts with neighbors or factions"],
+    "rumeurs": "rumors from elsewhere"
+  },
+  "appartenances": {
+    "administratif": "empire/kingdom/region",
+    "factionnel": "guild/order/church/clan",
+    "conflit_appartenance": "torn between two allegiances?",
+    "influence_exterieure": "foreign faction with interests in the location"
+  },
+  "dynamique": {
+    "objectif": "What is the location seeking?",
+    "moyens": ["resources, inhabitants, expertise"],
+    "progres": {"projectA": "0%", "projectB": "0%"},
+    "evolution": "success → prosperity | decline → abandonment | transformation → change of nature"
+  },
+  "lois_et_morale": {
+    "lois_cardinales": ["3 to 5 rules that truly matter"],
+    "justice": "How it is administered",
+    "tabous": ["what is not done, not said"],
+    "tolerances": ["what strangers find shocking but locals accept"],
+    "tension_morale": "part of the population that rejects old rules"
+  },
+  "vide_sacre": "What remains blank for improvisation"
+}

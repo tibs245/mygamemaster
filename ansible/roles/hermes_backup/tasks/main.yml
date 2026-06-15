@@ -8,7 +8,7 @@
 - name: Verify the campaign variable
   ansible.builtin.assert:
     that:
-      - campagne_slug is defined
+      - campaign_slug is defined
     fail_msg: "Run with -e game=<slug> (legacy alias -e campagne=<slug> also accepted)."
 
 - name: Create the backup directory (controller)
@@ -197,8 +197,8 @@
     _manifest:
       schema: 1
       deploy_id: "{{ deploy_id }}"
-      campagne_slug: "{{ campagne_slug }}"
-      campagne_titre: "{{ campagne_titre | default(campagne_slug) }}"
+      campaign_slug: "{{ campaign_slug }}"
+      campaign_title: "{{ campaign_title | default(campaign_slug) }}"
       instance: "{{ instance | default('main') }}"
       stamp: "{{ backup_stamp }}"
       label: "{{ backup_label }}"

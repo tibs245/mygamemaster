@@ -11,8 +11,8 @@ quadlet_unit: "hermes-{{ deploy_id }}"
 # (see tasks/main.yml "Push data…"), then mounted into the podman run seed command.
 # (The seed mounts a podman -v path: it must exist on the TARGET host, not on the controller.)
 seed_stage_dir: "{{ ansible_env.HOME }}/.cache/hermes-seed"
-campagne_src: "{{ seed_stage_dir }}/{{ campagne_data_dir }}"
+campaign_src: "{{ seed_stage_dir }}/{{ campaign_data_dir }}"
 base_items_src: "{{ seed_stage_dir }}/base_items.yaml"
 # Controller-side source (Mac repository) — origin of copy: tasks to the staging area.
-campagne_src_local: "{{ repo_root }}/data/mj-tonnerre/campagnes/{{ campagne_data_dir }}"
-base_items_src_local: "{{ repo_root }}/data/mj-tonnerre/base_items.yaml"
+campaign_src_local: "{{ repo_root }}/data/mygamemaster/campaigns/{{ campaign_data_dir }}"
+base_items_src_local: "{{ repo_root }}/data/mygamemaster/base_items.yaml"

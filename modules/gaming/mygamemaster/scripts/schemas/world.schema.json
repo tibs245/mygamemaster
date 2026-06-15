@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/world.schema.json",
+  "title": "world.json — state of the world for a MJ Tonnerre campaign",
+  "type": "object",
+  "required": ["meta", "modules", "global_state", "universe"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["name", "time"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "time": {
+          "type": "object",
+          "required": ["regime"],
+          "additionalProperties": true,
+          "properties": {
+            "regime": { "type": "string" }
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Block of thematic modules that can be activated. Each module = {actif:bool, params:obj}.",
+      "patternProperties": {
+        "^(voyage|factions|proactivite_pnj|artefacts|politique|meteo|worldbuilding_lieux|construction_royaume)$": {
+          "type": "object",
+          "required": ["actif"],
+          "additionalProperties": true,
+          "properties": {
+            "actif": { "type": "boolean" },
+            "params": { "type": "object" }
+          }
+        }
+      }
+    },
+    "global_state": {
+      "type": "object",
+      "required": ["factions", "faction_actions_horloge", "timeline"],
+      "additionalProperties": true,
+      "properties": {
+        "timeline": { "type": "string" },
+        "factions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "short_term_goals", "long_term_goals", "attitude_actuelle"],
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "short_term_goals": { "type": "string" },
+              "long_term_goals": { "type": "string" },
+              "attitude_actuelle": { "type": "string" },
+              "indices_observes": { "type": "array" }
+            }
+          }
+        },
+        "faction_actions_horloge": {
+          "type": "object",
+          "required": ["actions"],
+          "additionalProperties": true,
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["faction", "actions_en_cours"],
+                "additionalProperties": true,
+                "properties": {
+                  "faction": { "type": "string" },
+                  "actions_en_cours": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["action", "echeance", "consequence"],
+                      "additionalProperties": true,
+                      "properties": {
+                        "action": { "type": "string" },
+                        "consequence": { "type": "string" },
+                        "echeance": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": ["texte", "unite", "min", "max", "ancre", "statut"],
+                              "additionalProperties": true,
+                              "properties": {
+                                "texte": { "type": "string" },
+                                "unite": { "type": "string", "enum": ["jour", "ut"] },
+                                "min": { "type": ["integer", "null"] },
+                                "max": { "type": ["integer", "null"] },
+                                "ancre": { "type": "integer" },
+                                "statut": { "type": "string", "enum": ["en_cours", "echue", "resolue"] }
+                              }
+                            },
+                            {
+                              "type": "string",
+                              "description": "LEGACY format free-form string — tolerated but not machine-processable (migrate to pinned object)."
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "universe": {
+      "type": "object",
+      "required": ["regions"],
+      "additionalProperties": true,
+      "properties": {
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name"],
+                  "additionalProperties": true,
+                  "properties": {
+                    "name": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

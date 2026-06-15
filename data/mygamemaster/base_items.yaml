@@ -1,0 +1,224 @@
+# ⚡ MJ Tonnerre — Evolving Item Database
+# Shared across all campaigns.
+# Add new items at the end of each category.
+# Format: unique key → { nom, description, valeur_or, poids, effet, rarete }
+
+armes:
+  epee_longue:
+    nom: "Longsword"
+    description: "Well-balanced steel blade, the versatile weapon of the warrior"
+    valeur_or: 15
+    poids: 3
+    effet: "1d8 slashing damage"
+    rarete: common
+  hache_de_bataille:
+    nom: "Battleaxe"
+    description: "Heavy two-handed blade that splits the air with an ominous whistle"
+    valeur_or: 20
+    poids: 5
+    effet: "1d12 slashing damage"
+    rarete: common
+  dague:
+    nom: "Dagger"
+    description: "Small discreet blade, easy to hide in a boot"
+    valeur_or: 5
+    poids: 0.5
+    effet: "1d4 piercing damage, can be thrown"
+    rarete: common
+  arc_court:
+    nom: "Shortbow"
+    description: "Ash wood bow, ideal for scouts"
+    valeur_or: 12
+    poids: 2
+    effet: "1d6 piercing damage, range 24m"
+    rarete: common
+  fleches:
+    nom: "Arrows (20)"
+    description: "Quiver of twenty arrows fletched with goose feathers"
+    valeur_or: 2
+    poids: 1
+    effet: "Ammunition for bow"
+    rarete: common
+  baton_de_mage:
+    nom: "Mage Staff"
+    description: "Long gnarled wooden staff, carved with pale runes"
+    valeur_or: 8
+    poids: 2
+    effet: "1d6 bludgeoning damage, arcane focus"
+    rarete: common
+  epee_courte:
+    nom: "Shortsword"
+    description: "Light manageable blade, perfect as an off-hand weapon"
+    valeur_or: 10
+    poids: 1.5
+    effet: "1d6 slashing damage, finesse"
+    rarete: common
+  masse_darmes:
+    nom: "Mace"
+    description: "Metal sphere studded with spikes at the end of a handle"
+    valeur_or: 12
+    poids: 3
+    effet: "1d8 bludgeoning damage"
+    rarete: common
+
+armures:
+  bouclier_bois:
+    nom: "Wooden Shield"
+    description: "Round oak shield reinforced with iron, sturdy and reliable"
+    valeur_or: 10
+    poids: 4
+    effet: "+2 Defense"
+    rarete: common
+  armure_de_cuir:
+    nom: "Leather Armor"
+    description: "Boiled leather, flexible and quiet, ideal for thieves"
+    valeur_or: 25
+    poids: 5
+    effet: "Defense 11 + Dex"
+    rarete: common
+  cote_de_mailles:
+    nom: "Chainmail"
+    description: "Shirt of interlocked steel rings, reliable protection"
+    valeur_or: 50
+    poids: 15
+    effet: "Defense 16, disadvantage stealth"
+    rarete: uncommon
+  armure_de_plates:
+    nom: "Plate Armor"
+    description: "Complete suit of polished steel, the pinnacle of protection"
+    valeur_or: 150
+    poids: 25
+    effet: "Defense 18, disadvantage stealth"
+    rarete: rare
+
+potions:
+  potion_de_soin:
+    nom: "Healing Potion"
+    description: "Ruby red vial that shimmers softly in the light"
+    valeur_or: 25
+    poids: 0.5
+    effet: "Restores 2d4+2 HP"
+    rarete: common
+  potion_de_soin_superieure:
+    nom: "Superior Healing Potion"
+    description: "Golden and thick liquid, radiates comforting warmth"
+    valeur_or: 100
+    poids: 0.5
+    effet: "Restores 4d4+4 HP"
+    rarete: uncommon
+  potion_de_force:
+    nom: "Strength Potion"
+    description: "Bubbles like molten lava in its vial"
+    valeur_or: 80
+    poids: 0.5
+    effet: "+2 Strength for 1 hour"
+    rarete: uncommon
+  potion_dinvisibilite:
+    nom: "Invisibility Potion"
+    description: "Perfectly transparent liquid — you can only see the vial"
+    valeur_or: 150
+    poids: 0.5
+    effet: "Invisibility for 10 minutes"
+    rarete: rare
+  antidote:
+    nom: "Antidote"
+    description: "Greenish preparation with the sharp smell of medicinal herbs"
+    valeur_or: 30
+    poids: 0.3
+    effet: "Nullifies ongoing poisoning"
+    rarete: common
+
+objets_magiques:
+  anneau_de_protection:
+    nom: "Ring of Protection"
+    description: "Silver ring engraved with a stylized eye that seems to watch you"
+    valeur_or: 200
+    poids: 0.1
+    effet: "+1 Defense, +1 saves"
+    rarete: rare
+  pierre_de_chance:
+    nom: "Luckstone"
+    description: "Smooth warm pebble that pulses with a golden glow"
+    valeur_or: 300
+    poids: 0.2
+    effet: "Reroll 1 check per day"
+    rarete: epic
+  bourse_sans_fond:
+    nom: "Bottomless Pouch"
+    description: "Small velvet pouch that always weighs the same"
+    valeur_or: 500
+    poids: 0.3
+    effet: "Holds up to 100 kg without burden"
+    rarete: legendary
+
+divers:
+  torche:
+    nom: "Torch"
+    description: "Stick wrapped in pitch, ready to light"
+    valeur_or: 1
+    poids: 1
+    effet: "Light in a 6m radius, burns for 1 hour"
+    rarete: common
+  corde:
+    nom: "Hemp Rope (15m)"
+    description: "Strong rope of braided fibers, supports 150 kg"
+    valeur_or: 3
+    poids: 3
+    effet: "Climbing, restraint, creative uses"
+    rarete: common
+  sac_a_dos:
+    nom: "Backpack"
+    description: "Waxed canvas sack, waterproof, sturdy"
+    valeur_or: 5
+    poids: 1
+    effet: "+15 kg carrying capacity"
+    rarete: common
+  rations:
+    nom: "Rations (1 day)"
+    description: "Hard bread, dry cheese, jerky — not tasty but it fills the belly"
+    valeur_or: 1
+    poids: 1
+    effet: "Sustains one person for 1 day"
+    rarete: common
+  briquet_a_silex:
+    nom: "Flint and Steel"
+    description: "Two flint stones in a leather pouch"
+    valeur_or: 2
+    poids: 0.2
+    effet: "Lights a fire in 1 action"
+    rarete: common
+  gourde:
+    nom: "Waterskin"
+    description: "Leather bladder holding 1 liter of fresh water"
+    valeur_or: 1
+    poids: 1
+    effet: "Hydration for 1 half-day"
+    rarete: common
+  pied_de_biche:
+    nom: "Crowbar"
+    description: "Bent iron bar, heavy and practical"
+    valeur_or: 5
+    poids: 3
+    effet: "Force doors/chests, +2 to forced entry checks"
+    rarete: common
+  kit_de_crochetage:
+    nom: "Lockpick Set"
+    description: "Leather case containing picks, tensions, and files"
+    valeur_or: 15
+    poids: 0.5
+    effet: "Enables picking locks"
+    rarete: common
+  lanterne:
+    nom: "Lantern"
+    description: "Wrought iron lantern with smoked glass, protects flame from wind"
+    valeur_or: 8
+    poids: 2
+    effet: "Light in a 12m radius, 1 flask of oil = 6h"
+    rarete: common
+  huile:
+    nom: "Oil (flask)"
+    description: "Flask of combustible oil, can also lubricate or be set alight"
+    valeur_or: 1
+    poids: 0.5
+    effet: "6h of lantern light, or 1d4 fire damage 1m area"
+    rarete: common

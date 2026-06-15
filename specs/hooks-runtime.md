@@ -43,9 +43,9 @@ The real data model imposes a boundary that must be respected to avoid **false r
 
 | Real data | Form | Consequence |
 |---|---|---|
-| `personnages/<id>.json > inventaire` | **array of free strings** (`"15 silver crowns"`, `"Rations (~1 day…)"`) | no `{name, qty}` → a check "does they have object X?" is **fuzzy** (substring at best) |
+| `characters/<id>.json > inventaire` | **array of free strings** (`"15 silver crowns"`, `"Rations (~1 day…)"`) | no `{name, qty}` → a check "does they have object X?" is **fuzzy** (substring at best) |
 | `meta.temps.regime` | often `"Narratif"` — "the GM estimates durations" | **time/travel** checks are **not hard** |
-| `pnj.json > faits_etablis / connaissances_privees` | arrays of free strings | knowledge check is **fuzzy** |
+| `npcs.json > established_facts / connaissances_privees` | arrays of free strings | knowledge check is **fuzzy** |
 
 **Golden rule: a hook blocks ONLY on unambiguous deterministic data.** Three levels:
 
@@ -83,13 +83,13 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
    trace(in)              (blocks if broken)    persisted    + verbosity + trace(out)
 ```
 
-| File (`modules/gaming/mj-tonnerre/hooks/`) | Event | Role |
+| File (`modules/gaming/mygamemaster/hooks/`) | Event | Role |
 |---|---|---|
 | `_lib.py` | — | common library (payload, state, verbosity, bypass, ledger, CSV) |
 | `pre_llm_call.py` | `pre_llm_call` | injects the **authoritative state** (time/day, PCs present + inventories, NPCs present); memorizes input prompt for traceability |
 | `pre_tool_call.py` | `pre_tool_call` | **snapshot** of counters in the targeted file; **blocks** a `write_file` write whose JSON content is broken/nonconforming (strict mode) |
 | `post_tool_call.py` | `post_tool_call` | reloads written file, calculates **deltas** (actions +N, inventory X→Y, time), stacks them in the **ledger**; reports broken JSON (advisory); **auto-commit** git of the campaign (if JSON valid) |
-| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts`: generates narration audio via `mj-tonnerre-tts` and attaches as `MEDIA:`, best-effort fail-open) + memorizes `last_narration` (for `!raconte`) |
+| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open) + memorizes `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | **timestamped snapshot** of campaign JSON (safety net) |
 
 ---
@@ -104,13 +104,13 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
   "tool_name": "write_file",
   "tool_input": { "path": "...", "content": "..." },
   "session_id": "sess_abc",
-  "cwd": "/opt/data/mj-tonnerre/campagnes/<slug>",
+  "cwd": "/opt/data/mygamemaster/campaigns/<slug>",
   "extra": { "model": "deepseek/...", "platform": "discord", "author_id": "..." }
 }
 ```
 
-- **`cwd`** = campaign directory (= `terminal.cwd`) → anchor for `monde.json`, `pnj.json`,
-  `personnages/`, `sessions/`, `collecte.csv`, `.banquier/`.
+- **`cwd`** = campaign directory (= `terminal.cwd`) → anchor for `world.json`, `npcs.json`,
+  `characters/`, `sessions/`, `collecte.csv`, `.banquier/`.
 - The exact locations of the **incoming message** (player text) and **response text** are
   not guaranteed by the docs → **defensive multi-key** reading (`first_present`), with **safe no-op**
   if not found (see §6 runtime unknowns).
@@ -131,7 +131,7 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
 ### 4.3 Bypass (`meta.admins` / `⏸️`)
 
 Any augmentation hook short-circuits (no-op) if:
-- the message author is in `monde.json > meta.admins` (list of Discord IDs) **or** `MJ_ADMIN_IDS`
+- the message author is in `world.json > meta.admins` (list of Discord IDs) **or** `MGM_ADMIN_IDS`
   (env, comma-separated); **or**
 - the incoming message contains `⏸️`.
 
@@ -142,7 +142,7 @@ Any augmentation hook short-circuits (no-op) if:
 
 ## 5. Configuration
 
-### 5.1 Toggles per campaign — `monde.json > meta.hooks` (all optional)
+### 5.1 Toggles per campaign — `world.json > meta.hooks` (all optional)
 
 ```jsonc
 "meta": {
@@ -168,7 +168,7 @@ After **each campaign file write**: if the JSON is **valid**, `git -C <campaign>
 a message derived from **real deltas** (`🔄 auto [S<n>]: inventory X→Y ; +1 action`). Properties:
 **fail-open** (git missing/error → no commit, never an exception); **never on broken JSON** (we don't
 freeze an incoherent state); **no empty commits**; **lazy initialization** of repo + **inline identity**
-(`MJ Tonnerre <mj-tonnerre@hermes.local>`, no infrastructure dependency); the **runtime space**
+(`MJ Tonnerre <mygamemaster@hermes.local>`, no infrastructure dependency); the **runtime space**
 (`.banquier/`, `collecte.csv`) is gitignored so we only version **session content**. `git -C <campaign>`
 always operates in the campaign repo → avoids nested git repos pitfall.
 
@@ -177,21 +177,21 @@ always operates in the campaign repo → avoids nested git repos pitfall.
 ```yaml
 hooks:
   pre_llm_call:
-    - command: "<py> <mods>/gaming/mj-tonnerre/hooks/pre_llm_call.py"
+    - command: "<py> <mods>/gaming/mygamemaster/hooks/pre_llm_call.py"
       timeout: 10
   pre_tool_call:
     - matcher: "write_file|patch|edit|apply_patch|str_replace"
-      command: "<py> <mods>/gaming/mj-tonnerre/hooks/pre_tool_call.py"
+      command: "<py> <mods>/gaming/mygamemaster/hooks/pre_tool_call.py"
       timeout: 10
   post_tool_call:
     - matcher: "write_file|patch|edit|apply_patch|str_replace"
-      command: "<py> <mods>/gaming/mj-tonnerre/hooks/post_tool_call.py"
+      command: "<py> <mods>/gaming/mygamemaster/hooks/post_tool_call.py"
       timeout: 10
   transform_llm_output:
-    - command: "<py> <mods>/gaming/mj-tonnerre/hooks/transform_llm_output.py"
+    - command: "<py> <mods>/gaming/mygamemaster/hooks/transform_llm_output.py"
       timeout: 15
   on_session_end:
-    - command: "<py> <mods>/gaming/mj-tonnerre/hooks/on_session_end.py"
+    - command: "<py> <mods>/gaming/mygamemaster/hooks/on_session_end.py"
       timeout: 30
 hooks_auto_accept: true   # non-interactive in container (otherwise first-run consent prompt)
 ```
@@ -209,7 +209,7 @@ hooks_auto_accept: true   # non-interactive in container (otherwise first-run co
 |---|---|---|
 | Key for **response text** in `transform_llm_output` payload | `response`/`output`/`content`/`text`/`message` (+ `extra.*`) | `{}` → response unchanged (never destroyed) |
 | Key for **incoming message** (`pre_llm_call`) | `message`/`text`/`content`/`prompt`/`user_message` (+ `extra.*`) | partial trace, injection still emitted |
-| Key for **author** (bypass) | `author_id`/`user_id`/`extra.author_id`/`extra.author` | bypass via `⏸️` + `MJ_ADMIN_IDS` remains operational |
+| Key for **author** (bypass) | `author_id`/`user_id`/`extra.author_id`/`extra.author` | bypass via `⏸️` + `MGM_ADMIN_IDS` remains operational |
 | Exact names of **write tools** | `write_file|patch|edit|apply_patch|str_replace` | widen the `matcher` after log observation |
 
 All hooks **fail silently (`{}`)** on exception → a hook bug never breaks a session
@@ -274,12 +274,12 @@ At each judged turn: `turns`, `clean` (judge passes **and** Steward doesn't inte
 `%clean` → feeds directly into **model choice** (cheapest that maintains high % clean).
 The same signals feed `collecte.csv` (columns `error`, `error_type`, `model`).
 
-### 10.3 Configuration — `monde.json > meta.hooks.judge` (default: inactive)
+### 10.3 Configuration — `world.json > meta.hooks.judge` (default: inactive)
 
 ```jsonc
 "judge": {
   "actif": false,                 // true to enable LLM judge
-  "modele": "",                   // dedicated small model; else env MJ_JUDGE_MODEL (required to enable)
+  "modele": "",                   // dedicated small model; else env MGM_JUDGE_MODEL (required to enable)
   "base_url": "https://openrouter.ai/api/v1",
   "timeout": 8,                   // s (call stays under hook timeout)
   "echantillon": 1,               // judge 1 turn in N (cost lever)
@@ -288,7 +288,7 @@ The same signals feed `collecte.csv` (columns `error`, `error_type`, `model`).
 }
 ```
 
-API key: `OPENROUTER_API_KEY` (already required by entrypoint) or `MJ_JUDGE_API_KEY`.
+API key: `OPENROUTER_API_KEY` (already required by entrypoint) or `MGM_JUDGE_API_KEY`.
 
 ### 10.4 Cost, latency, safety
 
@@ -298,7 +298,7 @@ API key: `OPENROUTER_API_KEY` (already required by entrypoint) or `MJ_JUDGE_API_
   uncertain judge → reinforces anti-loop).
 - **Not exposed to player**: judge feedback is internal (feed-forward / log) — aligns with
   "technical transparency" rule. Visible only at DEBUG/TRACE verbosity.
-- **Testable offline**: `MJ_JUDGE_MOCK=<verdict JSON>` short-circuits the network call.
+- **Testable offline**: `MGM_JUDGE_MOCK=<verdict JSON>` short-circuits the network call.
 
 ---
 

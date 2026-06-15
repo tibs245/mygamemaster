@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/npcs.schema.json",
+  "title": "npcs.json — NPC sheets for a MJ Tonnerre campaign (canonical format)",
+  "description": "Canonical format per references/pnj-data-governance.md. Tolerates both containers: bare array [...] OR {\"pnj\": [...]}. Each sheet distinguishes established_facts (played) and gm_hypotheses (deductions not usable in narration). Two optional private layers (Level 2, audit/06-niveau2-factions.md §4): connaissances_privees (NPC's hidden knowledge, seeded by GM) and notes_privees (agent's inner monologue, appended by the coordinator).",
+  "oneOf": [
+    {
+      "type": "array",
+      "items": { "$ref": "#/$defs/npcs_sheet" }
+    },
+    {
+      "type": "object",
+      "required": ["npcs"],
+      "additionalProperties": true,
+      "properties": {
+        "npcs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/npcs_sheet" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "emotions": {
+      "type": "object",
+      "description": "OPTIONAL (skill mygamemaster-emotions). Character's emotional state: 6 emotions 0..1 (joy, confidence, fear, anger, sadness, surprise). `etat` = current intensities; `temperament` = baseline toward which state decays over time; `history` = capped (20) journal of variations (event, actual deltas, reason, session) — every change is EXPLAINABLE, never arbitrary. Managed by scripts/emotions.py (fail-open: missing object = no behavior change).",
+      "additionalProperties": true,
+      "properties": {
+        "etat": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "temperament": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event"],
+            "additionalProperties": true,
+            "properties": {
+              "event": { "type": "string" },
+              "deltas": { "type": "object" },
+              "reason": { "type": "string" },
+              "session": { "type": ["integer", "string", "null"] },
+              "ts": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "npcs_sheet": {
+      "type": "object",
+      "required": ["name", "established_facts", "gm_hypotheses"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "attitude": { "type": "string" },
+        "relation_niveau": { "type": "string" },
+        "established_facts": {
+          "type": "array",
+          "description": "What the NPC has SAID or DONE verbatim in play (traceable to a session).",
+          "items": { "type": "string" }
+        },
+        "gm_hypotheses": {
+          "type": "array",
+          "description": "GM deductions/assumptions — forbidden in narration without in-play validation.",
+          "items": { "type": "string" }
+        },
+        "connaissances_privees": {
+          "type": "array",
+          "description": "OPTIONAL (Level 2). What the NPC KNOWS but has not revealed — hidden knowledge seeded by GM/tools. The agent sees it (private brief section), players do not. Enables lying/hiding coherently.",
+          "items": { "type": "string" }
+        },
+        "notes_privees": {
+          "type": "array",
+          "description": "OPTIONAL (Level 2). Agent's inner monologue: reflections, plans, accumulated suspicions turn after turn. Appended by the coordinator (sole writer) via faction_slice.py add-note. Invisible to all others.",
+          "items": { "type": "string" }
+        },
+        "emotions": { "$ref": "#/$defs/emotions" }
+      }
+    }
+  }
+}

@@ -1,9 +1,9 @@
 ---
-# Ships the hermes-mj image (built LOCALLY on the build machine) to the deployment host.
+# Ships the mygamemaster image (built LOCALLY on the build machine) to the deployment host.
 # Both the build machine (Apple Silicon) and the deployment host are aarch64 → the image is compatible.
 # This avoids building on the deployment host (which has no repository / build context).
 #
-#   ansible-playbook playbooks/build-image.yml   # 1. local build → hermes-mj:latest
+#   ansible-playbook playbooks/build-image.yml   # 1. local build → mygamemaster:latest
 #   ansible-playbook playbooks/push-image.yml    # 2. save → rsync transfer → load (deployment host)
 #
 # Pattern: tradbot/deployment (local build + podman save/load).
@@ -41,7 +41,7 @@
       changed_when: true
 
 - name: "Step 2/2 — Transfer and load the image on the deployment host"
-  hosts: campagnes
+  hosts: campaigns
   gather_facts: true
   run_once: true   # single physical deployment host shared by all campaigns
   vars:

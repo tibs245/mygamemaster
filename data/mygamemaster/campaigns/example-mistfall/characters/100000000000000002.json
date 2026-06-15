@@ -1,0 +1,109 @@
+{
+  "_description": "Player character file — Mistfall campaign. Player: Sam (discord 100000000000000002). Character: Sable Morrow.",
+  "meta": {
+    "player_name": "Sam",
+    "discord_id": "100000000000000002",
+    "character_name": "Sable Morrow",
+    "race": "Half-fae (appears fully human; fae heritage is not common knowledge)",
+    "class_": "Wayfinder (Dexterity/Charisma — reads the land and the deal)",
+    "level": 1,
+    "history": "Sable never met their fae parent. Their mother was a travelling healer who made a bargain she did not finish reading — and died before she could pay it. Sable has been living in the spaces between debts ever since: not pursued, but aware that the Pale Court has a file on their family. They have a talent for finding things and people, a tendency to hear what mist-wraiths say when they think no one is listening, and a strong preference for not staying in one place long enough to accrue new debts.",
+    "portrait_url": ""
+  },
+  "stats": {
+    "strength": 10,
+    "dexterity": 16,
+    "constitution": 13,
+    "intelligence": 12,
+    "wisdom": 14,
+    "charisma": 15
+  },
+  "modificateurs": {
+    "strength": 0,
+    "dexterity": 3,
+    "constitution": 1,
+    "intelligence": 1,
+    "wisdom": 2,
+    "charisma": 2
+  },
+  "skills": [
+    { "name": "Survival (tracking, pathfinding)", "stat": "Wisdom", "bonus": 5, "maitrise": true },
+    { "name": "Perception", "stat": "Wisdom", "bonus": 5, "maitrise": true },
+    { "name": "Stealth", "stat": "Dexterity", "bonus": 6, "maitrise": true },
+    { "name": "Deception (social survival)", "stat": "Charisma", "bonus": 5, "maitrise": true },
+    { "name": "Arcana (fae nature, Veil behaviour)", "stat": "Intelligence", "bonus": 4, "maitrise": true }
+  ],
+  "spells": [
+    {
+      "name": "Veil-sense (passive)",
+      "description": "Sable can sense the presence and approximate direction of active fae bargains within 30 metres. The sense is a low hum behind the ears — stronger when a bargain is recent or under strain. This is a passive racial trait, not a spell; no action required.",
+      "level": 0,
+      "utilisations": "Always active"
+    },
+    {
+      "name": "Whisper-step",
+      "description": "Once per short rest, Sable may move through fog or mist (including Veil-fog) without leaving any trace — no sound, no footprints, no scent. The effect lasts until Sable stops moving or speaks.",
+      "level": 1,
+      "utilisations": "1/short rest"
+    }
+  ],
+  "health": {
+    "hp_max": 13,
+    "hp_current": 13,
+    "wounds": [],
+    "conditions": [
+      {
+        "name": "Fae-touched (heritage)",
+        "description": "Cold iron is mildly uncomfortable to handle (not harmful, but Sable avoids prolonged contact). Fog-wraiths can sense Sable's fae heritage and may react with wariness rather than immediate hostility."
+      }
+    ]
+  },
+  "equipment": [
+    { "name": "Short sword (iron, not cold iron)", "description": "Plain and practical. The handle is wrapped in cord." },
+    { "name": "Traveller's bow + 20 arrows", "description": "Light hunting bow." },
+    { "name": "Leather armour (worn)", "description": "Well-maintained, quietly expensive. AC 12 + Dex mod." },
+    { "name": "Hooded cloak (dark green)", "description": "Helps with both weather and disappearing into treelines." }
+  ],
+  "inventory": [
+    "5 days of rations",
+    "Purse with 8 silver, 3 copper",
+    "A small mirror (polished steel — useful for checking corners in Veil-fog)",
+    "Chalk (white, one stick — Sable knows how to draw a basic protective circle but has never tested it against fae)",
+    "A ribbon of grey silk — a keepsake from their mother, smells faintly of lavender and iron",
+    "A folded letter from Oryn that reads: 'I think we should go the same direction. The Veil is not coincidence.'"
+  ],
+  "personal_notes": {
+    "goals": [
+      "Find out if the Pale Court has an active file on the Morrow family — and whether the debt transferred to Sable when their mother died",
+      "Stay alive and free of new bargains — existing debt is enough",
+      "Help Oryn read the charter if it is found. Sable cannot read well but understands fae legal phrasing instinctively."
+    ],
+    "relations": {
+      "acteur:oryn-ashveil": "Met three days ago on the road. Oryn reads contracts, Sable reads people — between them they might actually survive this. Cautious trust.",
+      "acteur:mosswick": "Sable's Veil-sense pinged the moment they heard Mosswick's name. Someone with that much debt doesn't walk around that easily. Watching carefully.",
+      "faction:pale-court": "The hum behind Sable's ears gets louder the closer they get to Thornwick. The Court knows Sable is here."
+    },
+    "secrets": [
+      "Sable's mother's bargain is NOT fully discharged — one clause remains unpaid. The Lady of Sighs knows. She has not collected yet because she is interested in what Sable will become.",
+      "Sable can hear fog-wraiths when they whisper to each other in the Veil. They know this is not normal even for half-fae, and do not understand it yet.",
+      "The ribbon of grey silk was a gift from the Lady of Sighs to Sable's mother on the day the bargain was made. Sable carries it without knowing its origin."
+    ]
+  },
+  "progression": {
+    "xp": 0,
+    "next_level": 300
+  },
+  "preferences": {
+    "_description": "Out-of-fiction, table-style play preferences for Sam. Surfaced to the GM each turn so play is tailored. Private to this player.",
+    "pacing": "Fast and reactive — keep scenes moving, I get restless during long exposition.",
+    "tone_likes": ["tension", "high-stakes choices", "cinematic action"],
+    "tone_dislikes": ["bookkeeping", "long shopping scenes"],
+    "combat_verbosity": "vivid",
+    "spotlight": "Loves a dramatic solo moment now and then, but never at another player's expense.",
+    "content_boundaries": [],
+    "enjoys_deception": false,
+    "custom": {
+      "note": "Prefers to be told when a situation is a trap is likely — enjoys outsmarting it rather than being blindsided."
+    }
+  }
+}

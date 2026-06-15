@@ -1,5 +1,5 @@
 ---
-# Collections recommandées. Installer avec :
+# Recommended collections. Install with:
 #   ansible-galaxy collection install -r ansible/requirements.yml
 collections:
   - name: containers.podman

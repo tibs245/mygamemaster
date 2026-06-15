@@ -84,24 +84,51 @@ See `harness/README.md` for configuration options.
 
 ### Running tests
 
-The test suite covers the core engine and runtime hooks:
+Three test suites cover the core engine, runtime hooks, and TTS module.
+Run them from the repo root:
 
 ```bash
-# From the repo root
-python -m pytest modules/
+# Core engine (unittest discover)
+cd modules/gaming/mygamemaster/scripts && python3 -m unittest discover -s tests
+
+# Runtime hooks
+cd modules/gaming/mygamemaster/hooks && python3 test_hooks.py
+
+# TTS module
+cd modules/gaming/mygamemaster-tts/tests && python3 test_tts.py
 ```
 
-Hook-specific tests:
+JSON schema validation (requires a local campaign directory):
 ```bash
-python modules/gaming/mj-tonnerre/hooks/test_hooks.py
-```
-
-JSON schema validation:
-```bash
-python modules/gaming/mj-tonnerre/scripts/validate_schema.py <campaign-dir>
+python3 modules/gaming/mygamemaster/scripts/validate_schema.py <campaign-dir>
 ```
 
 All tests must pass before opening a pull request.
+
+### Linting
+
+```bash
+pip install ruff yamllint
+
+ruff check .     # Python lint (configured in ruff.toml)
+yamllint .       # YAML lint (configured in .yamllint)
+```
+
+### pre-commit
+
+Install the pre-commit hooks to catch issues before they reach CI:
+
+```bash
+pip install pre-commit
+pre-commit install          # installs commit-time hooks
+pre-commit install --hook-type pre-push   # installs the push-time test guard
+```
+
+Or run all hooks at once against the full tree:
+
+```bash
+pre-commit run --all-files
+```
 
 ---
 
@@ -109,8 +136,8 @@ All tests must pass before opening a pull request.
 
 - **Match the surrounding code.** Style, indentation, naming conventions, and patterns of the
   file you are editing take precedence over personal preference.
-- **Keys stay as-is.** JSON/YAML keys in campaign data files (`monde.json`, `pnj.json`,
-  `evenements.json`, …) are in French and must not be renamed — downstream code depends on them.
+- **Keys stay as-is.** JSON/YAML keys in campaign data files (`world.json`, `npcs.json`,
+  `events.json`, …) are in French and must not be renamed — downstream code depends on them.
 - **Fail-open.** Hooks and validators must never crash a session. Use `try/except` broadly in
   hook scripts; log the error and return a neutral result.
 - **Stdlib only in hooks.** Runtime hooks (`hooks/*.py`) must use only the Python standard
@@ -123,14 +150,14 @@ All tests must pass before opening a pull request.
 
 ## How to Add a Skill Module
 
-1. Create a directory under `modules/gaming/mj-tonnerre-<your-skill>/`.
-2. Follow the structure of an existing module (e.g. `mj-tonnerre-inventaire/`) for the
+1. Create a directory under `modules/gaming/mygamemaster-<your-skill>/`.
+2. Follow the structure of an existing module (e.g. `mygamemaster-inventaire/`) for the
    `skill.yaml` manifest and entry point.
 3. Add your module to the Hermes `skills.external_dirs` path (already configured in the image).
 4. Write at least one test that exercises the happy path.
 5. Add an entry to `modules/MODULES.md` describing the role of your skill.
 6. If your module introduces new JSON keys into campaign data files, add or update the relevant
-   schema under `modules/gaming/mj-tonnerre/scripts/schemas/`.
+   schema under `modules/gaming/mygamemaster/scripts/schemas/`.
 
 ---
 
