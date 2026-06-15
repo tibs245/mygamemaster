@@ -1,0 +1,65 @@
+name: Build and publish Docker image
+
+# Publishes ghcr.io/${{ github.repository_owner }}/mygamemaster on every push to main
+# and on every version tag (vX.Y.Z).
+# Uses only the built-in GITHUB_TOKEN — no extra secrets required.
+#
+# Optional Docker Hub publish: see docs/QUICKSTART-DOCKER.md § 6.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/mygamemaster
+
+jobs:
+  build-and-push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # tag :latest on main branch pushes
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # tag :vX.Y.Z on version tags
+            type=semver,pattern={{version}}
+            # tag :vX.Y on version tags (floating minor)
+            type=semver,pattern={{major}}.{{minor}}
+            # tag the short commit SHA for traceability
+            type=sha,format=short
+
+      - name: Build and push to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache layers between runs using the registry itself (no extra cache backend needed)
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
