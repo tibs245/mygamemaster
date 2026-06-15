@@ -1,0 +1,41 @@
+# .dockerignore — keep the dev image lean and secret-free
+
+# Version control
+.git
+.gitignore
+
+# Runtime archives and backups (large, never needed in the image)
+archive_hermes/
+backups/
+
+# Build artefacts
+.build/
+.rendered/
+
+# Secrets — NEVER bake into the image
+# Exclude all *.env files (prod.env, staging.env, .env, *.env.local, etc.)
+# but keep *.env.example files so they can serve as documentation.
+*.env
+!*.env.example
+ansible/inventory/group_vars/all/vault.yml
+ansible/inventory/group_vars/all/secrets.yml
+ansible/inventory/group_vars/all/vault_open.yml
+ansible/**/*.key
+ansible/.vault_pass
+.vault_pass
+
+# Real campaign data (local only, git-ignored)
+data/mygamemaster/campaigns/la-naissance-dun-roi/
+data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/
+
+# Python cache
+__pycache__/
+*.pyc
+.venv/
+
+# macOS artefacts
+._*
+.DS_Store
+
+# Editor / agent settings
+.claude/

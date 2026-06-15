@@ -33,8 +33,8 @@ ENV PATH="/opt/hermes/.venv/bin:${PATH}"
 COPY modules/ /opt/modules/
 
 # 4. Python dependencies of skill scripts (if requirements present)
-RUN if [ -f /opt/modules/gaming/mj-tonnerre/scripts/requirements.txt ]; then \
-      /opt/hermes/.venv/bin/pip install -r /opt/modules/gaming/mj-tonnerre/scripts/requirements.txt ; \
+RUN if [ -f /opt/modules/gaming/mygamemaster/scripts/requirements.txt ]; then \
+      /opt/hermes/.venv/bin/pip install -r /opt/modules/gaming/mygamemaster/scripts/requirements.txt ; \
     fi
 
 # 5. Hermes HOME + entrypoint
@@ -78,5 +78,5 @@ exec hermes gateway start --platform discord
 
 ## Tag & versioning
 
-- Default tag: `hermes-mj:latest` + `hermes-mj:{{ image_version }}` (date or git short SHA
+- Default tag: `mygamemaster:latest` + `mygamemaster:{{ image_version }}` (date or git short SHA
   passed as variable). Allows reverting to a previous image if a redeploy regresses.

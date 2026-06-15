@@ -20,7 +20,7 @@ delivering what profiles promised.
 | Isolated memory | dedicated `hermes-<slug>-home` volume |
 | Dedicated persona | `SOUL.md` rendered per campaign (shared base + `soul_extra`) |
 | Dedicated config (model, cwd) | `config.yaml` rendered from the `games.yml` entry |
-| Campaign data pointed at | `terminal.cwd` → `/opt/data/mj-tonnerre/campagnes/<slug>` |
+| Campaign data pointed at | `terminal.cwd` → `/opt/data/mygamemaster/campaigns/<slug>` |
 | Independent lifecycle | start / stop / backup / restore per container |
 
 Full technical detail: [`../specs/profiles-vers-conteneurs.md`](../specs/profiles-vers-conteneurs.md).
@@ -42,7 +42,7 @@ agent is ever needed, it is simply another game entry.
 
 ## What about NPC / faction "agents"?
 
-The `mj-tonnerre-pnj` and `mj-tonnerre-faction` skills describe **secondary agents** (an NPC or
+The `mygamemaster-pnj` and `mygamemaster-faction` skills describe **secondary agents** (an NPC or
 faction embodied by their own instance). In the container architecture, these are **future
 additional containers** — out of scope for the current phase, but trivially pluggable into the
 same Ansible suite.

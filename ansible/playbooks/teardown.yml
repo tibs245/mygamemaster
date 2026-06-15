@@ -13,7 +13,7 @@
 # When remove_volumes=yes, an automatic safety-backup is taken BEFORE destruction
 # (unless -e restore_safety_backup=false). See docs/03-backup-et-restauration.md.
 - name: Tear down a MJ Tonnerre instance
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true        # required to resolve the UID (systemd_user_env)
   environment: "{{ systemd_user_env }}"
   vars:

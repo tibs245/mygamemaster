@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/npcs.schema.json",
+  "title": "npcs.json — fiches PNJ d'une campagne MJ Tonnerre (format canonique)",
+  "description": "Format canonique selon references/pnj-data-governance.md. Tolère les deux conteneurs : liste nue [...] OU {\"pnj\": [...]}. Chaque fiche distingue faits_etablis (joués) et hypotheses_mj (déductions non utilisables en narration). Deux couches privées OPTIONNELLES (Niveau 2, audit/06-niveau2-factions.md §4) : connaissances_privees (savoir caché du PNJ, semé par le MJ) et notes_privees (for intérieur de l'agent, appended par le coordinateur).",
+  "oneOf": [
+    {
+      "type": "array",
+      "items": { "$ref": "#/$defs/npcs_sheet" }
+    },
+    {
+      "type": "object",
+      "required": ["npcs"],
+      "additionalProperties": true,
+      "properties": {
+        "npcs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/npcs_sheet" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "emotions": {
+      "type": "object",
+      "description": "OPTIONNEL (skill mygamemaster-emotions). État émotionnel du personnage : 6 émotions 0..1 (joie, confiance, peur, colere, tristesse, surprise). `etat` = intensités courantes ; `temperament` = ligne de base vers laquelle l'état décroît avec le temps ; `historique` = journal plafonné (20) des variations (évènement, deltas effectifs, raison, session) — chaque changement est EXPLICABLE, jamais arbitraire. Géré par scripts/emotions.py (fail-open : objet absent = aucun changement de comportement).",
+      "additionalProperties": true,
+      "properties": {
+        "etat": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "temperament": {
+          "type": "object",
+          "patternProperties": {
+            "^(joie|confiance|peur|colere|tristesse|surprise)$": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event"],
+            "additionalProperties": true,
+            "properties": {
+              "event": { "type": "string" },
+              "deltas": { "type": "object" },
+              "reason": { "type": "string" },
+              "session": { "type": ["integer", "string", "null"] },
+              "ts": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "npcs_sheet": {
+      "type": "object",
+      "required": ["name", "established_facts", "gm_hypotheses"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "attitude": { "type": "string" },
+        "relation_niveau": { "type": "string" },
+        "established_facts": {
+          "type": "array",
+          "description": "Ce que le PNJ a DIT ou FAIT textuellement en jeu (traçable vers une session).",
+          "items": { "type": "string" }
+        },
+        "gm_hypotheses": {
+          "type": "array",
+          "description": "Déductions/suppositions du MJ — interdites en narration sans validation en jeu.",
+          "items": { "type": "string" }
+        },
+        "connaissances_privees": {
+          "type": "array",
+          "description": "OPTIONNEL (Niveau 2). Ce que le PNJ SAIT mais n'a pas révélé — savoir caché semé par le MJ/outils. L'agent le voit (section privée du brief), les joueurs non. Permet de mentir/cacher de façon cohérente.",
+          "items": { "type": "string" }
+        },
+        "notes_privees": {
+          "type": "array",
+          "description": "OPTIONNEL (Niveau 2). For intérieur de l'agent : réflexions, plans, soupçons accumulés tour après tour. Appended par le coordinateur (écrivain unique) via faction_slice.py add-note. Invisible à tous les autres.",
+          "items": { "type": "string" }
+        },
+        "emotions": { "$ref": "#/$defs/emotions" }
+      }
+    }
+  }
+}

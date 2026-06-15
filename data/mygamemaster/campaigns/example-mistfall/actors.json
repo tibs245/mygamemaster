@@ -1,0 +1,270 @@
+{
+  "meta": {
+    "campagne": "Mistfall",
+    "version": 1,
+    "t_reference": 0,
+    "note": "Living-world actors derived from npcs.json and global_state.factions. Narrative time regime (no UT). t_reference=0 = Day 1 dusk, the moment the players arrive at Ashveil Crossing. Echeances expressed in days. Non-destructive: this file EXTENDS world.json/npcs.json (never rewritten)."
+  },
+  "actors": [
+    {
+      "id": "faction:pale-court",
+      "name": "The Pale Court",
+      "type": "faction",
+      "lod": "froid",
+      "majeur": true,
+      "but_long_terme": "Anchor a permanent gateway inside the Warden Tree by opening it at the new moon (Day 14). Collect the century debt in full: three souls freely given.",
+      "motivations": ["debt collection", "permanent gateway", "expansion of fae influence"],
+      "situation": "Two souls collected; hunting the third (Elder Mosswick). Fog-wraith Carro is deployed in Thornwick as a spy and shepherd. The Veil thickens nightly. The Lady of Sighs is patient but the deadline is absolute.",
+      "ressources": { "fog_wraiths": "unlimited", "soul_vessels": 2, "veil_presence": "active" },
+      "localisation_id": "lieu:ashveil-region/the-pale-court",
+      "trajectory": [
+        { "lieu": "lieu:ashveil-region/the-pale-court", "de": 0, "a": null }
+      ],
+      "plan": [
+        {
+          "id": "intent:collect-third-soul",
+          "action": "Manoeuvre Elder Mosswick into a position where he voluntarily steps through the Veil — technically satisfying 'freely given'",
+          "lieu": "lieu:thornwick/the-warden-tree",
+          "echeance": 14,
+          "echeance_source": {
+            "texte": "New moon on Day 14 — the gateway opens with or without the third soul, but a soul given before seals it permanently and satisfies the debt",
+            "unite": "jour",
+            "min": 7,
+            "max": 14,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "If successful: permanent gateway, debt resolved, Pale Court presence anchored in the mortal world. If Mosswick resists: the Court may resort to a looser interpretation of 'freely given'.",
+          "consequence_effets": {
+            "relations": [
+              { "vers": "acteur:mosswick", "type": "predation", "intensite": 0.9 }
+            ],
+            "event": {
+              "type": "gateway_opened",
+              "lieu": "lieu:thornwick/the-warden-tree",
+              "actor": "faction:pale-court"
+            }
+          },
+          "significativite": 0.9,
+          "visible_par_pj": false,
+          "statut": "planifie"
+        },
+        {
+          "id": "intent:shadow-players",
+          "action": "Keep Carro (fog-wraith) close to the players; report their capabilities and intentions to the Lady of Sighs",
+          "lieu": "lieu:thornwick/village-hall",
+          "echeance": 3,
+          "echeance_source": {
+            "texte": "Short-term surveillance — first 2-3 days after players arrive",
+            "unite": "jour",
+            "min": 1,
+            "max": 3,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "Lady of Sighs learns whether the players are a threat, a tool, or a distraction. May offer them a bargain based on what she learns.",
+          "consequence_effets": {},
+          "significativite": 0.5,
+          "visible_par_pj": false,
+          "statut": "planifie"
+        }
+      ],
+      "relations": [
+        { "vers": "acteur:mosswick", "type": "predation", "intensite": 0.9, "delai_ut": 0, "poids": 0.9 },
+        { "vers": "faction:thornwick-wardens", "type": "hostilite", "intensite": 0.7, "poids": 0.7 },
+        { "vers": "acteur:carro-wraith", "type": "commandement", "intensite": 1.0, "poids": 1.0 }
+      ],
+      "source": "global_state.factions[The Pale Court]"
+    },
+    {
+      "id": "faction:thornwick-wardens",
+      "name": "The Thornwick Wardens",
+      "type": "faction",
+      "lod": "tiede",
+      "majeur": true,
+      "but_long_terme": "Recover the founding charter and find a legal fae loophole to void the century-old debt before the new moon.",
+      "motivations": ["village survival", "void the bargain", "protect remaining humans"],
+      "situation": "Reduced to Elder Mosswick and four trusted villagers. Barricaded in the Village Hall at night. Mosswick has sent a runner to Ashveil Crossing — the runner should arrive on Day 1. Wardens do not yet know Mosswick is the third soul the Court seeks.",
+      "ressources": { "cold_iron_weapons": 6, "cold_iron_bell": 1, "villagers_unaffected": 4 },
+      "localisation_id": "lieu:thornwick/village-hall",
+      "trajectory": [
+        { "lieu": "lieu:thornwick/village-hall", "de": 0, "a": null }
+      ],
+      "plan": [
+        {
+          "id": "intent:warn-newcomers",
+          "action": "Send Elder Mosswick (or a trusted villager) to intercept anyone arriving at Ashveil Crossing and warn them before they enter the Veil unprepared",
+          "lieu": "lieu:ashveil-region/ashveil-crossing",
+          "echeance": 1,
+          "echeance_source": {
+            "texte": "Runner dispatched Day 1 — should arrive at the Crossing by dusk Day 1",
+            "unite": "jour",
+            "min": 1,
+            "max": 1,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "Players receive a warning and rough map of the Veil-affected area before walking into it blind. Mosswick gains potential allies.",
+          "consequence_effets": {},
+          "significativite": 0.4,
+          "visible_par_pj": true,
+          "statut": "planifie"
+        },
+        {
+          "id": "intent:locate-charter",
+          "action": "Convince themselves (and the players) that the charter must be found and destroyed — Mosswick knows roughly where it is but has been afraid to retrieve it alone",
+          "lieu": "lieu:thornwick/village-well",
+          "echeance": 7,
+          "echeance_source": {
+            "texte": "Must be done well before the new moon — Day 7 is the safe window before the Veil becomes too dense to navigate",
+            "unite": "jour",
+            "min": 5,
+            "max": 7,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": ["at least one ally outside the Veil"],
+          "consequence_attendue": "Charter retrieved. Players can then plan the burning ritual at the Warden Tree.",
+          "consequence_effets": {},
+          "significativite": 0.7,
+          "visible_par_pj": true,
+          "statut": "planifie"
+        }
+      ],
+      "relations": [
+        { "vers": "faction:pale-court", "type": "hostilite", "intensite": 0.8, "poids": 0.8 },
+        { "vers": "acteur:mosswick", "type": "vassalite", "intensite": 0.9, "poids": 0.9 },
+        { "vers": "acteur:petra-dawnhollow", "type": "alliance", "intensite": 0.5, "poids": 0.5 }
+      ],
+      "source": "global_state.factions[The Thornwick Wardens]"
+    },
+    {
+      "id": "acteur:mosswick",
+      "name": "Elder Mosswick",
+      "type": "npcs",
+      "lod": "tiede",
+      "majeur": true,
+      "but_long_terme": "See Thornwick safe, even if it costs him what remains of his unnaturally extended life.",
+      "motivations": ["guilt over the original bargain", "protect villagers", "find a loophole before the Court claims him"],
+      "situation": "In the Village Hall with four remaining unaffected villagers. Has sent a runner to Ashveil Crossing. Knows more than he admits — including that he signed the charter. Is beginning to suspect he is the third soul, but has not faced this truth directly.",
+      "ressources": {},
+      "localisation_id": "lieu:thornwick/village-hall",
+      "trajectory": [
+        { "lieu": "lieu:thornwick/village-hall", "de": 0, "a": null }
+      ],
+      "plan": [
+        {
+          "id": "intent:recruit-players",
+          "action": "Meet the players at Ashveil Crossing (or send a trusted villager) and recruit them to help retrieve the charter",
+          "lieu": "lieu:ashveil-region/ashveil-crossing",
+          "echeance": 2,
+          "echeance_source": {
+            "texte": "Runner sent Day 1 — Mosswick expects contact by Day 2 at the latest",
+            "unite": "jour",
+            "min": 1,
+            "max": 2,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "Players are briefed (partially) and agree to help. Mosswick withholds his own role in the original bargain.",
+          "significativite": 0.5,
+          "visible_par_pj": true,
+          "statut": "planifie"
+        }
+      ],
+      "relations": [
+        { "vers": "faction:thornwick-wardens", "type": "commandement", "intensite": 1.0, "poids": 1.0 },
+        { "vers": "faction:pale-court", "type": "dette", "intensite": 0.9, "poids": 0.9 },
+        { "vers": "acteur:petra-dawnhollow", "type": "alliance", "intensite": 0.4, "poids": 0.4 }
+      ],
+      "source": "npcs.json[Elder Mosswick]"
+    },
+    {
+      "id": "acteur:petra-dawnhollow",
+      "name": "Petra Dawnhollow",
+      "type": "npcs",
+      "lod": "chaud",
+      "majeur": false,
+      "but_long_terme": "Keep The Amber Toll safe and see the Veil gone permanently — she has waited long enough.",
+      "motivations": ["protection of her inn and hamlet", "closure over her father's fate", "see newcomers succeed where locals have failed"],
+      "situation": "At The Amber Toll in Ashveil Crossing. Has cold-iron charms up and doors bolted at night. Will welcome the players but demand they swear on iron not to lead the Veil to her door. Knows local geography well and will share it.",
+      "ressources": { "rooms": 3, "food_days": 10, "cold_iron_horseshoe": 1 },
+      "localisation_id": "lieu:ashveil-region/ashveil-crossing",
+      "trajectory": [
+        { "lieu": "lieu:ashveil-region/ashveil-crossing", "de": 0, "a": null }
+      ],
+      "plan": [
+        {
+          "id": "intent:secure-inn",
+          "action": "Reinforce the cold-iron charms on the inn and recruit one of the players to help her chalk a protective circle around the building",
+          "lieu": "lieu:ashveil-region/ashveil-crossing",
+          "echeance": 2,
+          "echeance_source": {
+            "texte": "Before the next nightfall — the mist comes a little closer each night",
+            "unite": "jour",
+            "min": 1,
+            "max": 2,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "The Amber Toll becomes a safe-house; fog-wraiths cannot enter. Gives players a reliable retreat point.",
+          "significativite": 0.3,
+          "visible_par_pj": true,
+          "statut": "planifie"
+        }
+      ],
+      "relations": [
+        { "vers": "acteur:mosswick", "type": "alliance", "intensite": 0.4, "poids": 0.4 },
+        { "vers": "faction:pale-court", "type": "fear", "intensite": 0.8, "poids": 0.8 }
+      ],
+      "source": "npcs.json[Petra Dawnhollow]"
+    },
+    {
+      "id": "acteur:carro-wraith",
+      "name": "Carro (fog-wraith)",
+      "type": "npcs",
+      "lod": "froid",
+      "majeur": false,
+      "but_long_terme": "Serve the Lady of Sighs until the gateway is opened or it is destroyed.",
+      "motivations": ["obedience to the Pale Court", "gather intelligence on players", "guide players into the Veil if possible"],
+      "situation": "Posing as Thornwick's miller. Living among the remaining unaffected villagers, who do not know what he is. Has observed the players' arrival from a distance. Will attempt to befriend them tomorrow.",
+      "ressources": {},
+      "localisation_id": "lieu:thornwick/village-hall",
+      "trajectory": [
+        { "lieu": "lieu:thornwick/village-hall", "de": 0, "a": null }
+      ],
+      "plan": [
+        {
+          "id": "intent:befriend-players",
+          "action": "Approach the players as a frightened villager, offer to guide them 'safely' through Thornwick, and steer them toward the Mire",
+          "lieu": "lieu:thornwick/village-hall",
+          "echeance": 2,
+          "echeance_source": {
+            "texte": "Players are new arrivals — Carro must make contact before Mosswick briefs them fully",
+            "unite": "jour",
+            "min": 1,
+            "max": 2,
+            "ancre": 0,
+            "statut": "en_cours"
+          },
+          "preconditions": [],
+          "consequence_attendue": "Players follow Carro toward the Mire; Lady of Sighs can observe them directly. Risk: players may expose Carro if they ask the right questions.",
+          "consequence_effets": {},
+          "significativite": 0.4,
+          "visible_par_pj": false,
+          "statut": "planifie"
+        }
+      ],
+      "relations": [
+        { "vers": "faction:pale-court", "type": "vassalite", "intensite": 1.0, "poids": 1.0 },
+        { "vers": "acteur:mosswick", "type": "surveillance", "intensite": 0.7, "poids": 0.7 }
+      ],
+      "source": "npcs.json[Carro (fog-wraith)]"
+    }
+  ]
+}

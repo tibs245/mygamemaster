@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/session.schema.json",
+  "title": "sessions/NNN.json — log d'une session",
+  "type": "object",
+  "required": ["session", "date", "participants", "actions", "npcs_met", "visited_locations"],
+  "additionalProperties": true,
+  "properties": {
+    "session": { "type": ["integer", "string"] },
+    "date": {
+      "type": ["string", "null"],
+      "description": "null tant que la session n'est pas clôturée ; daté à la clôture."
+    },
+    "start_hour": { "type": ["string", "null"] },
+    "end_hour": {
+      "type": ["string", "null"],
+      "description": "null/vide tant que la session n'est pas clôturée ; rempli à la clôture."
+    },
+    "titre_episode": { "type": ["string", "null"] },
+    "resume": { "type": ["string", "null"] },
+    "participants": { "type": "array" },
+    "actions": {
+      "type": "array",
+      "description": "Deux formes historiques tolérées : {joueur,action,resultat} (S1-S7) et {timestamp,type,joueur,description,...} (S8+, canonique via add_action.py). Chaque entrée porte au moins 'action' ou 'description'.",
+      "items": {
+        "type": "object",
+        "anyOf": [
+          { "required": ["action"] },
+          { "required": ["description"] }
+        ],
+        "properties": {
+          "joueur": { "type": "string" },
+          "action": { "type": "string" },
+          "description": { "type": "string" },
+          "resultat": { "type": "string" },
+          "timestamp": { "type": "string" },
+          "type": { "type": "string" },
+          "details": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "npcs_met": { "type": "array" },
+    "visited_locations": { "type": "array" },
+    "etat_fin": { "type": ["object", "null"] },
+    "teaser": { "type": "string" }
+  }
+}

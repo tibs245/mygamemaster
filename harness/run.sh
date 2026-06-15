@@ -10,20 +10,20 @@ set -euo pipefail
 
 HARNESS="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HARNESS/.." && pwd)"
-IMAGE="${IMAGE:-localhost/hermes-mj:latest}"
+IMAGE="${IMAGE:-localhost/mygamemaster:latest}"
 NET="harness-net"
 
 WORK="$(mktemp -d)"
 CAMP="$WORK/campagne"
 HHOME="$WORK/hhome"
-mkdir -p "$CAMP/sessions" "$CAMP/personnages" "$HHOME"
+mkdir -p "$CAMP/sessions" "$CAMP/characters" "$HHOME"
 
-cat > "$CAMP/monde.json" <<'JSON'
+cat > "$CAMP/world.json" <<'JSON'
 { "meta": { "nom": "Harness", "temps": { "regime": "Narratif" }, "verbosite": "DEBUG",
     "diagnostic": { "actif": true, "fichier": "collecte.csv", "regles": { "echantillon_frequence": 1 } } },
-  "modules": {}, "etat_global": {}, "univers": { "regions": [] } }
+  "modules": {}, "global_state": {}, "universe": { "regions": [] } }
 JSON
-echo '[]' > "$CAMP/pnj.json"
+echo '[]' > "$CAMP/npcs.json"
 cp "$HARNESS/config.local.yaml" "$HHOME/config.yaml"
 cp "$REPO/ansible/templates/SOUL.md.j2" "$HHOME/SOUL.md"
 
@@ -50,8 +50,8 @@ podman run --rm --network "$NET" \
   -e HOME=/hhome -e HERMES_HOME=/hhome \
   -e OPENROUTER_API_KEY=dummy -e PYTHONUNBUFFERED=1 \
   -e HERMES_ALLOW_ROOT_GATEWAY=1 \
-  -e MJ_JUDGE_MOCK='{"ok":true,"violations":[]}' \
-  -e MJ_FEATURE_TTS=0 \
+  -e MGM_JUDGE_MOCK='{"ok":true,"violations":[]}' \
+  -e MGM_FEATURE_TTS=0 \
   -v "$HHOME":/hhome:Z \
   -v "$CAMP":/data/campagne:Z \
   -v "$REPO/modules":/opt/modules:ro,Z \

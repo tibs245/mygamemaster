@@ -1,0 +1,44 @@
+---
+# .pre-commit-config.yaml
+# Install:  pip install pre-commit && pre-commit install
+# Run once: pre-commit run --all-files
+# Push guard (unit tests) is on stage: pre-push for speed.
+
+repos:
+  # ── Standard file hygiene ──────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]   # Ansible uses custom YAML tags in some templates
+      - id: check-json
+      - id: check-merge-conflict
+
+  # ── Python: ruff lint ──────────────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--config, ruff.toml]
+      - id: ruff-format
+        args: [--check, --config, ruff.toml]
+
+  # ── YAML lint ──────────────────────────────────────────────────────────────
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-c, .yamllint]
+
+  # ── Unit tests on pre-push (slow; runs all 3 suites) ──────────────────────
+  - repo: local
+    hooks:
+      - id: unit-tests
+        name: Unit tests (scripts + hooks + tts)
+        language: script
+        entry: .pre-commit-run-tests.sh
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true

@@ -12,13 +12,13 @@ This repository lets you **deploy, back up, test, improve, and re-deploy** a cam
 ## The three pillars
 
 ```
-modules/   →  THE SKILLS : the mj-tonnerre* modules (the GM's intelligence)
+modules/   →  THE SKILLS : the mygamemaster* modules (the GM's intelligence)
 data/      →  GAME DATA  : campaigns (world, NPCs, sessions, characters …)
 ansible/   →  DEPLOYMENT : deploy/backup/restore inside Podman
 ```
 
 - **modules/** — see [`../modules/MODULES.md`](../modules/MODULES.md).
-- **data/** — one campaign per folder under `data/mj-tonnerre/campagnes/<slug>/`. Full structure in
+- **data/** — one campaign per folder under `data/mygamemaster/campaigns/<slug>/`. Full structure in
   [`../specs/modele-de-donnees-campagne.md`](../specs/modele-de-donnees-campagne.md).
 - **ansible/** — the playbook suite. Technical details in
   [`../specs/ansible-suite.md`](../specs/ansible-suite.md).
@@ -33,7 +33,7 @@ unreliable). See [`06-concept-isolation.md`](06-concept-isolation.md).
 
 All games are declared in **one file**: `ansible/inventory/games.yml` (git-ignored; the committed
 example is `games.example.yml`). A dynamic inventory script (`hermes_inventory.py`) reads this
-table and exposes each entry as an Ansible host in the `campagnes` group.
+table and exposes each entry as an Ansible host in the `campaigns` group.
 
 **Adding a game = adding one entry in `games.yml` + adding its Discord token to the vault. Nothing
 else to touch.**
@@ -45,12 +45,12 @@ See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the step-by
 | Term | Meaning |
 |---|---|
 | **Campaign / game** | A single game instance (e.g. "Mistfall"). One slug, one container, one dataset. |
-| **Module / skill** | A GM capability (`mj-tonnerre-outils`, `-pnj`, …). |
+| **Module / skill** | A GM capability (`mygamemaster-outils`, `-pnj`, …). |
 | **Slug** | Short campaign identifier (`mistfall`). Names the container, volumes, and systemd unit. |
 | **Volume** | Persistent Podman storage: `data` (game data) and `home` (Hermes agent state) per campaign. |
 | **Vault** | Ansible-encrypted file holding all secrets (API keys, Discord tokens). |
 | **Quadlet** | Podman systemd unit → the campaign restarts automatically (persistence across reboots). |
-| **`campagne_slug`** | Variable name used inside templates/playbooks for the slug value. |
+| **`campaign_slug`** | Variable name used inside templates/playbooks for the slug value. |
 
 ## Where to start?
 
@@ -59,6 +59,10 @@ See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the step-by
 3. [`05-cycle-de-vie.md`](05-cycle-de-vie.md) — the full daily loop.
 
 Or jump straight to the guided walkthrough: [`CREATE-A-GAME.md`](CREATE-A-GAME.md).
+
+**Just want to explore locally or run the tests?**
+- [`QUICKSTART-LOCAL.md`](QUICKSTART-LOCAL.md) — run the three engine test suites with plain `python3`, no credentials.
+- [`QUICKSTART-DOCKER.md`](QUICKSTART-DOCKER.md) — build the dev image with Docker and validate with `docker run`.
 
 ## Design: the living world (space-time & simulation)
 

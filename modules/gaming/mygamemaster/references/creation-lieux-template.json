@@ -1,0 +1,49 @@
+{
+  "name": "Nom-du-Lieu",
+  "essence": "Concept fort — 1 phrase qui résume tout",
+  "conflit_central": "Ce qui déchire ou menace le lieu",
+  "questions_vitales": {
+    "gouvernance": "Qui gouverne ici ?",
+    "raison_existence": "Pourquoi ce lieu existe ?",
+    "besoin_critique": "Ce qui manque ou protège désespérément",
+    "secret_honteux": "Ce que les habitants cachent"
+  },
+  "pnjs_cles": {
+    "visage": {"name": "", "desir": "", "faiblesse": ""},
+    "probleme": {"name": "", "desir": "", "faiblesse": ""},
+    "ombre": {"name": "", "desir": "", "faiblesse": ""}
+  },
+  "ambiance": ["sensation1", "sensation2", "sensation3"],
+  "horloge": {
+    "event": "Ce qui VA arriver si les PJ ne font rien",
+    "echeance": "Date butoir en temps de jeu",
+    "consequence": "Ce qui se passe si l'échéance est atteinte",
+    "leviers_pj": ["levier1", "levier2"]
+  },
+  "liens_monde": {
+    "routes": ["distance et direction vers lieux voisins"],
+    "dependances": ["eau, nourriture, protection, savoir"],
+    "frictions": ["conflits avec voisins ou factions"],
+    "rumeurs": "rumeurs venues d'ailleurs"
+  },
+  "appartenances": {
+    "administratif": "empire/royaume/région",
+    "factionnel": "guilde/ordre/église/clan",
+    "conflit_appartenance": "déchiré entre deux allégeances ?",
+    "influence_exterieure": "faction étrangère aux intérêts dans le lieu"
+  },
+  "dynamique": {
+    "objectif": "Que cherche le lieu ?",
+    "moyens": ["ressources, habitants, savoir-faire"],
+    "progres": {"projetA": "0%", "projetB": "0%"},
+    "evolution": "succès → prospérité | déclin → abandon | transformation → changement de nature"
+  },
+  "lois_et_morale": {
+    "lois_cardinales": ["3 à 5 règles qui comptent vraiment"],
+    "justice": "Comment elle est rendue",
+    "tabous": ["ce qui ne se fait pas, ne se dit pas"],
+    "tolerances": ["ce que les étrangers trouvent choquant mais les locaux acceptent"],
+    "tension_morale": "partie de la population qui rejette les vieilles règles"
+  },
+  "vide_sacre": "Ce qui reste vierge pour l'improvisation"
+}

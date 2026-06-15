@@ -3,7 +3,7 @@
 > You've seen it clearly: *the GM must know these concepts to judge what applies*. But you can't
 > load everything into a small model's head — it drowns and hallucinates. The solution:
 > **assemble the relevant slice** for it before each scene. This is the evolution of your
-> [`pre_llm_call.py`](../../modules/gaming/mj-tonnerre/hooks/pre_llm_call.py).
+> [`pre_llm_call.py`](../../modules/gaming/mygamemaster/hooks/pre_llm_call.py).
 
 ## 1. The problem: knowing without drowning
 

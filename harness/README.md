@@ -18,7 +18,7 @@ No real keys, no Discord: a local **mock LLM** replaces the provider.
 ## Usage
 
 ```bash
-bash harness/run.sh        # requires podman machine running + image localhost/hermes-mj:latest
+bash harness/run.sh        # requires podman machine running + image localhost/mygamemaster:latest
 ```
 
 Assertions (valid **only if the turn completes**, exit 0):
@@ -30,7 +30,7 @@ Assertions (valid **only if the turn completes**, exit 0):
 ## Status as of 2026-06-10
 
 **What works (hard parts resolved):**
-- `hermes-mj:latest` image can be started locally.
+- `mygamemaster:latest` image can be started locally.
 - Network: mock + gateway are two containers on the same podman network (both
   inside the `podman-machine` VM) → the macOS↔VM network layer is bypassed. Container→mock
   reachability **confirmed** (`GET /v1/models` and `POST` respond correctly).

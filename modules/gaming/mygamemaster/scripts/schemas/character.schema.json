@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/character.schema.json",
+  "title": "personnages/<id>.json — fiche d'un personnage joueur",
+  "type": "object",
+  "required": ["meta", "stats", "inventory", "health"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["character_name"],
+      "additionalProperties": true,
+      "properties": {
+        "character_name": { "type": "string" },
+        "discord_id": { "type": ["string", "integer"] }
+      }
+    },
+    "stats": { "type": "object" },
+    "inventory": { "type": "array" },
+    "skills": { "type": ["array", "object"] },
+    "health": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "PV / seuils de blessure. Champs exacts variables selon le système."
+    },
+    "progression": { "type": ["object", "array"] },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Préférences de jeu méta/hors-fiction propres au joueur (rythme, ton, verbosité combat, spotlight, limites de contenu, enjoys_deception, custom). Toutes optionnelles — ré-injectées au MJ à chaque tour (fail-open)."
+    }
+  }
+}

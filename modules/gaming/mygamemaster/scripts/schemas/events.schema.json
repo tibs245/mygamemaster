@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/events.schema.json",
+  "title": "events.json — timeline HISTORIQUE de la campagne",
+  "description": "Frise des événements PASSÉS, générée depuis les sessions (qui/quoi/quand joués). À NE PAS confondre avec scheduled_event.schema.json (= evenements_programmes.json, événements FUTURS de la propagation causale / world_tick). Conteneur {meta, evenements[]} ; chaque entrée est traçable vers une session.",
+  "type": "object",
+  "required": ["meta", "events"],
+  "additionalProperties": true,
+  "properties": {
+    "meta": { "type": "object" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["t", "type", "label", "session", "description", "source"],
+        "additionalProperties": true,
+        "properties": {
+          "t": { "type": "string", "description": "Repère temporel narratif (ex. « Jour 1 »)." },
+          "type": { "type": "string", "description": "Catégorie : artefact|meta|personnage|pnj|quete|ville_lieu|…" },
+          "label": { "type": "string" },
+          "session": { "type": ["integer", "string"] },
+          "description": { "type": "string" },
+          "source": { "type": "string", "description": "Origine traçable (ex. « session_001 »)." }
+        }
+      }
+    }
+  }
+}

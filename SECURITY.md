@@ -24,7 +24,7 @@ unless you prefer to remain anonymous.
 
 The following are in scope for security reports:
 
-- **Runtime hooks** (`modules/gaming/mj-tonnerre/hooks/`) — injection, bypass, or privilege
+- **Runtime hooks** (`modules/gaming/mygamemaster/hooks/`) — injection, bypass, or privilege
   escalation via hook inputs
 - **Ansible playbooks and templates** — misconfigurations that could expose secrets or allow
   unauthorized access to the deployment host

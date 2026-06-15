@@ -9,7 +9,7 @@
 #   # '-e campagne=<slug>' still works as a legacy alias for '-e game=<slug>'.
 # restore_what : data | home | all (memory = alias for home).
 - name: Restore a campaign
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   roles:
     - hermes_restore

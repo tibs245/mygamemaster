@@ -1,0 +1,224 @@
+# ⚡ MJ Tonnerre — Base d'Items Évolutive
+# Partagé entre toutes les campagnes.
+# Ajoute de nouveaux items à la fin de chaque catégorie.
+# Format : clé unique → { nom, description, valeur_or, poids, effet, rarete }
+
+armes:
+  epee_longue:
+    nom: "Épée longue"
+    description: "Lame d'acier bien équilibrée, arme polyvalente du guerrier"
+    valeur_or: 15
+    poids: 3
+    effet: "1d8 dégâts tranchants"
+    rarete: commun
+  hache_de_bataille:
+    nom: "Hache de bataille"
+    description: "Lourde lame à deux mains qui fend l'air avec un sifflement sinistre"
+    valeur_or: 20
+    poids: 5
+    effet: "1d12 dégâts tranchants"
+    rarete: commun
+  dague:
+    nom: "Dague"
+    description: "Petite lame discrète, facile à cacher dans une botte"
+    valeur_or: 5
+    poids: 0.5
+    effet: "1d4 dégâts perforants, peut être lancée"
+    rarete: commun
+  arc_court:
+    nom: "Arc court"
+    description: "Arc en bois de frêne, idéal pour les éclaireurs"
+    valeur_or: 12
+    poids: 2
+    effet: "1d6 dégâts perforants, portée 24m"
+    rarete: commun
+  fleches:
+    nom: "Flèches (20)"
+    description: "Carquois de vingt flèches empennées de plumes d'oie"
+    valeur_or: 2
+    poids: 1
+    effet: "Munitions pour arc"
+    rarete: commun
+  baton_de_mage:
+    nom: "Bâton de mage"
+    description: "Long bâton de bois noueux, sculpté de runes pâles"
+    valeur_or: 8
+    poids: 2
+    effet: "1d6 dégâts contondants, focaliseur arcanique"
+    rarete: commun
+  epee_courte:
+    nom: "Épée courte"
+    description: "Lame légère maniable, parfaite en main secondaire"
+    valeur_or: 10
+    poids: 1.5
+    effet: "1d6 dégâts tranchants, finesse"
+    rarete: commun
+  masse_darmes:
+    nom: "Masse d'armes"
+    description: "Sphère de métal hérissée de pointes au bout d'un manche"
+    valeur_or: 12
+    poids: 3
+    effet: "1d8 dégâts contondants"
+    rarete: commun
+
+armures:
+  bouclier_bois:
+    nom: "Bouclier en bois"
+    description: "Bouclier rond en chêne renforcé de fer, solide et fiable"
+    valeur_or: 10
+    poids: 4
+    effet: "+2 Défense"
+    rarete: commun
+  armure_de_cuir:
+    nom: "Armure de cuir"
+    description: "Cuir bouilli, souple et silencieux, idéal pour les voleurs"
+    valeur_or: 25
+    poids: 5
+    effet: "Défense 11 + Dex"
+    rarete: commun
+  cote_de_mailles:
+    nom: "Cotte de mailles"
+    description: "Chemise d'anneaux d'acier entrelacés, protection fiable"
+    valeur_or: 50
+    poids: 15
+    effet: "Défense 16, désavantage discrétion"
+    rarete: peu_commun
+  armure_de_plates:
+    nom: "Armure de plates"
+    description: "Harnois complet d'acier poli, le summum de la protection"
+    valeur_or: 150
+    poids: 25
+    effet: "Défense 18, désavantage discrétion"
+    rarete: rare
+
+potions:
+  potion_de_soin:
+    nom: "Potion de soin"
+    description: "Fiole rouge rubis qui scintille doucement à la lumière"
+    valeur_or: 25
+    poids: 0.5
+    effet: "Restaure 2d4+2 PV"
+    rarete: commun
+  potion_de_soin_superieure:
+    nom: "Potion de soin supérieure"
+    description: "Liquide doré et épais, dégage une chaleur réconfortante"
+    valeur_or: 100
+    poids: 0.5
+    effet: "Restaure 4d4+4 PV"
+    rarete: peu_commun
+  potion_de_force:
+    nom: "Potion de force"
+    description: "Bouillonne comme de la lave en fusion dans sa fiole"
+    valeur_or: 80
+    poids: 0.5
+    effet: "+2 Force pendant 1 heure"
+    rarete: peu_commun
+  potion_dinvisibilite:
+    nom: "Potion d'invisibilité"
+    description: "Liquide parfaitement transparent — on ne voit que la fiole"
+    valeur_or: 150
+    poids: 0.5
+    effet: "Invisibilité pendant 10 minutes"
+    rarete: rare
+  antidote:
+    nom: "Antidote"
+    description: "Préparation verdâtre à l'odeur âcre d'herbes médicinales"
+    valeur_or: 30
+    poids: 0.3
+    effet: "Annule un empoisonnement en cours"
+    rarete: commun
+
+objets_magiques:
+  anneau_de_protection:
+    nom: "Anneau de protection"
+    description: "Anneau d'argent gravé d'un œil stylisé qui semble vous fixer"
+    valeur_or: 200
+    poids: 0.1
+    effet: "+1 Défense, +1 sauvegardes"
+    rarete: rare
+  pierre_de_chance:
+    nom: "Pierre de chance"
+    description: "Galet lisse et tiède qui pulse d'une lueur dorée"
+    valeur_or: 300
+    poids: 0.2
+    effet: "Relance 1 jet par jour"
+    rarete: épique
+  bourse_sans_fond:
+    nom: "Bourse sans fond"
+    description: "Petite bourse en velours qui pèse toujours le même poids"
+    valeur_or: 500
+    poids: 0.3
+    effet: "Contient jusqu'à 100 kg sans encombrement"
+    rarete: légendaire
+
+divers:
+  torche:
+    nom: "Torche"
+    description: "Bâton entouré de poix, prêt à être allumé"
+    valeur_or: 1
+    poids: 1
+    effet: "Lumière dans un rayon de 6m, brûle 1 heure"
+    rarete: commun
+  corde:
+    nom: "Corde de chanvre (15m)"
+    description: "Corde solide en fibres tressées, supporte 150 kg"
+    valeur_or: 3
+    poids: 3
+    effet: "Escalade, immobilisation, usage créatif"
+    rarete: commun
+  sac_a_dos:
+    nom: "Sac à dos"
+    description: "Sac en toile cirée, imperméable, solide"
+    valeur_or: 5
+    poids: 1
+    effet: "+15 kg capacité de port"
+    rarete: commun
+  rations:
+    nom: "Rations (1 jour)"
+    description: "Pain dur, fromage sec, viande séchée — pas bon mais ça tient au corps"
+    valeur_or: 1
+    poids: 1
+    effet: "Nourrit une personne pour 1 jour"
+    rarete: commun
+  briquet_a_silex:
+    nom: "Briquet à silex"
+    description: "Deux pierres de silex dans une pochette de cuir"
+    valeur_or: 2
+    poids: 0.2
+    effet: "Allume un feu en 1 action"
+    rarete: commun
+  gourde:
+    nom: "Gourde"
+    description: "Outre en cuir contenant 1 litre d'eau fraîche"
+    valeur_or: 1
+    poids: 1
+    effet: "Hydratation pour 1 demi-journée"
+    rarete: commun
+  pied_de_biche:
+    nom: "Pied de biche"
+    description: "Barre de fer coudée, lourde et utilitaire"
+    valeur_or: 5
+    poids: 3
+    effet: "Force portes/coffres, +2 aux tests pour forcer"
+    rarete: commun
+  kit_de_crochetage:
+    nom: "Kit de crochetage"
+    description: "Étui de cuir contenant crochets, tensionneurs et limes"
+    valeur_or: 15
+    poids: 0.5
+    effet: "Permet de crocheter les serrures"
+    rarete: commun
+  lanterne:
+    nom: "Lanterne"
+    description: "Lanterne en fer forgé avec verre fumé, protège la flamme du vent"
+    valeur_or: 8
+    poids: 2
+    effet: "Lumière dans un rayon de 12m, 1 flacon d'huile = 6h"
+    rarete: commun
+  huile:
+    nom: "Huile (flacon)"
+    description: "Flacon d'huile combustible, peut aussi graisser ou être enflammé"
+    valeur_or: 1
+    poids: 0.5
+    effet: "6h de lanterne, ou 1d4 dégâts de feu zone 1m"
+    rarete: commun

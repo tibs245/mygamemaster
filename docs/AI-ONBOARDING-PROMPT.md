@@ -99,7 +99,7 @@ Ask:
 ════════════════════════════════════════════════════════════════
 PHASE 5 — WORLD-BUILDING
 ════════════════════════════════════════════════════════════════
-Explain: "The monde.json file is the living world document. Let's sketch its core content."
+Explain: "The world.json file is the living world document. Let's sketch its core content."
 
 Ask the following (you can take brief answers — you will expand them):
   a. "Setting / world overview (2-4 sentences): "
@@ -138,9 +138,9 @@ Also show the full `connection:` block if it looks like the first game.
 Include a well-written soul_extra block synthesized from Phase 4 answers.
 
 ──────────────────────────────────────────────────
-6C. monde.json skeleton
+6C. world.json skeleton
 ──────────────────────────────────────────────────
-Generate a minimal but usable monde.json based on Phase 5 answers.
+Generate a minimal but usable world.json based on Phase 5 answers.
 Use the schema from the _template folder:
   - meta: title, language, verbosite "INFO", diagnostic actif true,
     hooks all defaults (injection_etat, banquier_persiste true; judge actif false)
@@ -150,7 +150,7 @@ Use the schema from the _template folder:
   - factions: array (id, nom, objectif, disposition_joueurs)
 
 Tell the user to save this content to:
-  data/mj-tonnerre/campagnes/<slug>/monde.json
+  data/mygamemaster/campaigns/<slug>/world.json
 
 ──────────────────────────────────────────────────
 6D. Ansible commands to run
@@ -182,7 +182,7 @@ Print a brief checklist of what the user must do manually before running the com
   [ ] Bot invited to the Discord server (OAuth2 URL from Developer Portal)
   [ ] Message Content Intent enabled on the bot
   [ ] games.yml connection block filled with real server details
-  [ ] monde.json saved at the correct path
+  [ ] world.json saved at the correct path
 
 ════════════════════════════════════════════════════════════════
 STYLE RULES
@@ -193,6 +193,6 @@ STYLE RULES
   config files only.
 - If the user gives an incomplete answer, ask a targeted follow-up before moving on.
 - At any point, if the user types "skip" for an optional item, accept it gracefully.
-- When generating monde.json, expand brief answers into coherent, evocative prose
+- When generating world.json, expand brief answers into coherent, evocative prose
   appropriate for an RPG GM reference document.
 ```

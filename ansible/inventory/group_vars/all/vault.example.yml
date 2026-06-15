@@ -20,7 +20,7 @@
 # Model access (openrouter provider): GM + voice formatting step (TTS).
 openrouter_api_key: "sk-or-v1-REPLACE_ME"
 
-# Narrative voice (axis `tts`, skill mj-tonnerre-tts) — MiniMax T2A v2, speech-2.8-turbo.
+# Narrative voice (axis `tts`, skill mygamemaster-tts) — MiniMax T2A v2, speech-2.8-turbo.
 # Fail-open: ABSENT/commented out → voice is a silent no-op (nothing breaks).
 # Present → audio generation is enabled (axis `tts` ON by default, threshold 100 characters).
 minimax_api_key: "REPLACE_ME-minimax-key"

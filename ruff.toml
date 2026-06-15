@@ -1,0 +1,33 @@
+# ruff.toml — linter configuration
+# Target: Python 3.11, generous line length, safe ruleset (E, F, I).
+# Ignores are tuned so the existing codebase passes without mass-reformatting.
+
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = ["E", "F", "I"]
+ignore = [
+    # Style choices present throughout the codebase — not errors.
+    "E501",  # Line too long — long lines appear in data tables, templates, and one-liners
+    "E702",  # Multiple statements on one line (semicolon) — used in hook one-liners
+    "E741",  # Ambiguous variable name (l, O, I) — used in list comprehensions
+    "E401",  # Multiple imports on one line — used in a few scripts
+    "E402",  # Module level import not at top of file — test helpers import after sys.path tweaks
+
+    # Import sorting — existing code uses its own consistent ordering; auto-fix would be noisy
+    "I001",  # Import block is un-sorted or un-formatted
+
+    # Unused / noisy import/variable rules — too noisy on the current codebase.
+    "F401",  # Imported but unused — some scripts import for re-export or conditional use
+    "F541",  # f-string without placeholders — stylistic preference in some messages
+    "F841",  # Local variable assigned but never used — minor cleanup, not a CI gate
+]
+
+[lint.isort]
+known-first-party = ["worldlib", "tts_format", "tts_generate", "tts_render"]
+
+[format]
+# carte_schema.py contains hand-aligned dict tables (_SEM) that are intentionally
+# formatted for readability. Excluding it preserves the table alignment.
+exclude = ["modules/gaming/mygamemaster/scripts/carte_schema.py"]

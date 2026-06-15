@@ -134,9 +134,9 @@ are the **same engine**, with different inputs.
 ```
 
 Concrete hooks in the existing system:
-- **Open**: the skill [`mj-tonnerre-session`](../../modules/gaming/mj-tonnerre-session/SKILL.md)
+- **Open**: the skill [`mygamemaster-session`](../../modules/gaming/mygamemaster-session/SKILL.md)
   calls `world_tick.py pre`.
-- **Wrap-up**: [`close_session.py`](../../modules/gaming/mj-tonnerre/scripts/close_session.py)
+- **Wrap-up**: [`close_session.py`](../../modules/gaming/mygamemaster/scripts/close_session.py)
   adds a `world_tick.py post` step to its pipeline.
 
 Cost: **zero tokens outside session**. Simple, predictable, sufficient to validate the entire system.
@@ -174,7 +174,7 @@ forged in a single jump, not three centuries of simulation.
 The more we simulate autonomously, the greater the risk of cumulative incoherence. Four safeguards:
 
 1. **Extended Steward** — no conservation (resources/space/time) is violated.
-2. **Coherence Judge** ([`llm_judge.py`](../../modules/gaming/mj-tonnerre/hooks/llm_judge.py))
+2. **Coherence Judge** ([`llm_judge.py`](../../modules/gaming/mygamemaster/hooks/llm_judge.py))
    on events **generated** by the tick (plausibility, scale, rhythm).
 3. **Bounding** of propagation ([`04`](04-propagation-causale.md)): depth, significance threshold,
    attenuation.

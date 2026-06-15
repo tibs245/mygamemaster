@@ -62,7 +62,7 @@
 # For `modules`, the backup is taken by redeploy.yml itself (avoids a double backup).
 # any_errors_fatal: if the backup fails, the playbook stops → no changes are applied.
 - name: Safety backup (config / credentials)
-  hosts: "{{ game | default(campagne | default('campagnes')) }}"
+  hosts: "{{ game | default(campagne | default('campaigns')) }}"
   gather_facts: true
   any_errors_fatal: true
   vars:

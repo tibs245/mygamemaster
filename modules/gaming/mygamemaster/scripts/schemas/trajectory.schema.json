@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mygamemaster/trajectory.schema.json",
+  "title": "trajectoire — position d'une entité = fonction du temps (4D)",
+  "description": "Une trajectoire est une LISTE de segments triés par 'de' croissant, sans trou ni chevauchement (invariant 01 §5.3, contrat §3.7). Deux formes de segment : séjour {lieu, de, a} et déplacement {type:'deplacement', de, a, chemin[...], motif}. 'a':null = segment courant/indéfini. Ce schéma valide une trajectoire ISOLÉE ; il est aussi réutilisé par actor.schema.json ($defs.trajectoire). Les invariants dynamiques (continuité, pas de téléportation, monotonie vs T courant) sont vérifiés par worldlib.valider_trajectoire — non exprimables en JSON Schema pur.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/segment" },
+  "$defs": {
+    "segment": {
+      "description": "Segment de trajectoire : séjour OU déplacement. La distinction se fait sur le champ 'type' (== 'deplacement' pour un déplacement, absent/autre pour un séjour).",
+      "oneOf": [
+        { "$ref": "#/$defs/sejour" },
+        { "$ref": "#/$defs/deplacement" }
+      ]
+    },
+    "sejour": {
+      "type": "object",
+      "description": "Séjour : l'entité reste au lieu 'lieu' de l'instant 'de' à l'instant 'a' (T en UT).",
+      "required": ["lieu", "de"],
+      "additionalProperties": true,
+      "properties": {
+        "lieu": {
+          "type": "string",
+          "description": "id du lieu de séjour (doit exister dans geo.json)."
+        },
+        "de": {
+          "type": "integer",
+          "description": "T de début (UT, ≥ 0)."
+        },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "T de fin (UT). null = courant/indéfini (segment ouvert)."
+        }
+      }
+    },
+    "deplacement": {
+      "type": "object",
+      "description": "Déplacement : l'entité parcourt 'chemin' (suite d'ids de lieux, arêtes réelles consécutives) de 'de' à 'a'. La durée (a-de) doit être ≥ somme des temps_ut du chemin (pas de téléportation).",
+      "required": ["type", "de", "a", "chemin"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Discriminant : vaut 'deplacement'.",
+          "enum": ["deplacement"]
+        },
+        "de": {
+          "type": "integer",
+          "description": "T de départ (UT)."
+        },
+        "a": {
+          "type": ["integer", "null"],
+          "description": "T d'arrivée (UT). null toléré pour un déplacement en cours indéfini."
+        },
+        "chemin": {
+          "type": "array",
+          "description": "Suite ordonnée d'ids de lieux suivant des arêtes existantes consécutives.",
+          "items": { "type": "string" }
+        },
+        "motif": {
+          "type": "string",
+          "description": "Raison narrative du déplacement (ex. « migration — famine (evt:incendie-champs) »). Optionnel."
+        }
+      }
+    }
+  }
+}

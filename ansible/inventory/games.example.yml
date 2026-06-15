@@ -4,7 +4,7 @@
 # This is the ONLY file you edit to manage your games. To add a new game,
 # append ONE entry under `games:` and add its Discord token to the vault.
 # Nothing else to touch: the dynamic inventory (hermes_inventory.py) turns each
-# entry into an Ansible host of the `campagnes` group automatically.
+# entry into an Ansible host of the `campaigns` group automatically.
 #
 # Getting started (do this ONCE):
 #   cd ansible/inventory
@@ -30,7 +30,7 @@ connection:
 # ── The games (0..n entries — add one to create a new game) ──────────────────
 games:
   - slug: mistfall                # short id: names the container/volumes/unit + SSH host
-    data_dir: example-mistfall    # folder under data/mj-tonnerre/campagnes/
+    data_dir: example-mistfall    # folder under data/mygamemaster/campaigns/
     title: "Mistfall"             # human-readable name
     model: minimax/minimax-m3     # LLM the GM runs on (OpenRouter id)
     provider: openrouter

@@ -29,8 +29,8 @@ ansible/inventory/hosts.yml
 ansible/inventory/host_vars/
 
 # --- Real game data (kept local as reference; only _template/ and example-* committed) ---
-/data/mj-tonnerre/campagnes/la-naissance-dun-roi/
-/data/mj-tonnerre/campagnes/jusquau-bout-de-mon-monde/
+/data/mygamemaster/campaigns/la-naissance-dun-roi/
+/data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/
 
 # --- Local editor/agent settings (may contain host IPs, paths) ---
 .claude/settings.local.json
@@ -63,3 +63,6 @@ discord_threads.json
 # --- Playbook-generated artifacts ---
 /.rendered/
 /.build/
+
+# --- Legacy real-campaign path (pre-rename, kept local) ---
+/data/mj-tonnerre/

@@ -5,9 +5,9 @@
 - name: Check variables required for config
   ansible.builtin.assert:
     that:
-      - campagne_slug is defined
-      - campagne_data_dir is defined
-    fail_msg: "Requires -e game=<slug> (legacy alias: -e campagne=) and the games.yml table entry (campagne_data_dir)."
+      - campaign_slug is defined
+      - campaign_data_dir is defined
+    fail_msg: "Requires -e game=<slug> (legacy alias: -e campagne=) and the games.yml table entry (campaign_data_dir)."
 
 - name: Create the rendered configs directory
   ansible.builtin.file:
@@ -20,11 +20,11 @@
     src: config.yaml.j2
     dest: "{{ rendered_dir }}/config.yaml"
     mode: "0644"
-  notify: restart_campagne
+  notify: restart_campaign
 
 - name: Render SOUL.md
   ansible.builtin.template:
     src: SOUL.md.j2
     dest: "{{ rendered_dir }}/SOUL.md"
     mode: "0644"
-  notify: restart_campagne
+  notify: restart_campaign
