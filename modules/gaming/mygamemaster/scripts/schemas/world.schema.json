@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/world.schema.json",
-  "title": "world.json — état du monde d'une campagne MJ Tonnerre",
+  "title": "world.json — state of the world for a MJ Tonnerre campaign",
   "type": "object",
   "required": ["meta", "modules", "global_state", "universe"],
   "additionalProperties": true,
@@ -25,7 +25,7 @@
     "modules": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Bloc de modules thématiques activables. Chaque module = {actif:bool, params:obj}.",
+      "description": "Block of thematic modules that can be activated. Each module = {actif:bool, params:obj}.",
       "patternProperties": {
         "^(voyage|factions|proactivite_pnj|artefacts|politique|meteo|worldbuilding_lieux|construction_royaume)$": {
           "type": "object",
@@ -98,7 +98,7 @@
                             },
                             {
                               "type": "string",
-                              "description": "Format LEGACY chaîne libre — toléré mais non avançable par machine (à migrer vers l'objet épinglé)."
+                              "description": "LEGACY format free-form string — tolerated but not machine-processable (migrate to pinned object)."
                             }
                           ]
                         }

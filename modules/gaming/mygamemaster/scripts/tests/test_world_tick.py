@@ -72,7 +72,7 @@ def _geo_fixture() -> dict:
              "parent": "region:marche-aux-trois-rivieres", "type": "foret",
              "altitude": None, "ancrage": {"x": -40, "y": 0},
              "aretes": [{"vers": _CABANE, "dir": "E", "distance_m": None, "temps_ut": 4}]},
-            {"id": _GUE, "name": "Gué du Corbeau",
+            {"id": _GUE, "name": "Crow's Ford",
              "parent": "region:marche-aux-trois-rivieres", "type": "riviere",
              "altitude": None, "ancrage": {"x": 200, "y": 200}, "aretes": []},
         ],
@@ -84,19 +84,19 @@ def _acteur_bande() -> dict:
     return {
         "id": "faction:bande-du-corbeau", "name": "La Bande du Corbeau",
         "type": "faction", "lod": "tiede", "majeur": True,
-        "but_long_terme": "Rester maîtres de la Marche",
-        "motivations": ["survie hivernale"],
-        "situation": "Campée au Gué.",
+        "but_long_terme": "Remain masters of the March",
+        "motivations": ["winter survival"],
+        "situation": "Camped at the Ford.",
         "ressources": {"vivres_jours": 12, "hommes": 18, "or": 40},
         "localisation_id": _GUE,
         "trajectory": [{"lieu": _GUE, "de": 0, "a": None}],
         "plan": [
             {
                 "id": "intent:raid-hivernal",
-                "action": "Raid d'approvisionnement hivernal sur une cible isolée",
+                "action": "Winter supply raid on an isolated target",
                 "lieu": _CABANE, "echeance": 3960,
                 "preconditions": ["ressources.vivres_jours < 14"],
-                "consequence_attendue": "Cabane pillée si non défendue.",
+                "consequence_attendue": "Cabin looted if undefended.",
                 "consequence_effets": {
                     "ressources": {"vivres_jours": 30},
                     "relations": [{"vers": "acteur:berthe", "type": "predation",
@@ -117,14 +117,14 @@ def _acteur_berthe() -> dict:
     return {
         "id": "acteur:berthe", "name": "Berthe", "type": "npcs",
         "lod": "chaud", "majeur": True,
-        "but_long_terme": "Que la Marche reste libre",
-        "situation": "À la cabane.", "ressources": {"vivres_jours": 6},
+        "but_long_terme": "Keep the March free",
+        "situation": "At the cabin.", "ressources": {"vivres_jours": 6},
         "localisation_id": _CABANE,
         "trajectory": [{"lieu": _CABANE, "de": 0, "a": None}],
         "plan": [
-            {"id": "intent:garder-cabane", "action": "Veiller sur la cabane",
+            {"id": "intent:garder-cabane", "action": "Keep watch over the cabin",
              "lieu": _CABANE, "echeance": 3960, "preconditions": [],
-             "consequence_attendue": "Détecte les signes d'un raid.",
+             "consequence_attendue": "Detects signs of a raid.",
              "significativite": 0.3, "visible_par_pj": True, "statut": "planifie"},
         ],
         "relations": [{"vers": "acteur:rubis", "type": "alliance", "intensite": 0.8}],
@@ -151,7 +151,7 @@ def _ecrire_campagne_temp(tmp: Path, *, avec_acteurs: bool = True) -> Path:
     # "acteur:rubis" and tolerates multiple PCs).
     W.sauver_json_atomique(camp / "world.json", {
         "meta": {"name": "Fixture", "pj_ids": ["acteur:rubis"]},
-        "global_state": {"timeline": "Jour 7 : la campagne commence."},
+        "global_state": {"timeline": "Day 7: the campaign begins."},
     })
     return camp
 
@@ -331,7 +331,7 @@ class TestAgentDecide(unittest.TestCase):
         self.assertTrue(WT.valider_intention(intention))
         self.assertEqual(intention["statut"], "planifie")
         self.assertIsInstance(intention["echeance"], int)
-        self.assertIn("(à décider)", intention["action"])
+        self.assertIn("(to decide)", intention["action"])
 
     def test_stub_reconduit_but(self):
         """The stub derives its intent from the actor's long-term goal."""
@@ -353,7 +353,7 @@ class TestAgentDecide(unittest.TestCase):
         that reads the brief from stdin and prints the intent — avoids the headache
         of escaping nested quotes under shlex.split."""
         intention_externe = {
-            "id": "intent:llm-test", "action": "Décision LLM simulée",
+            "id": "intent:llm-test", "action": "Simulated LLM decision",
             "lieu": _GUE, "echeance": 5000,
             "consequence_attendue": "test", "visible_par_pj": True,
             "statut": "planifie",
@@ -430,7 +430,7 @@ class TestPre(unittest.TestCase):
         # No pattern "(x=" / "y="; T values are rendered narratively.
         self.assertNotIn("x=", texte)
         self.assertNotIn("y=", texte)
-        self.assertIn("Jour", texte)   # narrative rendering present
+        self.assertIn("Day", texte)   # narrative rendering present
 
     def test_croisement_detecte(self):
         """A moving actor crossing the cone produces a crossing."""
@@ -472,21 +472,21 @@ class TestPost(unittest.TestCase):
 
     def test_extraire_faits_joueur(self):
         session = {
-            "actions": ["Rubis a attaqué la Bande du Corbeau"],
+            "actions": ["Rubis attacked La Bande du Corbeau"],
             "npcs_met": ["Berthe"],
-            "visited_locations": ["Gué du Corbeau"],
+            "visited_locations": ["Crow's Ford"],
             "etat_fin": {"lieu_actuel": "Cabane de Berthe"},
         }
         faits = WT.extraire_faits_joueur(session)
         self.assertTrue(any(f["a_consequences"] for f in faits))
         libelles = " ".join(f["libelle"] for f in faits)
-        self.assertIn("attaqué", libelles)
+        self.assertIn("attacked", libelles)
 
     def test_reconciliation_action_impactante_perturbe_plan(self):
         """PC action targeting the actor → intents 'echoue', plan disrupted."""
         self._ecrire_session(50, {
-            "actions": ["Rubis a attaqué la Bande du Corbeau au Gué"],
-            "etat_fin": {"lieu_actuel": "Gué"},
+            "actions": ["Rubis attacked La Bande du Corbeau at the Ford"],
+            "etat_fin": {"lieu_actuel": "Ford"},
         })
         res = WT.post(self.camp, session="050", apply=False)
         rec = next((r for r in res["reconciliations"]
@@ -499,7 +499,7 @@ class TestPost(unittest.TestCase):
     def test_reconciliation_sans_action_n_altere_pas(self):
         """No consequential action → plan unchanged (ignored)."""
         self._ecrire_session(51, {
-            "actions": ["Le groupe se repose à la cabane"],
+            "actions": ["The group rests at the cabin"],
             "etat_fin": {"lieu_actuel": "Cabane de Berthe"},
         })
         res = WT.post(self.camp, session="051", apply=False)
@@ -509,16 +509,16 @@ class TestPost(unittest.TestCase):
     def test_propagation_action_joueur(self):
         """A consequential action becomes a cause (propagated event)."""
         self._ecrire_session(52, {
-            "actions": ["Rubis a incendié le pont du Gué"],
-            "etat_fin": {"lieu_actuel": "Gué"},
+            "actions": ["Rubis set fire to the bridge at the Ford"],
+            "etat_fin": {"lieu_actuel": "Ford"},
         })
         res = WT.post(self.camp, session="052", apply=False)
         self.assertTrue(res["propagations"])   # at least the root event
 
     def test_post_apply_ecrit(self):
         self._ecrire_session(53, {
-            "actions": ["Rubis a attaqué la Bande du Corbeau"],
-            "etat_fin": {"lieu_actuel": "Gué"},
+            "actions": ["Rubis attacked La Bande du Corbeau"],
+            "etat_fin": {"lieu_actuel": "Ford"},
         })
         res = WT.post(self.camp, session="053", apply=True)
         self.assertTrue((self.camp / "actors.json").exists())
@@ -562,7 +562,7 @@ class TestFailOpen(unittest.TestCase):
             # Campaign with two PCs (e.g. Oscar AND Cendre) declared in canonical list.
             W.sauver_json_atomique(camp / "world.json", {
                 "meta": {"name": "Fixture", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
-                "global_state": {"timeline": "Jour 7 : la campagne commence."},
+                "global_state": {"timeline": "Day 7: the campaign begins."},
             })
             acteurs = W.charger_acteurs(camp)
             for pid, nom in (("acteur:oscar", "Oscar"), ("acteur:cendre", "Cendre")):
@@ -586,7 +586,7 @@ class TestFailOpen(unittest.TestCase):
             camp = _ecrire_campagne_temp(Path(d))
             # Pre-existing events.json (legacy format): must remain intact.
             ev_path = camp / "events.json"
-            contenu_origine = {"events": [{"id": "legacy", "t": "Jour 7"}]}
+            contenu_origine = {"events": [{"id": "legacy", "t": "Day 7"}]}
             W.sauver_json_atomique(ev_path, contenu_origine)
             avant = ev_path.read_bytes()
             WT.pre(camp, t_session=3960, cone=None, apply=True)

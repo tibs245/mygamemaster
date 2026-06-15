@@ -2,31 +2,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/plan.schema.json",
   "title": "plan — ordered list of dated intentions for an actor (living world)",
-  "description": "Le plan est la généralisation de faction_actions_horloge (doc 02 §1, contrat §6.1). C'est une LISTE d'intentions (peut être []) datées en T (UT), que le moteur de tick consomme et que le pré-traitement projette sur le joueur. Chaque id 'intent:<slug>' est unique au sein du plan. Ce schéma valide un plan ISOLÉ ; la définition d'intention est embarquée ($defs.intention) pour rester autoportante (le validateur maison ne résout que les $ref locaux). Elle est tenue STRICTEMENT cohérente avec intention.schema.json.",
+  "description": "A plan is the generalization of faction_actions_horloge (doc 02 §1, contract §6.1). It is a LIST of intentions (may be []) dated at T (UT), which the tick engine consumes and which preprocessing projects onto the player. Each id 'intent:<slug>' is unique within the plan. This schema validates an ISOLATED plan; the intention definition is embedded ($defs.intention) to remain self-contained (the custom validator only resolves local $refs). It is kept STRICTLY coherent with intention.schema.json.",
   "type": "array",
   "items": { "$ref": "#/$defs/intention" },
   "$defs": {
     "intention": {
       "type": "object",
-      "description": "Intention atomique (cf. intention.schema.json — même contrat §6.2).",
+      "description": "Atomic intention (cf. intention.schema.json — same contract §6.2).",
       "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
       "additionalProperties": true,
       "properties": {
         "id": {
           "type": "string",
-          "description": "Identifiant 'intent:<slug>' unique dans le plan."
+          "description": "Identifier 'intent:<slug>' unique within the plan."
         },
-        "action": { "type": "string", "description": "Quoi : libellé de l'action." },
+        "action": { "type": "string", "description": "What: action label." },
         "lieu": {
           "type": ["string", "null"],
-          "description": "id de lieu cible, ou null si non spatial."
+          "description": "target location id, or null if non-spatial."
         },
         "echeance": {
           "type": "integer",
-          "description": "T (UT) au plus tard — entier déterministe (borne haute si fourchette)."
+          "description": "T (UT) at the latest — deterministic integer (upper bound if range)."
         },
         "echeance_source": {
-          "description": "Échéance épinglée d'origine (trace) — objet clock.py OU chaîne libre. Optionnel.",
+          "description": "Original pinned deadline (trace) — clock.py object OR free string. Optional.",
           "oneOf": [
             {
               "type": "object",
@@ -49,12 +49,12 @@
         },
         "preconditions": {
           "type": "array",
-          "description": "Comparaisons numériques 'ressources.<clef> <op> <nombre>'. Inconnu → True (fail-open). Optionnel.",
+          "description": "Numeric comparisons 'resources.<key> <op> <number>'. Unknown → True (fail-open). Optional.",
           "items": { "type": "string" }
         },
         "consequence_attendue": {
           "type": "string",
-          "description": "Effets attendus (texte). Amorce la propagation si significatif."
+          "description": "Expected effects (text). Seeds propagation if significant."
         },
         "consequence_effets": {
           "type": "object",
@@ -71,22 +71,22 @@
         },
         "significativite": {
           "type": "number",
-          "description": "0–1 : amorce de propagation. Défaut applicatif 0.5."
+          "description": "0–1: propagation seed. Application default 0.5."
         },
         "visible_par_pj": {
           "type": "boolean",
-          "description": "Le PJ peut-il observer cette intention ?"
+          "description": "Can the PC observe this intention?"
         },
         "statut": {
           "type": "string",
-          "description": "Cycle de vie.",
+          "description": "Lifecycle.",
           "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
         }
       }
     },
     "relation_effet": {
       "type": "object",
-      "description": "Mutation de relation embarquée dans une conséquence (cf. relation.schema.json).",
+      "description": "Relation mutation embedded in a consequence (cf. relation.schema.json).",
       "required": ["vers", "type"],
       "additionalProperties": true,
       "properties": {

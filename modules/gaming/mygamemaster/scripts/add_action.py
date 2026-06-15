@@ -10,7 +10,7 @@ re-validation. A single call, deterministic.
 
 Action format (see sessions/*.json — free schema, additionalProperties):
   {
-    "timestamp": "Jour 7, début de soirée",   recommended
+    "timestamp": "Day 7, early evening",        recommended
     "type": "dialogue",                        recommended (action|dialogue|meta|…)
     "joueur": "Rubis",                         recommended
     "description": "…",                        REQUIRED (core of the action)
@@ -27,7 +27,7 @@ Target: either a campaign + a session number, or a direct path.
 Action data — your choice:
   • stdin (default)        python3 add_action.py CAMP 9 <<'EOF'\n{…}\nEOF
   • inline                 python3 add_action.py CAMP 9 --action '{…}'
-  • fichier                python3 add_action.py CAMP 9 --fichier act.json
+  • file                   python3 add_action.py CAMP 9 --fichier act.json
 A single object OR an array of objects (each appended in order).
 
 Usage:

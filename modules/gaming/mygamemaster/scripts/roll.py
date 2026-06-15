@@ -3,7 +3,7 @@
 roll.py — Real dice roller for MJ Tonnerre.
 
 Rolls REAL dice (cryptographic entropy via `secrets`, no network)
-and MECHANICALLY applies the natural dice roll rule (SOUL.md §RÈGLE DU DÉ NATUREL):
+and MECHANICALLY applies the natural dice roll rule (SOUL.md §NATURAL DIE RULE):
   - natural roll = 1  → always failure, even with +20 (FUMBLE)
   - natural roll = N (max of die, e.g. 20) → always success, even with -10 (CRITIQUE)
 These two outcomes override any threshold (DC).
@@ -18,10 +18,10 @@ The "1" before the "d" is optional.
 
 Usage:
   python3 roll.py "1d20+3"
-  python3 roll.py "1d20+3" --dc 15 --stat Dextérité
+  python3 roll.py "1d20+3" --dc 15 --stat Dexterity
   python3 roll.py "2d6+1" --json
   python3 roll.py "1d20" --seed 42          # reproducible (tests/disputes ONLY)
-  python3 roll.py "1d20+5" --log /chemin/jets.log
+  python3 roll.py "1d20+5" --log /path/to/jets.log
 
 Exit codes:
   0  dice roll performed (success OR failure: a roll failure is NOT a program error)
@@ -321,7 +321,7 @@ def main(argv=None) -> int:
         if qrng.tous_fallback:
             source_rng = "quantique(fallback:secrets)"
         elif qrng.fallback_utilise:
-            source_rng = "quantique(fallback partiel:secrets)"
+            source_rng = "quantique(fallback partial:secrets)"
         else:
             source_rng = "quantique"
     res = evaluer_jet(args.formule, des, faces, modif, args.dc)

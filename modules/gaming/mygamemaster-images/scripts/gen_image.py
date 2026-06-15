@@ -55,11 +55,11 @@ MIME_EXT = {"jpeg": "jpg", "jpg": "jpg", "png": "png", "webp": "webp"}
 # are provided. Guarantees visual consistency of the character without requiring a
 # specific prompt from the GM.
 _REF_INSTRUCTION_FR = (
-    "RÉFÉRENCE VISUELLE CANONIQUE — à respecter absolument :\n"
-    "{n_ref_label} {verb} l'apparence établie du ou des personnages représentés dans cette scène.\n"
-    "Tu DOIS conserver EXACTEMENT : visage, forme du visage, couleur et style des cheveux, "
-    "teinte de peau, traits distinctifs (cicatrices, tatouages, couleur des yeux…). "
-    "Seuls la pose, l'expression, l'éclairage et le cadrage peuvent changer.\n\n"
+    "CANONICAL VISUAL REFERENCE — must be respected absolutely:\n"
+    "{n_ref_label} the established appearance of the character(s) depicted in this scene.\n"
+    "You MUST preserve EXACTLY: face, face shape, hair colour and style, "
+    "skin tone, distinctive features (scars, tattoos, eye colour…). "
+    "Only the pose, expression, lighting and framing may change.\n\n"
 )
 
 # For a map: the reference image is a composition LAYER, not a face.
@@ -101,9 +101,9 @@ def build_payload(prompt, model, aspect, ref_images=None, ref_mode="portrait",
     temperature: if provided, curbs model creativity (low = more faithful to the layer)."""
     if ref_images:
         n = len(ref_images)
-        label = "L'image ci-dessous montre" if n == 1 else f"Les {n} images ci-dessous montrent"
+        label = "The image below shows" if n == 1 else f"The {n} images below show"
         instr = _REF_INSTRUCTIONS.get(ref_mode, _REF_INSTRUCTION_FR)
-        ref_note = instr.format(n_ref_label=label, verb="") if ref_mode == "portrait" else instr
+        ref_note = instr.format(n_ref_label=label) if ref_mode == "portrait" else instr
         content = [{"type": "text", "text": ref_note + prompt}]
         for ref_path in ref_images:
             try:

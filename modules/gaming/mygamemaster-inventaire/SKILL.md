@@ -4,10 +4,10 @@ description: Manages player inventory in MJ Tonnerre — display, add, use, disc
 category: gaming
 triggers:
   - "!inv"
-  - "inventaire"
-  - "équipement"
-  - "sac"
-  - "objets"
+  - "inventory"
+  - "equipment"
+  - "backpack"
+  - "items"
 ---
 
 # 🎒 MJ Tonnerre — Inventory Management
@@ -56,12 +56,12 @@ triggers:
 | Command | Effect | Visibility |
 |----------|--------|------------|
 | `!inv` | Display player inventory | DM or `\|\|spoiler\|\|` |
-| `!inv ajoute <objet> [qte]` | Add one or more copies of an object | Public confirmation |
-| `!inv utilise <objet>` | Use/consume 1 object. If qte=1 → removed | Narrative result |
-| `!inv jette <objet> [qte]` | Discard the object (lost for good) | Public confirmation |
-| `!inv donne <objet> <@joueur>` | Transfer object to another player | Confirmation to both |
-| `!inv info <objet>` | Display details of an object (from base_items or inventory) | Public |
-| `!inv or <montant>` | Display gold coins (reminder) | DM or `\|\|spoiler\|\|` |
+| `!inv add <item> [qty]` | Add one or more copies of an item | Public confirmation |
+| `!inv use <item>` | Use/consume 1 item. If qty=1 → removed | Narrative result |
+| `!inv discard <item> [qty]` | Discard the item (lost for good) | Public confirmation |
+| `!inv give <item> <@player>` | Transfer item to another player | Confirmation to both |
+| `!inv info <item>` | Display details of an item (from base_items or inventory) | Public |
+| `!inv gold <amount>` | Display gold coins (reminder) | DM or `\|\|spoiler\|\|` |
 
 ### Command details
 
@@ -75,11 +75,11 @@ triggers:
 💰 Gold: {amount} GP
 ⚖️ Weight: {current}/{max} kg
 
-📦 OBJECTS
+📦 ITEMS
 • {name} x{qty} — {desc}
   ↳ Weight: {weight} kg · Value: {value} GP · {effect}
 
-📦 OBJECTS (continued)
+📦 ITEMS (continued)
 ...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -94,7 +94,7 @@ If inventory is empty:
 💰 Gold: {amount} GP
 ⚖️ Weight: {current}/{max} kg
 
-📦 OBJECTS
+📦 ITEMS
 (Empty — your backpack echoes 🦗)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -103,12 +103,12 @@ If inventory is empty:
 - Default capacity: **Max weight = 10 × STR** (or 50 kg if no STR stat)
 - The `effect` field only displays if non-empty
 
-#### `!inv ajoute <objet> [qte]`
+#### `!inv add <item> [qty]`
 
-1. Search for `<objet>` in `base_items.yaml` (fuzzy match: exact name or keyword containing)
+1. Search for `<item>` in `base_items.yaml` (fuzzy match: exact name or keyword containing)
 2. If found in base → copy complete fields (nom, desc, poids, valeur, effet)
-3. If not found → create minimal entry: `{"nom": "<objet>", "qte": n, "desc": "", "poids": 0, "valeur": 0, "effet": ""}`
-4. If object already exists in inventory → increment `qte`, do not duplicate
+3. If not found → create minimal entry: `{"nom": "<item>", "qte": n, "desc": "", "poids": 0, "valeur": 0, "effet": ""}`
+4. If item already exists in inventory → increment `qte`, do not duplicate
 5. Check total weight — warn if exceeded
 6. Update `characters/<discord_id>.json`
 7. Confirm:
@@ -119,9 +119,9 @@ If inventory is empty:
    ⚠️ Overloaded! Movement penalty.  ← if exceeded
 ```
 
-#### `!inv utilise <objet>`
+#### `!inv use <item>`
 
-1. Search for object in player inventory (fuzzy match)
+1. Search for item in player inventory (fuzzy match)
 2. Decrement `qte` by 1
 3. If `qte` becomes 0 → **remove entry completely**
 4. If `effet` non-empty → describe effect narratively
@@ -132,12 +132,12 @@ If inventory is empty:
 🫧 {name} used.
    "{effect}"  ← if effect non-empty
    Remaining x{remaining_qty}.  ← if qty > 0
-   The object disappears in a faint cloud of smoke. ✨  ← if qty = 0
+   The item disappears in a faint cloud of smoke. ✨  ← if qty = 0
 ```
 
-#### `!inv jette <objet> [qte]`
+#### `!inv discard <item> [qty]`
 
-1. Search for object in inventory
+1. Search for item in inventory
 2. Remove specified quantity (or 1 by default)
 3. If qty discarded ≥ qty owned → remove entry
 4. Confirm:
@@ -148,13 +148,13 @@ If inventory is empty:
    Farewell, old {name}...  ← if nothing left
 ```
 
-#### `!inv donne <objet> <@joueur>`
+#### `!inv give <item> <@player>`
 
-1. Search for `<objet>` in giver's inventory
+1. Search for `<item>` in giver's inventory
 2. Extract `discord_id` of recipient from mention
 3. Verify recipient has character sheet in same campaign
-4. Remove object from giver's inventory (like `jette`)
-5. Add object to recipient's inventory (like `ajoute`)
+4. Remove item from giver's inventory (like `discard`)
+5. Add item to recipient's inventory (like `add`)
 6. Log transfer
 7. Confirm:
 
@@ -180,7 +180,7 @@ armes:
     valeur_or: 15
     poids: 3
     effet: "1d8 slashing damage"
-    rarete: commun
+    rarete: common
 
 armures:
   bouclier_bois:
@@ -189,7 +189,7 @@ armures:
     valeur_or: 10
     poids: 4
     effet: "+2 Defense"
-    rarete: commun
+    rarete: common
 
 potions:
   potion_soin:
@@ -198,7 +198,7 @@ potions:
     valeur_or: 25
     poids: 0.5
     effet: "Restores 2d4+2 HP"
-    rarete: commun
+    rarete: common
 
 # ...
 ```
@@ -212,20 +212,20 @@ potions:
 | `valeur_or` | number | Price in gold pieces |
 | `poids` | number | Weight in kg |
 | `effet` | string | Mechanical or narrative effect (can be empty) |
-| `rarete` | string | `commun`, `peu_commun`, `rare`, `épique`, `légendaire` |
+| `rarete` | string | `common`, `uncommon`, `rare`, `epic`, `legendary` |
 
 ### Adding items to base
 
-When the GM invents a new object in play:
+When the GM invents a new item in play:
 
-1. Player uses `!inv ajoute <objet>` with details in description
-2. If object does not exist in base → skill proposes to GM:
+1. Player uses `!inv add <item>` with details in description
+2. If item does not exist in base → skill proposes to GM:
    ```
-   📝 New object detected: "{name}"
+   📝 New item detected: "{name}"
    Do you want to add it to the item base? (yes/no)
    ```
 3. If yes → add to appropriate category in `base_items.yaml` with fields filled
-4. GM can also add manually with `!baseitem ajoute <catégorie> <nom>`
+4. GM can also add manually with `!baseitem add <category> <name>`
 
 ---
 
@@ -234,8 +234,8 @@ When the GM invents a new object in play:
 > General compartmentalization rule: single source = header `mygamemaster/SKILL.md §2` (§9 = the GM keeps secrets). **Specific to inventory**:
 
 - **A player's inventory is PRIVATE** → DM, or `||Discord spoilers||` in public channel. Suggest DM.
-- Exception: `!inv ajoute`, `!inv jette`, `!inv donne` can have public confirmation (without complete inventory detail).
-- Transfer (`!inv donne`) is logged on both giver and recipient side.
+- Exception: `!inv add`, `!inv discard`, `!inv give` can have public confirmation (without complete inventory detail).
+- Transfer (`!inv give`) is logged on both giver and recipient side.
 
 ---
 
@@ -251,12 +251,12 @@ When the GM invents a new object in play:
 
 ## Standard Workflow
 
-### Adding existing object (nominal case)
+### Adding existing item (nominal case)
 
 ```
-Player: !inv ajoute potion de soin 2
+Player: !inv add healing potion 2
 
-1. Search for "potion de soin" in base_items.yaml
+1. Search for "healing potion" in base_items.yaml
 2. Found → key "potions.potion_soin"
 3. Current inventory: []
 4. Add entry with complete fields, qty=2
@@ -265,12 +265,12 @@ Player: !inv ajoute potion de soin 2
 7. Reply: ✅ Healing potion x2 added. ⚖️ 1/50 kg
 ```
 
-### Using object (qty > 1)
+### Using item (qty > 1)
 
 ```
-Player: !inv utilise potion de soin
+Player: !inv use healing potion
 
-1. Search for "potion de soin" in inventory
+1. Search for "healing potion" in inventory
 2. Found → qty=2
 3. Decrement → qty=1
 4. Effect: "Restores 2d4+2 HP"
@@ -279,22 +279,22 @@ Player: !inv utilise potion de soin
 7. Reply: 🫧 Healing potion used. Remaining x1.
 ```
 
-### Using object (qty = 1)
+### Using item (qty = 1)
 
 ```
-Player: !inv utilise potion de soin
+Player: !inv use healing potion
 
 1. Search → found, qty=1
 2. Remove entry completely
-3. Reply: 🫧 Healing potion used. The object disappears in a faint cloud of smoke. ✨
+3. Reply: 🫧 Healing potion used. The item disappears in a faint cloud of smoke. ✨
 ```
 
 ### Transfer between players
 
 ```
-Player A: !inv donne épée longue @PlayerB
+Player A: !inv give long sword @PlayerB
 
-1. Search for "épée longue" in A's inventory → found, qty=1
+1. Search for "long sword" in A's inventory → found, qty=1
 2. Extract discord_id from @PlayerB
 3. Verify B's character sheet in same campaign
 4. Remove from A's inventory
@@ -308,13 +308,13 @@ Player A: !inv donne épée longue @PlayerB
 
 ## Fuzzy Match
 
-To find an object, try in order:
+To find an item, try in order:
 
 1. **Exact match** — identical `nom`
-2. **Contains** — object whose `nom` contains search string (ex: "soin" → "Healing potion", "Superior healing potion")
+2. **Contains** — item whose `nom` contains search string (ex: "heal" → "Healing potion", "Superior healing potion")
 3. **Keyword** — search in `description` (ex: "red" → Healing potion)
 4. If multiple matches → ask player to clarify
-5. If none → create object on the fly (mode "unknown object")
+5. If none → create item on the fly (mode "unknown item")
 
 ---
 
@@ -327,8 +327,8 @@ To find an object, try in order:
 | Leave entry with `qty: 0` | Delete entry |
 | Forget to check weight | Calculate total weight on each modification |
 | Search only in base, not in existing inventory | Search inventory first for modifications |
-| **Forget NPC and location inventories** — hold only PC inventory | Check EVERY entity: PC + companion NPC + location used. An object left in a cabin is not "lost" — it is in the location's inventory (`inventaire_<lieu>.contenu`). |
-| **Invent object** (PC, NPC or location) not listed | Rule "invented object": single source = header `mygamemaster/SKILL.md §8` (and §2 compartmentalization). Before any object mention, check entity's inventory; if absent, character does not have it. |
+| **Forget NPC and location inventories** — hold only PC inventory | Check EVERY entity: PC + companion NPC + location used. An item left in a cabin is not "lost" — it is in the location's inventory (`inventaire_<lieu>.contenu`). |
+| **Invent item** (PC, NPC or location) not listed | Rule "invented item": single source = header `mygamemaster/SKILL.md §8` (and §2 compartmentalization). Before any item mention, check entity's inventory; if absent, character does not have it. |
 
 ---
 
@@ -338,4 +338,4 @@ To find an object, try in order:
 - Files: `~/.hermes/mygamemaster/campaigns/<nom>/characters/<discord_id>.json`
 - Files: `~/.hermes/mygamemaster/base_items.yaml`
 - Tools: native JSON read/write (no external scripts needed)
-- **Emoji convention:** `references/verbosite/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard objects, ⚔️ for weapons/combat equipment in all inventory change notifications.
+- **Emoji convention:** `references/verbosity/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard items, ⚔️ for weapons/combat equipment in all inventory change notifications.

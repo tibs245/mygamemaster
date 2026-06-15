@@ -15,10 +15,10 @@ import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 NARRATION = (
-    "Berthe lève les yeux de ses nasses quand tu pousses la porte. "
-    "« Te revoilà », dit-elle, en te tendant une anguille fumée.\n\n"
-    "```python\nprint('trace interne MJ — ne doit jamais fuiter au joueur')\n```\n\n"
-    "Le feu crépite doucement. Que fais-tu ?"
+    "Berthe looks up from her fish traps as you push the door open. "
+    "\"There you are again,\" she says, handing you a smoked eel.\n\n"
+    "```python\nprint('internal GM trace — must never leak to the player')\n```\n\n"
+    "The fire crackles softly. What do you do?"
 )
 
 

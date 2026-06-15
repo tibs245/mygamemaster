@@ -8,9 +8,9 @@ A recurring NPC (2+ sessions or ally/companion) must have a structured record in
 
 ```json
 {
-  "nom": "Prénom",
-  "titre": "Rôle / Fonction",
-  "premiere_rencontre": "Session X — Lieu",
+  "nom": "First name",
+  "titre": "Role / Function",
+  "premiere_rencontre": "Session X — Location",
   "description": "1-2 descriptive sentences (physical appearance, general demeanor). Contain ONLY what was seen/played.",
   "attitude": "Ally | Wary | Neutral | Hostile",
   "relation_niveau": "Unknown | Acquaintance | Ally | Friend | Close | Wary | Hostile | Enemy",

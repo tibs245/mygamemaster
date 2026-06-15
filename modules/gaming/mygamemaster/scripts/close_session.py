@@ -164,7 +164,7 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
     chrono = monde.get("global_state", {}).get("timeline", "")
     add("P6", "Chronology filled in (global_state.timeline)",
         bool(str(chrono).strip()), True,
-        "" if str(chrono).strip() else "chronologie empty")
+        "" if str(chrono).strip() else "chronology empty")
 
     # P7-P9: session log complete.
     heure_fin = str(session.get("end_hour", "")).strip()
@@ -191,7 +191,7 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
                 charger_json(evt)
             except (OSError, json.JSONDecodeError) as e:
                 evt_ok = False
-                detail = f"events.json illisible : {e}"
+                detail = f"events.json unreadable: {e}"
         else:
             detail = "events.json absent (required in UT regime)"
         add("P10", "UT timeline: events.json present and valid",
@@ -290,7 +290,7 @@ def executer(campagne: Path, num_session: int | None,
     # Proposed commit message (never executed here)
     nom_camp = monde.get("meta", {}).get("name", campagne.name)
     titre_aff = titre or _titre_session(session_path)
-    msg_commit = f"🎲 {nom_camp} — Session {num:03d} clôturée : {titre_aff}"
+    msg_commit = f"🎲 {nom_camp} — Session {num:03d} closed: {titre_aff}"
 
     return {
         "campagne": str(campagne),
@@ -340,7 +340,7 @@ def main(argv=None) -> int:
         epilog=(
             "Examples:\n"
             "  python3 close_session.py .hermes/mygamemaster/campaigns/la-naissance-dun-roi\n"
-            "  python3 close_session.py <campagne> --session 5 --titre 'Le Cœur' --json\n"
+            "  python3 close_session.py <campaign> --session 5 --titre 'The Heart' --json\n"
             "\n"
             "WARNING --commit: this script does NOT commit automatically.\n"
             "It PROPOSES a message. The decision to commit belongs to the GM /\n"

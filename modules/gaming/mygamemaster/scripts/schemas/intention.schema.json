@@ -2,29 +2,29 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/intention.schema.json",
   "title": "intention — atomic unit of an actor's plan (living world)",
-  "description": "Une intention dit QUOI, OÙ, QUAND au plus tard (echeance en T/UT), sous quelles PRÉCONDITIONS, avec quelle CONSÉQUENCE attendue (doc 02 §1, contrat §6.2). C'est aussi le FORMAT DE SORTIE du seam LLM agent_decide (contrat §7.5) : toute sortie est validée contre ce schéma PUIS contre les invariants avant d'entrer dans le plan. id 'intent:<slug>' unique AU SEIN DU PLAN d'un acteur (pas globalement). echeance est un T DÉTERMINISTE (entier UT) : le LLM ne produit jamais de T brut — il est dérivé d'une échéance épinglée (echeance_source) par worldlib.echeance_en_t. Tolérant (additionalProperties:true).",
+  "description": "An intention specifies WHAT, WHERE, and BY WHEN AT LATEST (deadline as T/UT), under which PRECONDITIONS, with what expected CONSEQUENCE (doc 02 §1, contract §6.2). It is also the OUTPUT FORMAT of the LLM seam agent_decide (contract §7.5): all outputs are validated against this schema THEN against invariants before entering the plan. id 'intent:<slug>' unique WITHIN an actor's PLAN (not globally). deadline is a DETERMINISTIC T (integer UT): the LLM never produces raw T — it is derived from a pinned deadline (echeance_source) via worldlib.echeance_en_t. Permissive (additionalProperties:true).",
   "type": "object",
   "required": ["id", "action", "lieu", "echeance", "consequence_attendue", "visible_par_pj", "statut"],
   "additionalProperties": true,
   "properties": {
     "id": {
       "type": "string",
-      "description": "Identifiant 'intent:<slug>' unique dans le plan de l'acteur (ex. 'intent:raid-hivernal')."
+      "description": "Identifier 'intent:<slug>' unique within the actor's plan (e.g., 'intent:winter-raid')."
     },
     "action": {
       "type": "string",
-      "description": "Quoi : libellé de l'action."
+      "description": "What: action label."
     },
     "lieu": {
       "type": ["string", "null"],
-      "description": "id de lieu cible, ou null si l'intention n'est pas spatiale."
+      "description": "target location id, or null if the intention is not spatial."
     },
     "echeance": {
       "type": "integer",
-      "description": "T (UT) AU PLUS TARD — entier déterministe. Pour une fourchette épinglée, c'est la borne HAUTE (au plus tard)."
+      "description": "T (UT) BY LATEST — deterministic integer. For a pinned range, this is the UPPER bound (by latest)."
     },
     "echeance_source": {
-      "description": "Échéance « épinglée » d'origine (trace), format clock.py {texte,unite,min,max,ancre,statut} OU chaîne libre. Optionnel — conservé pour audit (contrat §3.9).",
+      "description": "Original « pinned » deadline (trace), format clock.py {texte,unite,min,max,ancre,statut} OR free string. Optional — kept for audit (contract §3.9).",
       "oneOf": [
         {
           "type": "object",
@@ -44,31 +44,31 @@
         },
         {
           "type": "string",
-          "description": "Chaîne libre non datable par machine (ex. « Dans 2-3 semaines… ») — signalée, non avançable."
+          "description": "Free string not machine-datable (e.g., « In 2-3 weeks… ») — flagged, not advanceable."
         }
       ]
     },
     "preconditions": {
       "type": "array",
-      "description": "Expressions évaluables — sous-ensemble SÛR : comparaisons numériques 'ressources.<clef> <op> <nombre>' (ex. 'ressources.vivres_jours < 14'). Inconnu/non parsable → True (fail-open). Optionnel.",
+      "description": "Evaluable expressions — SAFE subset: numeric comparisons 'ressources.<key> <op> <number>' (e.g., 'ressources.vivres_jours < 14'). Unknown/unparseable → True (fail-open). Optional.",
       "items": { "type": "string" }
     },
     "consequence_attendue": {
       "type": "string",
-      "description": "Effets attendus (texte). Déclenche la propagation causale si significatif."
+      "description": "Expected effects (text). Triggers causal propagation if significant."
     },
     "consequence_effets": { "$ref": "#/$defs/consequence_effets" },
     "significativite": {
       "type": "number",
-      "description": "0–1 : amorce de propagation causale (contrat §8). Défaut applicatif 0.5 si absent."
+      "description": "0–1: seed for causal propagation (contract §8). Application default 0.5 if absent."
     },
     "visible_par_pj": {
       "type": "boolean",
-      "description": "Le PJ peut-il observer cette intention ?"
+      "description": "Can a PC observe this intention?"
     },
     "statut": {
       "type": "string",
-      "description": "Cycle de vie de l'intention.",
+      "description": "Intention lifecycle.",
       "enum": ["planifie", "en_cours", "accompli", "echoue", "annule"]
     }
   },
@@ -80,31 +80,31 @@
       "properties": {
         "ressources": {
           "type": "object",
-          "description": "Deltas de ressources (clef → nombre, peut être négatif). Une conservation violée (ressource négative créée) fait REFUSER la conséquence.",
+          "description": "Resource deltas (key → number, can be negative). A violated conservation (negative resource created) causes the consequence to be REFUSED.",
           "additionalProperties": true
         },
         "relations": {
           "type": "array",
-          "description": "Mutations de relations à appliquer (mêmes champs qu'une relation, cf. relation.schema.json).",
+          "description": "Relation mutations to apply (same fields as a relation, cf. relation.schema.json).",
           "items": { "$ref": "#/$defs/relation_effet" }
         },
         "event": {
           "type": "object",
-          "description": "Gabarit d'événement à émettre (partiel) — complété par le tick/propagation.",
+          "description": "Event template to emit (partial) — completed by tick/propagation.",
           "additionalProperties": true
         }
       }
     },
     "relation_effet": {
       "type": "object",
-      "description": "Mutation de relation embarquée dans une conséquence (forme allégée de la relation du graphe causal).",
+      "description": "Relation mutation embedded in a consequence (lightweight form of the causal graph relation).",
       "required": ["vers", "type"],
       "additionalProperties": true,
       "properties": {
-        "vers": { "type": "string", "description": "id de l'acteur/lieu cible." },
+        "vers": { "type": "string", "description": "id of target actor/location." },
         "type": {
           "type": "string",
-          "description": "Type de relation (cf. relation.schema.json).",
+          "description": "Relation type (cf. relation.schema.json).",
           "enum": [
             "approvisionnement",
             "vassalite",

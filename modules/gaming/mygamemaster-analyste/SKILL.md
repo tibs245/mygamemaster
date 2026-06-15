@@ -6,21 +6,21 @@ triggers:
   - "!analyse-bug"
   - "analyse-bug"
   - "bug"
-  - "incohérence"
-  - "rapport de bug"
+  - "inconsistency"
+  - "bug report"
   - "audit"
   - "!audit-presession"
   - "audit-presession"
-  - "pré-session"
-  - "cohérence avant"
-  - "vérifie la cohérence"
+  - "pre-session"
+  - "coherence before"
+  - "verify coherence"
 ---
 
 # 🔍 MJ Tonnerre — Bug Analyst & Steward Audit
 
 > **You are the Analyst.** You do not narrate anything, you do not play any character.
 > You consult the files, you apply the 3 Steward controls,
-> you issue a verdict. That's it.
+> you issue a verdict. That is all.
 
 ## 1. Role and boundary
 
@@ -105,7 +105,7 @@ Is the result logical? **And is the narration produced coherent with the data it
 >
 > **Rule:** if the narration lies while the file is correct, it is a **GM BUG**. Before any verdict "NOT A BUG", ALWAYS compare the produced narration to source data. If the player insists after "NOT A BUG" → you missed that comparison: start over by tracing the narration, not the files.
 >
-> Related narrative traps (narrative solitude, temporal distortion, forgotten shared past): see `references/contamination-cognitive.md` and `narrative-erreurs-recurrentes.md`.
+> Related narrative traps (narrative solitude, temporal distortion, forgotten shared past): see `references/contamination-cognitive.md` and `narrative-recurring-errors.md`.
 
 ---
 

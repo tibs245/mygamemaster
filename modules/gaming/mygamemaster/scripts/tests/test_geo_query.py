@@ -89,12 +89,12 @@ def _geo_fixture() -> dict:
         "meta": {"campagne": "Fixture", "version": 1},
         "locations": [
             {
-                "id": "region:test", "name": "Région Test", "parent": None,
+                "id": "region:test", "name": "Region Test", "parent": None,
                 "type": "region", "altitude": None,
                 "ancrage": {"x": 0, "y": 0}, "aretes": [],
             },
             {
-                "id": "lieu:test/a", "name": "Lieu A", "parent": "region:test",
+                "id": "lieu:test/a", "name": "Location A", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 0, "y": 0},
                 "aretes": [
                     {"vers": "lieu:test/b", "dir": "E", "distance_m": None,
@@ -102,7 +102,7 @@ def _geo_fixture() -> dict:
                 ],
             },
             {
-                "id": "lieu:test/b", "name": "Lieu B", "parent": "region:test",
+                "id": "lieu:test/b", "name": "Location B", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 10, "y": 0},
                 "aretes": [
                     {"vers": "lieu:test/c", "dir": "E", "distance_m": None,
@@ -110,7 +110,7 @@ def _geo_fixture() -> dict:
                 ],
             },
             {
-                "id": "lieu:test/c", "name": "Lieu C", "parent": "region:test",
+                "id": "lieu:test/c", "name": "Location C", "parent": "region:test",
                 "type": "lieu", "altitude": None, "ancrage": {"x": 20, "y": 0},
                 "aretes": [],
             },
@@ -553,7 +553,7 @@ class TestRequetesFixture(unittest.TestCase):
         lieux = {l["id"] for l in res["locations"]}
         self.assertIn("lieu:test/b", lieux)
         self.assertNotIn("lieu:test/c", lieux)
-        self.assertNotIn("lieu:test/a", lieux, "le point central ne se liste pas")
+        self.assertNotIn("lieu:test/a", lieux, "the center point must not list itself")
         # Pat and Mathilde (at A) are within radius; Loin (at C) is not.
         acteurs = {a["id"] for a in res["actors"]}
         self.assertIn("acteur:pat", acteurs)

@@ -14,7 +14,7 @@ Like gen_image.py:
   - retries on transient errors (429/5xx/network).
 
 Usage:
-  python3 review_image.py --image IMG.png --criteres "Portrait crayonné d'Oscar, …"
+  python3 review_image.py --image IMG.png --criteres "Pencil portrait of Oscar, …"
   python3 review_image.py --image IMG.png --criteres-file crit.txt --model google/gemma-4-31b-it --json
 
 Exit codes:
@@ -36,13 +36,13 @@ API_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_VISION_MODEL = "google/gemma-4-31b-it"  # inexpensive vision model; avoid Gemini (project preference)
 
 CONSIGNE = (
-    "Tu es critique d'illustration pour un jeu de rôle. Évalue l'image fournie sur 4 axes "
-    "(Style, Description respectée, Qualité/anatomie, absence de texte parasite), donne une "
-    "note /10 par axe puis une note globale /10, et liste les défauts concrets à corriger.\n"
-    "IMPÉRATIF — termine ta réponse par EXACTEMENT ces deux lignes, sans rien après :\n"
-    "NOTE_GLOBALE: <N>/10   (N = nombre entre 0 et 10, décimales autorisées)\n"
-    "CORRECTIONS: <consignes brèves et concrètes pour régénérer, sur une seule ligne, ou \"aucune\">\n"
-    "Contexte et critères attendus :\n"
+    "You are an illustration critic for a role-playing game. Evaluate the provided image on 4 axes "
+    "(Style, Description respected, Quality/anatomy, absence of stray text), give a "
+    "score /10 per axis then an overall score /10, and list the concrete flaws to fix.\n"
+    "MANDATORY — end your response with EXACTLY these two lines, nothing after:\n"
+    "NOTE_GLOBALE: <N>/10   (N = number between 0 and 10, decimals allowed)\n"
+    "CORRECTIONS: <brief concrete instructions to regenerate, on a single line, or \"aucune\">\n"
+    "Context and expected criteria:\n"
 )
 
 

@@ -35,7 +35,7 @@ def main():
         try:
             draft = open(args.file, encoding="utf-8").read()
         except Exception:
-            print("⚠️ CHECKPOINT : brouillon illisible — livre ta narration."); return 0
+            print("⚠️ CHECKPOINT: unreadable draft — deliver your narration."); return 0
     else:
         draft = sys.stdin.read()
 
@@ -45,17 +45,17 @@ def main():
     payload = {"cwd": os.getcwd(), "session_id": "gate"}
 
     if not jcfg["actif"]:
-        print("✅ CHECKPOINT (juge inactif) — livre ta narration."); return 0
+        print("✅ CHECKPOINT (judge inactive) — deliver your narration."); return 0
 
     verdict = J.judge(draft, args.declared, L.etat_brief(camp, monde, for_judge=True), jcfg)
     if "_skipped" in verdict:
-        print("✅ CHECKPOINT (juge indisponible : %s) — livre ta narration." % verdict["_skipped"]); return 0
+        print("✅ CHECKPOINT (judge unavailable: %s) — deliver your narration." % verdict["_skipped"]); return 0
 
     violations = verdict.get("violations", [])
     if not violations:
         L.attempts_reset(camp, payload)
         L.scoreboard_update(camp, jcfg["modele"], True, 0, 0, [])
-        print("✅ CHECKPOINT OK — aucune règle enfreinte. Livre ta narration."); return 0
+        print("✅ CHECKPOINT OK — no rule violated. Deliver your narration."); return 0
 
     n = L.attempts_inc(camp, payload)
     fb = J.format_feedback(violations)
@@ -68,12 +68,12 @@ def main():
         L.attempts_reset(camp, payload)
         L.scoreboard_update(camp, jcfg["modele"], False, bq, cd, by_rule, forced=1)
         L.set_pending(camp, payload, fb)
-        print("⚠️ CHECKPOINT FORCÉ après %d tentatives — corrige au mieux et LIVRE "
-              "(infractions restantes loguées) :\n%s" % (n, fb))
+        print("⚠️ CHECKPOINT FORCED after %d attempts — correct as best you can and DELIVER "
+              "(remaining violations logged):\n%s" % (n, fb))
         return 0
 
     L.scoreboard_update(camp, jcfg["modele"], False, bq, cd, by_rule)
-    print("%s\n\n➡️ Réécris ta narration puis relance le checkpoint (tentative %d/%d)."
+    print("%s\n\n➡️ Rewrite your narration then re-run the checkpoint (attempt %d/%d)."
           % (fb, n, jcfg["gate_max_tentatives"]))
     return 1
 

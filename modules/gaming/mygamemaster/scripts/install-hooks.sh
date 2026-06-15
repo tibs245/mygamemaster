@@ -25,12 +25,12 @@ if [ "${2:-}" = "--force" ]; then
 fi
 
 if [ -z "$CAMPAGNE" ]; then
-    echo "Usage : $0 <chemin/campagne> [--force]" >&2
+    echo "Usage: $0 <path/campaign> [--force]" >&2
     exit 2
 fi
 
 if [ ! -d "$CAMPAGNE" ]; then
-    echo "❌ Campagne introuvable : $CAMPAGNE" >&2
+    echo "❌ Campaign not found: $CAMPAGNE" >&2
     exit 2
 fi
 
@@ -39,15 +39,15 @@ SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK_TEMPLATE="$SCRIPTS_DIR/pre-commit.hook"
 
 if [ ! -f "$HOOK_TEMPLATE" ]; then
-    echo "❌ Modèle de hook introuvable : $HOOK_TEMPLATE" >&2
+    echo "❌ Hook template not found: $HOOK_TEMPLATE" >&2
     exit 2
 fi
 
 # Find the git repository that versions the campaign.
 GIT_DIR="$(cd "$CAMPAGNE" && git rev-parse --git-dir 2>/dev/null || true)"
 if [ -z "$GIT_DIR" ]; then
-    echo "❌ Aucun dépôt git ne versionne $CAMPAGNE." >&2
-    echo "   Initialise-le (git init) ou indique une campagne déjà versionnée." >&2
+    echo "❌ No git repository tracks $CAMPAGNE." >&2
+    echo "   Initialize one (git init) or provide an already-versioned campaign path." >&2
     exit 2
 fi
 # Make GIT_DIR absolute (git returns it relative to the campaign's cwd).
@@ -59,8 +59,8 @@ TARGET="$HOOKS_DIR/pre-commit"
 mkdir -p "$HOOKS_DIR"
 
 if [ -f "$TARGET" ] && [ "$FORCE" -ne 1 ]; then
-    echo "⚠ Un hook pre-commit existe déjà : $TARGET" >&2
-    echo "   Relance avec --force pour l'écraser." >&2
+    echo "⚠ A pre-commit hook already exists: $TARGET" >&2
+    echo "   Re-run with --force to overwrite it." >&2
     exit 1
 fi
 
@@ -69,7 +69,7 @@ fi
 sed "s|__MGM_SCRIPTS_DIR__|$SCRIPTS_DIR|g" "$HOOK_TEMPLATE" > "$TARGET"
 chmod +x "$TARGET"
 
-echo "✅ Hook installé : $TARGET"
-echo "   Dossier scripts injecté : $SCRIPTS_DIR"
-echo "   Le commit sera REFUSÉ si un JSON de campagne est cassé."
-echo "   Bypass d'urgence : MGM_SKIP_HOOK=1 git commit …"
+echo "✅ Hook installed: $TARGET"
+echo "   Scripts folder injected: $SCRIPTS_DIR"
+echo "   The commit will be REJECTED if a campaign JSON file is broken."
+echo "   Emergency bypass: MGM_SKIP_HOOK=1 git commit …"

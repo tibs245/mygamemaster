@@ -177,7 +177,7 @@ class TestIntegrationPreCroisement(unittest.TestCase):
         the raid at its deadline".
         """
         if G is None:
-            self.skipTest("geo_query indisponible")
+            self.skipTest("geo_query unavailable")
         traj_joueur = [{"lieu": GUE, "de": ECHEANCE_RAID - 60, "a": ECHEANCE_RAID + 60}]
         traj_bande = [{"lieu": GUE, "de": 0, "a": ECHEANCE_RAID + 60}]
         fenetres = G.croisement(CAMPAGNE_REELLE, traj_joueur, traj_bande,
@@ -226,8 +226,8 @@ class TestIntegrationPostEmpecheRaid(unittest.TestCase):
         # Session-log: the player ATTACKS AND disperses the Bande (PREVENTING the raid).
         self.session = {
             "actions": [
-                "Rubis a attaqué et dispersé la Bande du Corbeau au Gué du Corbeau, "
-                "empêchant le raid hivernal contre la cabane de Berthe",
+                "Rubis attacked and dispersed the Bande du Corbeau at the Gué du Corbeau, "
+                "preventing the winter raid against the cabane de Berthe",
             ],
             "npcs_met": ["La Corneille"],
             "visited_locations": ["Gué du Corbeau"],
@@ -294,14 +294,14 @@ class TestIntegrationPostEmpecheRaid(unittest.TestCase):
     def test_post_sans_action_n_altere_pas_le_raid(self):
         """Counter-test: a session WITHOUT an impactful action leaves the raid intact."""
         session_passive = {
-            "actions": ["Le groupe se repose et discute à la cabane de Berthe"],
+            "actions": ["The group rests and talks at the cabane de Berthe"],
             "visited_locations": ["Cabane de Berthe"],
             "etat_fin": {"lieu_actuel": "Cabane de Berthe"},
         }
         res = WT.post(CAMPAGNE_REELLE, session=session_passive, apply=False)
         self.assertFalse(
             any(r.get("plan_perturbe") for r in res["reconciliations"]),
-            "aucune action impactante ne devrait perturber un plan",
+            "no impactful action should have disrupted a plan",
         )
         self.assertNotIn(BANDE, res["plans_renouveles"])
 
@@ -454,7 +454,7 @@ class TestIntegrationConservation(unittest.TestCase):
 
             WT.pre(camp, t_session=ECHEANCE_RAID, cone=None, apply=True)
             session = {
-                "actions": ["Rubis a incendié le campement de la Bande du Corbeau au Gué"],
+                "actions": ["Rubis burned down the Bande du Corbeau's camp at the Gué"],
                 "etat_fin": {"lieu_actuel": "Gué du Corbeau"},
             }
             WT.post(camp, session=session, apply=True)
@@ -499,8 +499,8 @@ class TestIntegrationBoutEnBout(unittest.TestCase):
             # 2) POST apply: the player reacts and disperses the Bande → propagation.
             session = {
                 "actions": [
-                    "Rubis a attaqué et dispersé la Bande du Corbeau au Gué, "
-                    "stoppant définitivement la menace du raid",
+                    "Rubis attacked and dispersed the Bande du Corbeau at the Gué, "
+                    "permanently stopping the threat of the raid",
                 ],
                 "visited_locations": ["Gué du Corbeau"],
                 "etat_fin": {"lieu_actuel": "Gué du Corbeau"},

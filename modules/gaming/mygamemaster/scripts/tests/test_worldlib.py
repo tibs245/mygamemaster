@@ -68,7 +68,7 @@ def _geo_jouet() -> dict:
     return {
         "meta": {"campagne": "Jouet", "version": 1},
         "locations": [
-            {"id": "region:test", "name": "Région test", "parent": None,
+            {"id": "region:test", "name": "Test region", "parent": None,
              "type": "region", "altitude": None, "ancrage": {"x": 0, "y": 0},
              "aretes": []},
             {"id": "A", "name": "Lieu A", "parent": "region:test", "type": "lieu",
@@ -81,9 +81,9 @@ def _geo_jouet() -> dict:
                          "voie": "sentier"}]},
             {"id": "C", "name": "Lieu C", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 120, "y": 0}, "aretes": []},
-            {"id": "B_INT", "name": "Salle de B", "parent": "B", "type": "lieu",
+            {"id": "B_INT", "name": "Room in B", "parent": "B", "type": "lieu",
              "altitude": None, "ancrage": {"x": 60, "y": 0}, "aretes": []},
-            {"id": "D", "name": "Lieu isolé", "parent": "region:test", "type": "lieu",
+            {"id": "D", "name": "Isolated location", "parent": "region:test", "type": "lieu",
              "altitude": None, "ancrage": {"x": 999, "y": 999}, "aretes": []},
         ],
     }
@@ -244,14 +244,14 @@ class TestNarratif(unittest.TestCase):
     def test_narratif_tranches(self):
         # A few key hours from the pinned time slots (§3.3).
         cas = {
-            0: "nuit",            # 00h
-            6: "aube",            # 06h
-            10: "matin",          # 10h
-            12: "midi",           # 12h
-            16: "après-midi",     # 16h
-            18: "fin d'après-midi",  # 18h
-            20: "soir",           # 20h
-            23: "nuit",           # 23h
+            0: "night",           # 00h
+            6: "dawn",            # 06h
+            10: "morning",        # 10h
+            12: "noon",           # 12h
+            16: "afternoon",      # 16h
+            18: "late afternoon", # 18h
+            20: "evening",        # 20h
+            23: "night",          # 23h
         }
         for heure, libelle in cas.items():
             T = W.jour_heure_vers_t(1, heure, 0)
@@ -259,10 +259,10 @@ class TestNarratif(unittest.TestCase):
                           f"incorrect time slot at {heure}h")
 
     def test_narratif_format_jour(self):
-        # "Jour N, …" and NEVER the raw T.
+        # Output must start with "Day N, …" (narrative label) and NEVER contain the raw T.
         txt = W.t_vers_narratif(W.jour_heure_vers_t(58, 18, 0))
-        self.assertTrue(txt.startswith("Jour 58, "), txt)
-        self.assertIn("fin d'après-midi", txt)
+        self.assertTrue(txt.startswith("Day 58, "), txt)
+        self.assertIn("late afternoon", txt)
 
 
 class TestDureesEtUT(unittest.TestCase):
@@ -299,7 +299,7 @@ class TestDureesEtUT(unittest.TestCase):
                              f"incorrect parsing for « {texte} »")
 
     def test_parser_duree_minutes_non_parsable(self):
-        for texte in ("Distance inconnue", "", "à vol d'oiseau", "plusieurs jours"):
+        for texte in ("Unknown distance", "", "as the crow flies", "several days"):
             self.assertEqual(W.parser_duree_minutes(texte), -1,
                              f"should be non-parsable: « {texte} »")
 
@@ -356,8 +356,8 @@ class TestJsonSur(unittest.TestCase):
             W.sauver_json_atomique(p, donnees)
             self.assertTrue(p.exists())
             texte = p.read_text(encoding="utf-8")
-            self.assertTrue(texte.endswith("\n"), "doit finir par un saut de ligne")
-            self.assertIn("Cœur", texte, "ensure_ascii=False : accents conservés bruts")
+            self.assertTrue(texte.endswith("\n"), "must end with a newline")
+            self.assertIn("Cœur", texte, "ensure_ascii=False: accents preserved as raw characters")
             self.assertEqual(W.charger_json(p), donnees)
 
     def test_sauver_json_atomique_pas_de_tmp_residuel(self):
@@ -661,7 +661,7 @@ class TestValiderTrajectoire(unittest.TestCase):
         ]
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("time gap" in v.lower() for v in violations),
-                        f"trou non détecté : {violations}")
+                        f"gap not detected: {violations}")
 
     def test_detecte_chevauchement(self):
         # a=15 then de=10: overlap.
@@ -671,7 +671,7 @@ class TestValiderTrajectoire(unittest.TestCase):
         ]
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("overlap" in v.lower() for v in violations),
-                        f"chevauchement non détecté : {violations}")
+                        f"overlap not detected: {violations}")
 
     def test_detecte_teleportation(self):
         # Travel A→B (cost 6 UT) but declared duration 2 UT: teleportation.
@@ -682,14 +682,14 @@ class TestValiderTrajectoire(unittest.TestCase):
         ]
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("teleportation" in v.lower() for v in violations),
-                        f"téléportation non détectée : {violations}")
+                        f"teleportation not detected: {violations}")
 
     def test_detecte_reference_inconnue(self):
         traj = [{"lieu": "FANTOME", "de": 0, "a": None}]
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("unknown" in v.lower() or "reference" in v.lower()
                             for v in violations),
-                        f"référence inconnue non détectée : {violations}")
+                        f"unknown reference not detected: {violations}")
 
     def test_detecte_chemin_sans_arete(self):
         # A→C is not a DIRECT edge (must go through B).
@@ -701,14 +701,14 @@ class TestValiderTrajectoire(unittest.TestCase):
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("no edge" in v.lower() or "edge" in v.lower()
                             for v in violations),
-                        f"arête manquante non détectée : {violations}")
+                        f"missing edge not detected: {violations}")
 
     def test_detecte_monotonie(self):
         # a < de within a segment.
         traj = [{"lieu": "A", "de": 10, "a": 5}]
         violations = W.valider_trajectoire(self.geo, traj)
         self.assertTrue(any("monotonicity" in v.lower() for v in violations),
-                        f"violation de monotonie non détectée : {violations}")
+                        f"monotonicity violation not detected: {violations}")
 
     def test_trajectoire_vide_pas_de_violation(self):
         self.assertEqual(W.valider_trajectoire(self.geo, []), [])
@@ -787,7 +787,7 @@ class TestEcheanceEnT(unittest.TestCase):
 
     def test_format_epingle_ut(self):
         # {unite:'ut', max:100, ancre:936} → 1036 (direct sum in UT).
-        ech = {"texte": "bientôt", "unite": "ut", "min": 50, "max": 100, "ancre": 936}
+        ech = {"texte": "soon", "unite": "ut", "min": 50, "max": 100, "ancre": 936}
         self.assertEqual(W.echeance_en_t(ech, CAMPAGNE_REELLE), 1036)
 
     def test_format_epingle_borne_haute(self):
@@ -826,7 +826,7 @@ class TestTCourant(unittest.TestCase):
             # Even with a "Day 3" world present, the integer T values win.
             W.sauver_json_atomique(
                 camp / "world.json",
-                {"global_state": {"timeline": "On en est au Jour 3."}})
+                {"global_state": {"timeline": "We are on Day 3."}})
             self.assertEqual(W.t_courant(camp), 7200)
 
     def test_t_courant_derive_jour_narratif(self):
@@ -835,7 +835,7 @@ class TestTCourant(unittest.TestCase):
             camp = Path(d)
             W.sauver_json_atomique(
                 camp / "world.json",
-                {"global_state": {"timeline": "Jour 1 ... puis Jour 9 enfin."}})
+                {"global_state": {"timeline": "Day 1 ... then Day 9 finally."}})
             self.assertEqual(W.t_courant(camp), W.jour_heure_vers_t(9, 12, 0))
 
     def test_t_courant_campagne_reelle_coherent(self):

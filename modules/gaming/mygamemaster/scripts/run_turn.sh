@@ -2,7 +2,7 @@
 # run_turn.sh — Runs a game turn for a persistent NPC agent.
 #
 # Usage :
-#   run_turn.sh <slug> --mode pnj|faction --campagne <chemin> "<contexte de scène>"
+#   run_turn.sh <slug> --mode pnj|faction --campagne <chemin> "<scene context>"
 #
 # Pipeline :
 #   1. build_brief.py <campagne> <pnj>        → identity brief
@@ -38,14 +38,14 @@ usage() {
     cat <<EOF
 Usage: $0 <slug> --mode pnj|faction --campagne <chemin> "<contexte>"
 
-  slug         Identifiant du PNJ/faction (ex: barda, corneille)
-  --mode       pnj (défaut) ou faction
-  --campagne   Chemin du dossier de campagne (obligatoire)
-  "<contexte>" Contexte narratif de la scène (obligatoire, entre guillemets)
+  slug         NPC/faction identifier (e.g.: barda, corneille)
+  --mode       pnj (default) or faction
+  --campagne   Path to the campaign folder (required)
+  "<contexte>" Narrative scene context (required, in quotes)
 
-Exemples :
+Examples:
   $0 barda --mode pnj --campagne .hermes/mygamemaster/campaigns/mon-monde \\
-    "Les PJ entrent dans ta forge, couverts de boue, et demandent à réparer une lame."
+    "The PCs enter your forge, covered in mud, and ask to have a blade repaired."
 EOF
     exit 1
 }
@@ -61,14 +61,14 @@ while [[ $# -gt 0 ]]; do
         --mode)     MODE="$2"; shift 2 ;;
         --campagne) CAMPAGNE="$2"; shift 2 ;;
         -h|--help)  usage ;;
-        -*)         die "Option inconnue : $1" ;;
+        -*)         die "Unknown option: $1" ;;
         *)
             if [[ -z "$SLUG" ]]; then
                 SLUG="$1"
             elif [[ -z "$CONTEXTE" ]]; then
                 CONTEXTE="$1"
             else
-                die "Trop d'arguments."
+                die "Too many arguments."
             fi
             shift
             ;;
@@ -76,8 +76,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -z "$SLUG" ]]     && usage
-[[ -z "$CAMPAGNE" ]] && die "--campagne est obligatoire"
-[[ -z "$CONTEXTE" ]] && die "Contexte de scène obligatoire (dernier argument entre guillemets)"
+[[ -z "$CAMPAGNE" ]] && die "--campagne is required"
+[[ -z "$CONTEXTE" ]] && die "Scene context is required (last argument, in quotes)"
 
 PROFILE="pnj-${SLUG}"
 SKILL="mygamemaster-pnj"
@@ -85,56 +85,56 @@ SKILL="mygamemaster-pnj"
 
 # ── Checks ──────────────────────────────────────────────────────────────
 if ! command -v "$HERMES" &>/dev/null; then
-    die "hermes introuvable. Passe HERMES_BIN=..."
+    die "hermes not found. Set HERMES_BIN=..."
 fi
 
 if [[ ! -f "$BUILD_BRIEF" ]]; then
-    die "build_brief.py introuvable : $BUILD_BRIEF"
+    die "build_brief.py not found: $BUILD_BRIEF"
 fi
 
 if [[ ! -d "$CAMPAGNE" ]]; then
-    die "Dossier campagne introuvable : $CAMPAGNE"
+    die "Campaign folder not found: $CAMPAGNE"
 fi
 
 # Check that the profile exists
 if ! "$HERMES" profile list 2>/dev/null | grep -qw "$PROFILE"; then
-    warn "Profil \"$PROFILE\" introuvable."
-    echo "  → Lance d'abord : $(dirname "$0")/ensure_agent.sh $SLUG --mode $MODE --campagne $CAMPAGNE"
+    warn "Profile \"$PROFILE\" not found."
+    echo "  → Run first: $(dirname "$0")/ensure_agent.sh $SLUG --mode $MODE --campagne $CAMPAGNE"
     exit 1
 fi
 
 # ── Step 1 — Build the brief ────────────────────────────────────────────
-echo "📋 Construction du brief pour $SLUG..." >&2
+echo "📋 Building brief for $SLUG..." >&2
 
 if [[ "$MODE" == "faction" ]]; then
     BRIEF=$(python3 "$BUILD_BRIEF" "$CAMPAGNE" --faction "$SLUG" 2>/dev/null) || \
-        die "build_brief.py a échoué pour la faction \"$SLUG\""
+        die "build_brief.py failed for faction \"$SLUG\""
 else
     BRIEF=$(python3 "$BUILD_BRIEF" "$CAMPAGNE" "$SLUG" 2>/dev/null) || \
-        die "build_brief.py a échoué pour le PNJ \"$SLUG\""
+        die "build_brief.py failed for NPC \"$SLUG\""
 fi
 
 if [[ -z "$BRIEF" ]]; then
-    die "Brief vide pour \"$SLUG\" — vérifie sa fiche dans npcs.json"
+    die "Empty brief for \"$SLUG\" — check its sheet in npcs.json"
 fi
 
-ok "Brief construit (${#BRIEF} caractères)" >&2
+ok "Brief built (${#BRIEF} characters)" >&2
 
 # ── Step 2 — Assemble the message ───────────────────────────────────────
 MESSAGE="$BRIEF
 
 ---
-## 🎬 Contexte de scène (donné par le MJ)
+## 🎬 Scene Context (provided by the GM)
 
 $CONTEXTE
 
 ---
-Réponds au format 🎭 RP / 🎯 INTENTION / ❓ AU MJ / 🔒 NOTES.
-Rappel : tu es **$SLUG**. Tu ne sais que ce que ton brief et ce contexte te disent.
-Tu n'as pas accès aux joueurs — tu réponds AU MJ, pas à eux."
+Reply in the format 🎭 RP / 🎯 INTENTION / ❓ TO THE GM / 🔒 NOTES.
+Reminder: you are **$SLUG**. You only know what your brief and this context tell you.
+You have no access to the players — you reply TO THE GM, not to them."
 
 # ── Step 3 — Call hermes (create-or-resume) ───────────────────────────
-echo "🚀 Appel de $PROFILE..." >&2
+echo "🚀 Calling $PROFILE..." >&2
 
 # First attempt: with -c (resume the existing session)
 # If the NPC already has a session, -c resumes it → it remembers
@@ -143,10 +143,10 @@ REPONSE=$("$HERMES" -p "$PROFILE" -s "$SKILL" chat -Q -q "$MESSAGE" -c 2>&1) || 
 
 # Detect the "no session to continue" failure
 if echo "$REPONSE" | grep -qi "no previous.*session.*continue\|no.*session.*found"; then
-    warn "Premier tour détecté — création de la session..."
+    warn "First turn detected — creating the session..."
     REPONSE=$("$HERMES" -p "$PROFILE" -s "$SKILL" chat -Q -q "$MESSAGE" 2>&1) || {
         RC=$?
-        warn "hermes a retourné le code $RC"
+        warn "hermes returned code $RC"
         if [[ -n "$REPONSE" ]]; then
             echo "$REPONSE" >&2
         fi
@@ -155,13 +155,13 @@ if echo "$REPONSE" | grep -qi "no previous.*session.*continue\|no.*session.*foun
 fi
 
 if [[ -z "$REPONSE" ]]; then
-    die "Réponse vide — le PNJ n'a rien dit (timeout ? erreur modèle ?)"
+    die "Empty response — the NPC said nothing (timeout? model error?)"
 fi
 
 # ── Step 4 — Display the response ──────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "🎭 $SLUG répond :"
+echo -e "🎭 $SLUG responds:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "$REPONSE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

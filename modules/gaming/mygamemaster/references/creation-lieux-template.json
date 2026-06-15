@@ -1,49 +1,49 @@
 {
-  "name": "Nom-du-Lieu",
-  "essence": "Concept fort — 1 phrase qui résume tout",
-  "conflit_central": "Ce qui déchire ou menace le lieu",
+  "name": "Location-Name",
+  "essence": "Strong concept — 1 sentence that sums it all up",
+  "conflit_central": "What tears apart or threatens the location",
   "questions_vitales": {
-    "gouvernance": "Qui gouverne ici ?",
-    "raison_existence": "Pourquoi ce lieu existe ?",
-    "besoin_critique": "Ce qui manque ou protège désespérément",
-    "secret_honteux": "Ce que les habitants cachent"
+    "gouvernance": "Who governs here?",
+    "raison_existence": "Why does this location exist?",
+    "besoin_critique": "What is lacking or desperately protected",
+    "secret_honteux": "What the inhabitants hide"
   },
   "pnjs_cles": {
-    "visage": {"name": "", "desir": "", "faiblesse": ""},
-    "probleme": {"name": "", "desir": "", "faiblesse": ""},
-    "ombre": {"name": "", "desir": "", "faiblesse": ""}
+    "visage": {"name": "", "desire": "", "weakness": ""},
+    "probleme": {"name": "", "desire": "", "weakness": ""},
+    "ombre": {"name": "", "desire": "", "weakness": ""}
   },
   "ambiance": ["sensation1", "sensation2", "sensation3"],
   "horloge": {
-    "event": "Ce qui VA arriver si les PJ ne font rien",
-    "echeance": "Date butoir en temps de jeu",
-    "consequence": "Ce qui se passe si l'échéance est atteinte",
-    "leviers_pj": ["levier1", "levier2"]
+    "event": "What WILL happen if the PCs do nothing",
+    "echeance": "Deadline in game time",
+    "consequence": "What happens if the deadline is reached",
+    "leviers_pj": ["lever1", "lever2"]
   },
   "liens_monde": {
-    "routes": ["distance et direction vers lieux voisins"],
-    "dependances": ["eau, nourriture, protection, savoir"],
-    "frictions": ["conflits avec voisins ou factions"],
-    "rumeurs": "rumeurs venues d'ailleurs"
+    "routes": ["distance and direction to neighboring locations"],
+    "dependances": ["water, food, protection, knowledge"],
+    "frictions": ["conflicts with neighbors or factions"],
+    "rumeurs": "rumors from elsewhere"
   },
   "appartenances": {
-    "administratif": "empire/royaume/région",
-    "factionnel": "guilde/ordre/église/clan",
-    "conflit_appartenance": "déchiré entre deux allégeances ?",
-    "influence_exterieure": "faction étrangère aux intérêts dans le lieu"
+    "administratif": "empire/kingdom/region",
+    "factionnel": "guild/order/church/clan",
+    "conflit_appartenance": "torn between two allegiances?",
+    "influence_exterieure": "foreign faction with interests in the location"
   },
   "dynamique": {
-    "objectif": "Que cherche le lieu ?",
-    "moyens": ["ressources, habitants, savoir-faire"],
-    "progres": {"projetA": "0%", "projetB": "0%"},
-    "evolution": "succès → prospérité | déclin → abandon | transformation → changement de nature"
+    "objectif": "What is the location seeking?",
+    "moyens": ["resources, inhabitants, expertise"],
+    "progres": {"projectA": "0%", "projectB": "0%"},
+    "evolution": "success → prosperity | decline → abandonment | transformation → change of nature"
   },
   "lois_et_morale": {
-    "lois_cardinales": ["3 à 5 règles qui comptent vraiment"],
-    "justice": "Comment elle est rendue",
-    "tabous": ["ce qui ne se fait pas, ne se dit pas"],
-    "tolerances": ["ce que les étrangers trouvent choquant mais les locaux acceptent"],
-    "tension_morale": "partie de la population qui rejette les vieilles règles"
+    "lois_cardinales": ["3 to 5 rules that truly matter"],
+    "justice": "How it is administered",
+    "tabous": ["what is not done, not said"],
+    "tolerances": ["what strangers find shocking but locals accept"],
+    "tension_morale": "part of the population that rejects old rules"
   },
-  "vide_sacre": "Ce qui reste vierge pour l'improvisation"
+  "vide_sacre": "What remains blank for improvisation"
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/session.schema.json",
-  "title": "sessions/NNN.json — log d'une session",
+  "title": "sessions/NNN.json — session log",
   "type": "object",
   "required": ["session", "date", "participants", "actions", "npcs_met", "visited_locations"],
   "additionalProperties": true,
@@ -9,19 +9,19 @@
     "session": { "type": ["integer", "string"] },
     "date": {
       "type": ["string", "null"],
-      "description": "null tant que la session n'est pas clôturée ; daté à la clôture."
+      "description": "null until the session is wrapped-up; set with a date at wrap-up."
     },
     "start_hour": { "type": ["string", "null"] },
     "end_hour": {
       "type": ["string", "null"],
-      "description": "null/vide tant que la session n'est pas clôturée ; rempli à la clôture."
+      "description": "null/empty until the session is wrapped-up; filled at wrap-up."
     },
     "titre_episode": { "type": ["string", "null"] },
     "resume": { "type": ["string", "null"] },
     "participants": { "type": "array" },
     "actions": {
       "type": "array",
-      "description": "Deux formes historiques tolérées : {joueur,action,resultat} (S1-S7) et {timestamp,type,joueur,description,...} (S8+, canonique via add_action.py). Chaque entrée porte au moins 'action' ou 'description'.",
+      "description": "Two historical forms tolerated: {joueur,action,resultat} (S1-S7) and {timestamp,type,joueur,description,...} (S8+, canonical via add_action.py). Each entry carries at least 'action' or 'description'.",
       "items": {
         "type": "object",
         "anyOf": [

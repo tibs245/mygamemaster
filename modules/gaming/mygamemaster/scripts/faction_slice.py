@@ -317,7 +317,7 @@ def _reintegrate_faction(args, campagne, monde_path, monde, slice_obj) -> int:
         return 1
 
     ancienne = factions[idx]
-    _diff_lisible(ancienne, nouvelle_fiche, f"Fiche faction « {nom} »")
+    _diff_lisible(ancienne, nouvelle_fiche, f"Faction sheet « {nom} »")
 
     # Clock: replace the entries of THIS faction with those from the slice.
     horloge = (monde.setdefault("global_state", {})
@@ -342,7 +342,7 @@ def _reintegrate_faction(args, campagne, monde_path, monde, slice_obj) -> int:
     monde["global_state"]["faction_actions_horloge"]["actions"] = \
         autres + nouvelle_horloge
 
-    return _ecrire_et_valider(monde_path, monde, f"faction « {nom} »")
+    return _ecrire_et_valider(monde_path, monde, f"faction «{nom}»")
 
 
 def _reintegrate_pnj(args, campagne, pnj_path, slice_obj) -> int:
@@ -355,7 +355,7 @@ def _reintegrate_pnj(args, campagne, pnj_path, slice_obj) -> int:
         print(f"❌ NPC «{nom}» has disappeared from npcs.json.", file=sys.stderr)
         return 1
 
-    _diff_lisible(liste[idx], nouvelle_fiche, f"Fiche PNJ « {nom} »")
+    _diff_lisible(liste[idx], nouvelle_fiche, f"NPC sheet « {nom} »")
 
     if not args.apply:
         print("ℹ️  DRY-RUN — no write performed (use --apply to write).",
@@ -364,7 +364,7 @@ def _reintegrate_pnj(args, campagne, pnj_path, slice_obj) -> int:
 
     liste[idx] = nouvelle_fiche
     # data is EITHER the list itself (mutated in place) OR {"npcs": liste}.
-    return _ecrire_et_valider(pnj_path, data, f"PNJ « {nom} »")
+    return _ecrire_et_valider(pnj_path, data, f"NPC «{nom}»")
 
 
 def _ecrire_et_valider(path: Path, data, libelle: str) -> int:
@@ -436,7 +436,7 @@ def cmd_add_note(args) -> int:
               file=sys.stderr)
         return 0
 
-    return _ecrire_et_valider(path, racine, f"note de « {cible} »")
+    return _ecrire_et_valider(path, racine, f"note for «{cible}»")
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────────────
@@ -453,7 +453,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  faction_slice.py extract <camp> --pnj Berthe\n"
             "  faction_slice.py reintegrate <camp> slice.json            # dry-run by default\n"
             "  faction_slice.py reintegrate <camp> slice.json --apply\n"
-            "  faction_slice.py add-note <camp> --pnj Berthe \"Je me méfie de Drageon.\" --apply\n"
+            "  faction_slice.py add-note <camp> --pnj Berthe \"I don't trust Drageon.\" --apply\n"
             "\nExit: 0 success · 1 target not found / divergence abstention · 2 usage/JSON/validation."
         ),
     )

@@ -48,19 +48,19 @@ def main():
     # ── 1. tts_format : mock → normalised JSON ───────────────────────────────
     print("[1] tts_format — normalised mock output")
     os.environ["MGM_TTS_FORMAT_MOCK"] = json.dumps({
-        "segments": [{"text": "La porte grince. <#0.8#> Tu avances.", "emotion": "fearful"}],
+        "segments": [{"text": "The door creaks. <#0.8#> You move forward.", "emotion": "fearful"}],
         "emotion": "fearful", "ambiance": "donjon", "moment_cle": True})
-    out = tts_format.format_narration("Tu ouvres la porte.")
+    out = tts_format.format_narration("You open the door.")
     total += 5
     check("segments exposed", out["segments"][0]["emotion"] == "fearful", str(out.get("segments")))
-    check("script derived from segments", out["script"].startswith("La porte grince"), out["script"])
+    check("script derived from segments", out["script"].startswith("The door creaks"), out["script"])
     check("valid emotion retained", out["emotion"] == "fearful")
     check("valid ambiance retained", out["ambiance"] == "donjon")
     check("moment_cle bool", out["moment_cle"] is True)
 
     # invalid values → clamped to defaults
     os.environ["MGM_TTS_FORMAT_MOCK"] = json.dumps({
-        "segments": [{"text": "Texte.", "emotion": "euphorique"}],
+        "segments": [{"text": "Text.", "emotion": "euphorique"}],
         "emotion": "euphorique", "ambiance": "volcan", "moment_cle": "oui"})
     out = tts_format.format_narration("x")
     total += 2
@@ -75,11 +75,11 @@ def main():
     env_nokey.pop("MGM_TTS_FORMAT_API_KEY", None)
     saved = {k: os.environ.pop(k) for k in ("OPENROUTER_API_KEY", "MGM_TTS_FORMAT_API_KEY")
              if k in os.environ}
-    out = tts_format.format_narration("Tu lances 1d20+3 et [FOR 14] ouvre la porte sombre.")
+    out = tts_format.format_narration("You roll 1d20+3 and [STR 14] open the dark door.")
     total += 3
     check("fallback marked", out.get("_fallback") is True)
     check("dice removed", "1d20" not in out["script"], out["script"])
-    check("bracket removed", "[FOR" not in out["script"], out["script"])
+    check("bracket removed", "[STR" not in out["script"], out["script"])
     os.environ.update(saved)
 
     # ── 3. tts_generate : mock → mp3 + usage codes ────────────────────────
@@ -87,7 +87,7 @@ def main():
     with tempfile.TemporaryDirectory() as d:
         out_mp3 = os.path.join(d, "v.mp3")
         rc, so, se = run("tts_generate.py", ["--out", out_mp3, "--json"],
-                         stdin_text="Bonjour <#0.5#> aventurier.", env={"MGM_TTS_MOCK": "1"})
+                         stdin_text="Greetings <#0.5#> adventurer.", env={"MGM_TTS_MOCK": "1"})
         total += 3
         check("exit 0 in mock", rc == 0, se[:120])
         check("mp3 written non-empty", os.path.isfile(out_mp3) and os.path.getsize(out_mp3) > 0)
@@ -102,17 +102,17 @@ def main():
         # no key and no mock → usage (exit 2)
         env_nokey = {"MINIMAX_API_KEY": "", "MGM_TTS_MOCK": ""}
         rc, _, _ = run("tts_generate.py", ["--out", os.path.join(d, "y.mp3")],
-                       stdin_text="Texte.", env=env_nokey)
+                       stdin_text="Text.", env=env_nokey)
         total += 1
         check("no key / no mock → exit 2", rc == 2)
 
         # whisper guard: dropped for 2.8 (otherwise error 2013), kept for 2.6
         total += 2
-        p28 = tts_generate.build_payload("Hé.", "speech-2.8-turbo", "v", "whisper",
+        p28 = tts_generate.build_payload("Hey.", "speech-2.8-turbo", "v", "whisper",
                                          1.0, 1.0, 0, 32000, 128000, 1, "French")
         check("whisper removed on 2.8-turbo",
               "emotion" not in p28["voice_setting"])
-        p26 = tts_generate.build_payload("Hé.", "speech-2.6-turbo", "v", "whisper",
+        p26 = tts_generate.build_payload("Hey.", "speech-2.6-turbo", "v", "whisper",
                                          1.0, 1.0, 0, 32000, 128000, 1, "French")
         check("whisper kept on 2.6-turbo",
               p26["voice_setting"].get("emotion") == "whisper")
@@ -123,10 +123,10 @@ def main():
         out_mp3 = os.path.join(d, "r.mp3")
         env = {"MGM_TTS_MOCK": "1",
                "MGM_TTS_FORMAT_MOCK": json.dumps({
-                   "script": "Un trône brisé. <#1.0#> Le silence.", "emotion": "surprised",
+                   "script": "A shattered throne. <#1.0#> Silence.", "emotion": "surprised",
                    "ambiance": "donjon", "moment_cle": True})}
         rc, so, se = run("tts_render.py", ["--out", out_mp3, "--json"],
-                         stdin_text="Tu entres dans la grande salle du donjon abandonné.", env=env)
+                         stdin_text="You enter the great hall of the abandoned dungeon.", env=env)
         total += 4
         check("exit 0", rc == 0, se[:160])
         rep = json.loads(so) if so.strip().startswith("{") else {}
@@ -137,8 +137,8 @@ def main():
     # ── 4b. normalize_segments : structured array {text, emotion} ──────────
     print("[4b] tts_format.normalize_segments — segment array")
     segs = tts_format.normalize_segments(
-        [{"text": "Un monstre !", "emotion": "surprised"},
-         {"text": "La pierre tombe.", "emotion": "fearful"}], "calm")
+        [{"text": "A monster!", "emotion": "surprised"},
+         {"text": "The stone falls.", "emotion": "fearful"}], "calm")
     total += 5
     check("2 segments ordered", [s["emotion"] for s in segs] == ["surprised", "fearful"], str(segs))
     check("adjacent same emotion merged",
@@ -147,14 +147,14 @@ def main():
     check("invalid emotion → default", tts_format.normalize_segments(
         [{"text": "X.", "emotion": "bizarre"}], "sad")[0]["emotion"] == "sad")
     check("tag residue cleaned from text", "{" not in tts_format.normalize_segments(
-        [{"text": "{calm}Salut{/calm}", "emotion": "calm"}], "calm")[0]["text"])
+        [{"text": "{calm}Hello{/calm}", "emotion": "calm"}], "calm")[0]["text"])
     # App alias "Neutral" → API value `calm`, in both segments AND synthesis.
     ali = tts_format.normalize_segments(
-        [{"text": "Posé.", "emotion": "neutral"}, {"text": "Tendu.", "emotion": "fearful"}], "calm")
+        [{"text": "Steady.", "emotion": "neutral"}, {"text": "Tense.", "emotion": "fearful"}], "calm")
     check("emotion=neutral normalised to calm",
           [s["emotion"] for s in ali] == ["calm", "fearful"], str(ali))
     total += 1
-    pn = tts_generate.build_payload("Hé.", "speech-2.8-turbo", "v", "neutral",
+    pn = tts_generate.build_payload("Hey.", "speech-2.8-turbo", "v", "neutral",
                                     1.0, 1.0, 0, 32000, 128000, 1, "French")
     check("emotion=neutral → API calm", pn["voice_setting"].get("emotion") == "calm", str(pn))
 
@@ -176,10 +176,10 @@ def main():
                 open(out, "wb").write(b"".join(open(p, "rb").read() for p in paths)) or True)
             os.environ["MGM_TTS_MOCK"] = "1"
             os.environ["MGM_TTS_FORMAT_MOCK"] = json.dumps({
-                "segments": [{"text": "Un monstre !", "emotion": "surprised"},
-                             {"text": "La pierre tombe.", "emotion": "fearful"}],
+                "segments": [{"text": "A monster!", "emotion": "surprised"},
+                             {"text": "The stone falls.", "emotion": "fearful"}],
                 "emotion": "fearful", "ambiance": "aucune", "moment_cle": False})
-            rep = tts_render.render("Un monstre surgit, la pierre tombe sur toi.", out_mp3)
+            rep = tts_render.render("A monster emerges, the stone falls on you.", out_mp3)
             total += 4
             check("segmented=True, 2 segments", rep.get("segmente") and rep.get("segments") == 2, str(rep))
             check("emotions per segment", rep.get("emotions") == ["surprised", "fearful"], str(rep))
@@ -198,10 +198,10 @@ def main():
         bq = os.path.join(d, ".banquier")
         os.makedirs(bq)
         with open(os.path.join(bq, "snap-s1.json"), "w", encoding="utf-8") as f:
-            json.dump({"last_narration": "La forêt murmure autour de toi."}, f)
+            json.dump({"last_narration": "The forest whispers around you."}, f)
         rc, so, _ = run("last_narration.py", [d])
         total += 2
-        check("snapshot returned (exit 0)", rc == 0 and "forêt murmure" in so, so[:80])
+        check("snapshot returned (exit 0)", rc == 0 and "forest whispers" in so, so[:80])
 
         # empty campaign → exit 1
         with tempfile.TemporaryDirectory() as d2:

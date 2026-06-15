@@ -291,14 +291,14 @@ def pj_id(monde) -> str | None:
 
 # Frozen time-of-day slots for narrative rendering (hour 0–23 → fuzzy label).
 _TRANCHES_NARRATIVES = (
-    (0, 4, "nuit"),
-    (5, 7, "aube"),
-    (8, 11, "matin"),
-    (12, 13, "midi"),
-    (14, 17, "après-midi"),
-    (18, 19, "fin d'après-midi"),
-    (20, 21, "soir"),
-    (22, 23, "nuit"),
+    (0, 4, "night"),
+    (5, 7, "dawn"),
+    (8, 11, "morning"),
+    (12, 13, "noon"),
+    (14, 17, "afternoon"),
+    (18, 19, "late afternoon"),
+    (20, 21, "evening"),
+    (22, 23, "night"),
 )
 
 
@@ -330,17 +330,17 @@ def jour_heure_vers_t(jour: int, heure: int = 0, minute: int = 0) -> int:
 def t_vers_narratif(T: int) -> str:
     """FUZZY narrative rendering — NEVER the raw T.
 
-    Example: 'Jour 58, fin d'après-midi'. Frozen time slots (narrative labels are French game data):
-      0-4 nuit · 5-7 aube · 8-11 matin · 12-13 midi · 14-17 après-midi ·
-      18-19 fin d'après-midi · 20-21 soir · 22-23 nuit.
+    Example: 'Day 58, late afternoon'. Frozen time slots:
+      0-4 night · 5-7 dawn · 8-11 morning · 12-13 noon · 14-17 afternoon ·
+      18-19 late afternoon · 20-21 evening · 22-23 night.
     """
     jour, heure, _ = t_vers_jour_heure(T)
-    libelle = "nuit"
+    libelle = "night"
     for lo, hi, nom in _TRANCHES_NARRATIVES:
         if lo <= heure <= hi:
             libelle = nom
             break
-    return f"Jour {jour}, {libelle}"
+    return f"Day {jour}, {libelle}"
 
 
 def parser_duree_minutes(texte: str) -> int:
@@ -389,12 +389,12 @@ def t_courant(campagne: Path) -> int:
 
     Resolution order (contract §3.3):
       1) max of INTEGER 't' values in evenements_programmes.json (resolved events);
-      2) otherwise, derived from the max 'Jour N' in world.json>global_state.timeline +
+      2) otherwise, derived from the max 'Day N' in world.json>global_state.timeline +
          sessions/*.json via jour_heure_vers_t(jour_max, 12, 0)  (noon by default);
       3) otherwise 0.
 
-    NEVER reads events.json as integers (its 't' values are STRINGS 'Jour N…').
-    Reuses the 'Jour N' heuristic from clock.jour_courant.
+    NEVER reads events.json as integers (its 't' values are STRINGS 'Day N…').
+    Reuses the 'Day N' heuristic from clock.jour_courant.
     """
     campagne = Path(campagne)
 
@@ -410,7 +410,7 @@ def t_courant(campagne: Path) -> int:
     if ts:
         return max(ts)
 
-    # 2) Largest "Jour N" from the chronology + sessions → noon of that day.
+    # 2) Largest "Day N" from the chronology + sessions → noon of that day.
     jour_max = _jour_max_narratif(campagne)
     if jour_max is not None:
         return jour_heure_vers_t(jour_max, 12, 0)
@@ -420,7 +420,7 @@ def t_courant(campagne: Path) -> int:
 
 
 def _jour_max_narratif(campagne: Path) -> int | None:
-    """Largest "Jour N" found in world.json (chronology) + sessions/*.json.
+    """Largest "Day N" found in world.json (chronology) + sessions/*.json.
 
     None if none found. (Heuristic aligned with clock.jour_courant, but WITHOUT units_per_day
     since this module reasons in pure T.)
@@ -430,7 +430,7 @@ def _jour_max_narratif(campagne: Path) -> int | None:
     monde = charger_json(campagne / "world.json", {}) or {}
     chrono = monde.get("global_state", {}).get("timeline", "")
     if isinstance(chrono, str):
-        for m in re.findall(r"[Jj]our\s+(\d+)", chrono):
+        for m in re.findall(r"[Dd]ay\s+(\d+)", chrono):
             jours.add(int(m))
 
     sessions_dir = campagne / "sessions"
@@ -440,7 +440,7 @@ def _jour_max_narratif(campagne: Path) -> int | None:
                 contenu = sp.read_text(encoding="utf-8")
             except OSError:
                 continue
-            for m in re.findall(r"[Jj]our\s+(\d+)", contenu):
+            for m in re.findall(r"[Dd]ay\s+(\d+)", contenu):
                 jours.add(int(m))
 
     return max(jours) if jours else None
@@ -780,7 +780,7 @@ def _paires_depuis_deplacements(dep: dict, index: dict[str, str]) -> list[tuple[
 
     Iterates `depuis_<source>_vers`, `entre`, and simple keys of the form
     `<a>_vers_<b>`. Labels are resolved to ids via `index` (built by
-    `index_labels`). Unparsable durations (e.g. "Distance inconnue") and
+    `index_labels`). Unparsable durations (e.g. "Unknown distance") and
     unresolved labels are ignored.
     """
     paires: list[tuple[str, str, int]] = []
@@ -1390,7 +1390,7 @@ def _demo(argv: list[str]) -> int:
 
     # 2) Durations → UT.
     print("\n• Narrative durations → UT")
-    for d in ("40min", "1h30", "20min", "5h45 — desc", "~4h", "Distance inconnue"):
+    for d in ("40min", "1h30", "20min", "5h45 — desc", "~4h", "Unknown distance"):
         print(f"    « {d:<22} »  →  {parser_duree_minutes(d):>4} min  →  "
               f"{minutes_vers_ut(max(parser_duree_minutes(d), 0))} UT")
     assert minutes_vers_ut(40) == 4 and minutes_vers_ut(20) == 2 and minutes_vers_ut(90) == 9

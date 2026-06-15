@@ -110,13 +110,13 @@ Repository root: `<REPO_ROOT>`.
 
 ### 2.2 Places — Hierarchical (Reflect **Containment**)
 
-Tree root = the **region** (`type` of root node = `region`). Under the Marche aux Trois
-Rivières (`region:marche-aux-trois-rivieres`), the real places of the campaign receive these
+Tree root = the **region** (`type` of root node = `region`). Under the March of the Three
+Rivers (`region:marche-aux-trois-rivieres`), the real places of the campaign receive these
 **frozen IDs** (extracted from `universe.regions[0].lieux` and `regles.temps.deplacements`):
 
 | Free name (narration) | frozen `id` |
 |---|---|
-| The Marche aux Trois Rivières | `region:marche-aux-trois-rivieres` |
+| The March of the Three Rivers | `region:marche-aux-trois-rivieres` |
 | The Forest of Whispers | `region:foret-des-murmures` |
 | The Fangs of Fate | `region:dents-du-destin` |
 | Berthe's Cabin | `lieu:marche-aux-trois-rivieres/cabane-berthe` |
@@ -542,7 +542,7 @@ def valider_geo(campagne: Path) -> dict:
     },
     {
       "id": "region:marche-aux-trois-rivieres",
-      "nom": "The Marche aux Trois Rivières",
+      "nom": "The March of the Three Rivers",
       "parent": null,
       "type": "region",
       "altitude": null,
@@ -929,23 +929,23 @@ The returned `texte` follows **exactly** this template (lines omitted if empty):
 
 ```
 ┌─ SCENE BRIEF ─ T=936 (Day 7, late afternoon) ────────────────────┐
-│ LIEU      lieu:marche-aux-trois-rivieres/cabane-berthe — "Berthe's│
+│ PLACE     lieu:marche-aux-trois-rivieres/cabane-berthe — "Berthe's│
 │           Cabin, at the edge of the Marche"                       │
-│ AUTOUR    S → wild sloe (20min) · O → charm woods (40min) ·       │
+│ AROUND    S → wild sloe (20min) · O → charm woods (40min) ·       │
 │           O → Firmin's cabin (1h30) · NE → stone house (1h30)     │
-│ PRÉSENTS  acteur:berthe (Berthe, ally) · acteur:rousset (Rousset) │
-│ MOUVEMENT acteur:drageon en route to Ford (return ~D11) ;         │
+│ PRESENT   acteur:berthe (Berthe, ally) · acteur:rousset (Rousset) │
+│ MOVEMENT  acteur:drageon en route to Ford (return ~D11) ;         │
 │           raven-band: scheduled raid (not visible) by latest      │
 │           in ~3 wks → crosses cabin if undefended                 │
-│ RÉCENT    D7 reunion at cabin; D6 meeting with Esterlin           │
+│ RECENT    D7 reunion at cabin; D6 meeting with Esterlin           │
 │ IMMINENT  ⏰ Drageon's return (Raven's reply) ~D11                │
-│ ENJEUX    raven-band (predation .4) lurks at Ford ;               │
+│ STAKES    raven-band (predation .4) lurks at Ford ;               │
 │           silver-shore-counts: Esterlin's favorable report        │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
 Frozen render rules: header `T=<int> (<narratif>)`; column labels **exact**
-(`LIEU AUTOUR PRÉSENTS MOUVEMENT RÉCENT IMMINENT ENJEUX`); durations in **narrative**
+(`PLACE AROUND PRESENT MOVEMENT RECENT IMMINENT STAKES`); durations in **narrative**
 (`t_vers_narratif`/`duree_narrative`), **never** raw `T` nor `(x,y)`; `⏰` for scheduled
 events; target width 74 columns (soft truncation, no error if exceeded).
 

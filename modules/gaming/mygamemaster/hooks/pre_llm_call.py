@@ -60,26 +60,26 @@ def handle(payload):
 
 def build_context(camp, monde, payload=None):
     head = [
-        "🧮 ÉTAT FAISANT AUTORITÉ — vérifie les fichiers avant de narrer "
-        "(ne te fie pas à ta mémoire) :",
-        "• Verbosité : %s" % L.verbosity(monde),
+        "🧮 AUTHORITATIVE STATE — check the files before narrating "
+        "(do not rely on your memory):",
+        "• Verbosity: %s" % L.verbosity(monde),
     ]
     # Author + admin status (reliable): lets the GM know who is speaking and only
     # execute !feature <axe> on|off if "admin: oui". Fail-open.
     try:
         aid = L.author_id(payload) if payload is not None else None
         est_admin = bool(aid and aid in L.admins(monde))
-        head.append("• Auteur : %s · admin : %s" % (
-            aid or "inconnu", "oui" if est_admin else "non"))
+        head.append("• Author: %s · admin: %s" % (
+            aid or "unknown", "yes" if est_admin else "no"))
     except Exception:
         pass
     sess = L.active_session_number(camp)
     if sess is not None:
-        head.append("• Session active : %s" % sess)
+        head.append("• Active session: %s" % sess)
     brief = L.etat_brief(camp, monde)
     tail = ""
     if L.load_pnj_list(camp):
-        tail = "\n⚠️ Un PNJ nommé absent de la liste = à documenter, pas à inventer."
+        tail = "\n⚠️ A named NPC missing from the list = document it, do not invent it."
     prefs = build_player_prefs(camp)  # fail-open: "" if none
     return "\n".join(head) + "\n" + brief + tail + prefs
 
@@ -106,7 +106,7 @@ def build_player_prefs(camp):
                 lignes.append("  • %s : %s" % (qui, resume))
         if not lignes:
             return ""
-        return ("\n🎚️ PRÉFÉRENCES JOUEURS (méta — adapte le jeu, ne les narre pas) :\n"
+        return ("\n🎚️ PLAYER PREFERENCES (meta — tailor the game, do not narrate them):\n"
                 + "\n".join(lignes))
     except Exception:
         return ""
@@ -122,16 +122,16 @@ def _resumer_prefs(prefs):
         if isinstance(valeur, list):
             valeur = ", ".join(str(v) for v in valeur)
         elif isinstance(valeur, bool):
-            valeur = "oui" if valeur else "non"
+            valeur = "yes" if valeur else "no"
         morceaux.append("%s : %s" % (label, valeur))
 
     ajouter("pacing", prefs.get("pacing"))
-    ajouter("ton aimé", prefs.get("tone_likes"))
-    ajouter("ton évité", prefs.get("tone_dislikes"))
-    ajouter("verbosité combat", prefs.get("combat_verbosity"))
+    ajouter("tone liked", prefs.get("tone_likes"))
+    ajouter("tone avoided", prefs.get("tone_dislikes"))
+    ajouter("combat verbosity", prefs.get("combat_verbosity"))
     ajouter("spotlight", prefs.get("spotlight"))
-    ajouter("limites contenu", prefs.get("content_boundaries"))
-    ajouter("aime être trompé", prefs.get("enjoys_deception"))
+    ajouter("content boundaries", prefs.get("content_boundaries"))
+    ajouter("enjoys deception", prefs.get("enjoys_deception"))
     custom = prefs.get("custom")
     if isinstance(custom, dict):
         for k, v in custom.items():

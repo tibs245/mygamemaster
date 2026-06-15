@@ -45,7 +45,7 @@ CAMPAGNE_REELLE = Path(os.environ.get(
 def _acteurs_fixture() -> dict:
     """Miniature actors.json: a causal chain long enough to test bounding.
 
-    bleville --approvisionnement(part .7, delay 4320)--> tonnerre
+    bleville --approvisionnement(share .7, delay 4320)--> tonnerre
     tonnerre --vassalite(.8)--> val-perdu
     tonnerre --predation(.5)--> bourg-orme   (under shortage → migrant exodus)
     val-perdu --vassalite(.9)--> royaume     (extra relay for depth)
@@ -57,7 +57,7 @@ def _acteurs_fixture() -> dict:
         "actors": [
             {
                 "id": "ville:bleville", "name": "Bleville", "type": "ville",
-                "lod": "froid", "majeur": True, "but_long_terme": "prospérer",
+                "lod": "froid", "majeur": True, "but_long_terme": "to prosper",
                 "situation": "—", "ressources": {}, "trajectory": [],
                 "plan": [],
                 "relations": [
@@ -85,7 +85,7 @@ def _acteurs_fixture() -> dict:
                 "relations": [
                     {"vers": "faction:royaume", "type": "vassalite",
                      "intensite": 0.9, "delai_ut": 100, "poids": 0.9},
-                    # Intentional CYCLE: loops back to Tonnerre (anti-loop test).
+                    # Intentional CYCLE: loops back to Tonnerre (anti-cycle test).
                     {"vers": "ville:tonnerre", "type": "approvisionnement",
                      "delai_ut": 50, "poids": 0.9},
                 ],
@@ -116,17 +116,17 @@ def _acteurs_fixture() -> dict:
             {
                 "id": "faction:bande-du-corbeau", "name": "La Bande du Corbeau",
                 "type": "faction", "lod": "tiede", "majeur": True,
-                "but_long_terme": "Rester maîtres de la Marche",
-                "situation": "Campée au Gué.", "ressources": {"vivres_jours": 12},
+                "but_long_terme": "Remain masters of the March",
+                "situation": "Camped at the Ford.", "ressources": {"vivres_jours": 12},
                 "localisation_id": "lieu:marche-aux-trois-rivieres/gue-du-corbeau",
                 "trajectory": [],
                 "plan": [
                     {
                         "id": "intent:raid-hivernal",
-                        "action": "Raid d'approvisionnement hivernal sur une cible isolée",
+                        "action": "Winter supply raid on an isolated target",
                         "lieu": "lieu:marche-aux-trois-rivieres/cabane-berthe",
                         "echeance": 3960,
-                        "consequence_attendue": "cabane pillée si non défendue.",
+                        "consequence_attendue": "cabin looted if undefended.",
                         "significativite": 0.6,
                         "visible_par_pj": False,
                         "statut": "planifie",
@@ -198,7 +198,7 @@ class TestRegleDePropagation(unittest.TestCase):
     def test_table_non_mutee(self):
         # Defensive copy: mutating the result does not alter the base table.
         r = C.regle_de_propagation("raid", {"type": "predation"})
-        r["type"] = "PIRATÉ"
+        r["type"] = "MUTATED"
         self.assertEqual(
             C.regle_de_propagation("raid", {"type": "predation"})["type"],
             "pression_locale")
@@ -477,7 +477,7 @@ class TestFailOpen(unittest.TestCase):
         # either way, propager() returns a list WITHOUT ever writing (we
         # do not call appliquer()).
         if not CAMPAGNE_REELLE.is_dir():
-            self.skipTest("campagne réelle absente")
+            self.skipTest("real campaign not found")
         prog_avant = (CAMPAGNE_REELLE / C.NOM_FICHIER_PROG).exists()
         derives = C.propager(_evt_incendie(), 0, campagne=CAMPAGNE_REELLE)
         self.assertIsInstance(derives, list)

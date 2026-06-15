@@ -271,7 +271,7 @@ the decision to commit belongs to the GM / Steward.
 missing (wrap-up refused) · `2` usage.
 
 ```
-python3 $SCRIPTS/close_session.py $CAMP --titre "Le Cœur" --teaser "..."
+python3 $SCRIPTS/close_session.py $CAMP --titre "The Heart" --teaser "..."
 ```
 
 ---

@@ -19,7 +19,7 @@ heuristics, exactly what a conditioning image must provide:
   * TOWN SIZE — built footprint derived from connectivity (degree) + containment
     (sub-locations): a well-connected crossroads becomes a market town;
   * WINDING ROADS — if an obstacle (hill/forest/cave) borders the straight
-    segment, the road GOES AROUND IT (Bézier); otherwise slight natural curve.
+    segment, the road GOES AROUND IT (Bezier); otherwise slight natural curve.
     The player is free to cut straight across — it is the trade road that detours;
   * WATER — rivers as sinuous blue bands; edges with aquatic `voie`
     (ford/ferry/river/stream/sea/boat) drawn as wavy blue lines.
@@ -40,7 +40,7 @@ Fidelity modes (the "who drew the map" is carried by the caller):
     Deterministic via --seed. NOTHING on the image marks it as false.
 
 Usage:
-  python3 carte_schema.py <dossier_campagne> [--lieu <id>] [--out chemin.svg]
+  python3 carte_schema.py <campaign_folder> [--lieu <id>] [--out path.svg]
       [--no-png] [--width 1024] [--labels numbered|inline|none]
       [--unreliable] [--seed N]
 
@@ -277,7 +277,7 @@ def _aretes_uniques(geo, coords):
 
 
 def _echantillon_quad(p0, c, p1, n=16):
-    """Quadratic Bézier → list of points (the SVG engine renders only <line>)."""
+    """Quadratic Bezier → list of points (the SVG engine renders only <line>)."""
     pts = []
     for i in range(n + 1):
         t = i / n
@@ -404,8 +404,8 @@ def fausser(geo, noeuds, coords, largeur, hauteur, seed):
     fantome = None
     if ids:
         fantome = {"id": "__fantome__",
-                   "name": rng.choice(["Vieux gué", "Pierre levée", "Source oubliée",
-                                      "Carrefour des corbeaux", "Tertre gris"]),
+                   "name": rng.choice(["Old Ford", "Standing Stone", "Forgotten Spring",
+                                      "Raven's Crossroads", "Grey Mound"]),
                    "type": rng.choice(["ruine", "menhir", "habitation"]),
                    "px": rng.uniform(0, largeur), "py": rng.uniform(0, hauteur)}
     supprimees = set()
@@ -661,7 +661,7 @@ def main() -> int:
         description="Deterministic cartographic schema from geo.json.")
     p.add_argument("campagne", help="Path to the campaign folder.")
     p.add_argument("--lieu", help="Centre on the region of this location (id).")
-    p.add_argument("--out", help="SVG output (default: <campagne>/images/cartes/_schema.svg).")
+    p.add_argument("--out", help="SVG output (default: <campaign>/images/cartes/_schema.svg).")
     p.add_argument("--no-png", action="store_true", help="Do not rasterise to PNG.")
     p.add_argument("--width", type=int, default=1024, help="Map width (px).")
     p.add_argument("--labels", choices=["numbered", "pins", "inline", "none"],

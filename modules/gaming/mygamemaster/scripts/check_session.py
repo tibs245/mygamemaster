@@ -11,7 +11,7 @@ Discrepancies detected:
   2. NPC in sessions[].pnj_rencontres with no entry in npcs.json
   3. Faction (global_state.factions) without objectif_court_terme OR objectif_long_terme
   4. Faction without an entry in global_state.faction_actions_horloge
-  5. Clock deadline OVERDUE (day < current day) not marked RÉSOLU
+  5. Clock deadline OVERDUE (day < current day) not marked RESOLVED
   6. Clock deadline not parsable (informational — the clock cannot be
      advanced by machine, cf. audit 2.3)
   7. Session marked played (has actions/locations) but heure_fin is empty
@@ -42,8 +42,8 @@ from pathlib import Path
 
 def normaliser(nom: str) -> str:
     """Normalizes a name for comparison: lowercase, no accents, no
-    punctuation, reduced spaces. « Salle bleutée — sous le Cœur » and
-    « Salle bleutée (sous le Cœur) » become comparable on their common
+    punctuation, reduced spaces. « Blue Hall — beneath the Heart » and
+    « Blue Hall (beneath the Heart) » become comparable on their common
     token core."""
     if not nom:
         return ""
@@ -134,14 +134,14 @@ def nom_de(item):
 # ─── Clock deadlines ──────────────────────────────────────────────────────────
 
 _RE_RESOLU = re.compile(r"r[ée]solu", re.IGNORECASE)
-# « Jour 4 », « Jour 5-6 », « Jour 7-10 de jeu » (game day references)
+# « Day 4 », « Day 5-6 », « Day 7-10 » (game day references)
 _RE_JOUR = re.compile(r"jour\s+(\d+)(?:\s*[-–]\s*(\d+))?", re.IGNORECASE)
 
 
 def echeance_jour_min(echeance: str):
     """Extracts the FIRST day from a text deadline. Returns:
-        int  → parsed day (lower bound if range « Jour 5-6 »)
-        None → not parsable (free-text deadline like « Dans 2-3 semaines »)
+        int  → parsed day (lower bound if range « Day 5-6 »)
+        None → not parsable (free-text deadline like « In 2-3 weeks »)
     """
     if not echeance:
         return None
@@ -173,7 +173,7 @@ def echeance_infos(ech):
 def jour_courant(campagne: Path, monde: dict) -> int:
     """Estimates the current in-game day, deterministically:
       - UT mode: last t from events.json → day (units_per_day)
-      - otherwise: max « Jour N » mentioned in chronology + sessions
+      - otherwise: max « Day N » mentioned in chronology + sessions
     Returns 1 by default."""
     jours = {1}
 
@@ -191,13 +191,13 @@ def jour_courant(campagne: Path, monde: dict) -> int:
         except (OSError, json.JSONDecodeError, KeyError):
             pass
 
-    # « Jour N » mentions in the chronology
+    # « Day N » mentions in the chronology
     chrono = monde.get("global_state", {}).get("timeline", "")
     if isinstance(chrono, str):
         for m in re.findall(r"[Jj]our\s+(\d+)", chrono):
             jours.add(int(m))
 
-    # « Jour N » mentions in all sessions
+    # « Day N » mentions in all sessions
     sessions_dir = campagne / "sessions"
     if sessions_dir.is_dir():
         for sp in sessions_dir.glob("*.json"):
@@ -279,7 +279,7 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
     for f in factions:
         if not isinstance(f, dict):
             continue
-        fnom = f.get("name", "(sans nom)")
+        fnom = f.get("name", "(unnamed)")
         if not f.get("short_term_goals"):
             ajouter("bloquant", "faction_sans_ct",
                     f"Faction « {fnom} » missing objectif_court_terme")
@@ -295,7 +295,7 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
     for entry in horloge_actions:
         if not isinstance(entry, dict):
             continue
-        fnom = entry.get("faction", "(faction ?)")
+        fnom = entry.get("faction", "(unknown faction)")
         for action in entry.get("actions_en_cours", []):
             if not isinstance(action, dict):
                 continue
@@ -317,7 +317,7 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
                         f"the clock cannot be advanced by machine (action: {label})")
             elif info["unite"] == "jour" and info["due"] < jc:
                 ajouter("bloquant", "echeance_depassee",
-                        f"[{fnom}] deadline OVERDUE: Jour {info['due']} < current day {jc} "
+                        f"[{fnom}] deadline OVERDUE: Day {info['due']} < current day {jc} "
                         f"— consequence to play/resolve (action: {label})")
 
     # 7. Session played but heure_fin empty
@@ -349,7 +349,7 @@ def main(argv=None) -> int:
         epilog=(
             "Examples:\n"
             "  python3 check_session.py .hermes/mygamemaster/campaigns/la-naissance-dun-roi\n"
-            "  python3 check_session.py <campagne> --session 4 --json\n"
+            "  python3 check_session.py <campaign> --session 4 --json\n"
         ),
     )
     parser.add_argument("campagne", help="Path to the campaign folder.")
@@ -382,7 +382,7 @@ def main(argv=None) -> int:
 
     print(f"🔍 Check — session {rapport['session_num']} "
           f"({Path(rapport['session_fichier']).name}) "
-          f"— estimated current day: {rapport['jour_courant_estime']}")
+          f"— estimated current day: {rapport['estimated_current_day']}")
     if not rapport["ecarts"]:
         print("✅ No discrepancy detected.")
         return 0

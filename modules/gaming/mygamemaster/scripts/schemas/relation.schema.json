@@ -2,22 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/relation.schema.json",
   "title": "relation — edge in the causal graph between actors (living world)",
-  "description": "Le graphe CAUSAL dit qui DÉPEND DE qui (doc 04 §1, contrat §6.3). Distinct du graphe spatial (adjacence). Une relation est identifiée par le couple (acteur_source, vers, type) ; le champ 'id' propre est optionnel (rel:<src>-<type>-<dst>). Le 'delai_ut' encode la CONSERVATION CAUSALE (pas d'effet instantané à distance). 'poids' et 'delai_ut' pilotent la propagation bornée (contrat §8). Ce schéma valide une relation ISOLÉE et est réutilisé par actor.schema.json ($defs.relation). Tolérant (additionalProperties:true).",
+  "description": "The CAUSAL graph tells who DEPENDS ON whom (doc 04 §1, contract §6.3). Distinct from the spatial graph (adjacency). A relation is identified by the tuple (source_actor, vers, type); the 'id' field is optional (rel:<src>-<type>-<dst>). The 'delai_ut' encodes CAUSAL CONSERVATION (no instantaneous effects at a distance). 'poids' and 'delai_ut' drive bounded propagation (contract §8). This schema validates an ISOLATED relation and is reused by actor.schema.json ($defs.relation). Permissive (additionalProperties:true).",
   "type": "object",
   "required": ["vers", "type"],
   "additionalProperties": true,
   "properties": {
     "id": {
       "type": "string",
-      "description": "Identifiant OPTIONNEL 'rel:<src-slug>-<type>-<dst-slug>' si la relation doit être référencée."
+      "description": "OPTIONAL identifier 'rel:<src-slug>-<type>-<dst-slug>' if the relation needs to be referenced."
     },
     "vers": {
       "type": "string",
-      "description": "id de l'acteur ou du lieu cible (ex. 'acteur:berthe', 'lieu:marche-aux-trois-rivieres/gue-du-corbeau')."
+      "description": "ID of the target actor or location (e.g. 'acteur:berthe', 'lieu:marche-aux-trois-rivieres/gue-du-corbeau')."
     },
     "type": {
       "type": "string",
-      "description": "Type d'arête causale. Enum extensible par campagne ; couples (type_evt, type) inconnus n'ont pas d'effet de propagation.",
+      "description": "Type of causal edge. Enum extensible per campaign; unknown (event_type, type) pairs have no propagation effect.",
       "enum": [
         "approvisionnement",
         "vassalite",
@@ -35,23 +35,23 @@
     },
     "intensite": {
       "type": "number",
-      "description": "0–1 : force du lien."
+      "description": "0–1: strength of the bond."
     },
     "bien": {
       "type": "string",
-      "description": "Pour 'approvisionnement'/'route_commerciale' : le bien transporté (ex. 'vivres', 'bois', 'ble')."
+      "description": "For 'approvisionnement'/'route_commerciale': the transported good (e.g. 'vivres', 'bois', 'ble')."
     },
     "part": {
       "type": "number",
-      "description": "Fraction (0–1) du flux qui dépend de cette relation."
+      "description": "Fraction (0–1) of the flow that depends on this relation."
     },
     "delai_ut": {
       "type": "integer",
-      "description": "Délai de propagation en UT (conservation causale) : décalage avant que l'onde morde la cible."
+      "description": "Propagation delay in UT (causal conservation): offset before the wave affects the target."
     },
     "poids": {
       "type": "number",
-      "description": "Facteur multiplicatif de propagation. Défaut applicatif = intensite (ou 0.5)."
+      "description": "Multiplicative propagation factor. Application default = intensite (or 0.5)."
     }
   }
 }

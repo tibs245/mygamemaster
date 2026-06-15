@@ -59,7 +59,7 @@ A compact, stable format that the GM learns to read (like the "Persisted" block 
 │           possible crossing if player takes the pass road              │
 │ RECENT    D55 market brawl ; D52 bread price increase                  │
 │ IMMINENT  ⏰ wheat-shortage "rings" at T≈8320 → rationing (scheduled)   │
-│ STAKES    tonnerre depends on wheat from bléville (burned D28) ;       │
+│ STAKES    tonnerre depends on wheat from bleville (burned D28) ;       │
 │           bande-du-corbeau (predation .4) prowls at ford              │
 └────────────────────────────────────────────────────────────────────────┘
 ```

@@ -1,4 +1,4 @@
-> ⚠️ **OBSOLETE — the Hermes « profiles » feature does not work.** It is replaced by the **one container per campaign** model (see `README.md` and `docs/06-concept-isolation.md`). This document is preserved as a historical design reference; do NOT run `hermes profile create`. For NPC/Faction agents (level 2, approved), the target is one additional container per agent (cf. `specs/profiles-vers-conteneurs.md`).
+> ⚠️ **OBSOLETE — the Hermes « profiles » feature does not work.** It is replaced by the **one container per campaign** model (see `README.md` and `docs/06-concept-isolation.md`). This document is preserved as a historical design reference; do NOT run `hermes profile create`. For NPC/Faction agents (level 2, approved), the target is one additional container per agent (cf. `specs/profiles-to-containers.md`).
 
 # 🧩 Hermes Profiles — Multi-Campaign MJ Tonnerre
 
@@ -25,7 +25,7 @@ admin-mj                          ← Base profile (model v4-pro)
 ├── [clone-from admin-mj] → naissance-dun-roi   ← Campaign "The Birth of a King"
 │   ├── SOUL.md                   ← King campaign GM
 │   ├── config.yaml               ← v4-flash, terminal.cwd = campaigns/la-naissance-dun-roi/
-│   └── memory/                   ← isolated memory (Rubis, Marche, Cœur…)
+│   └── memory/                   ← isolated memory (Rubis, Marche, Coeur…)
 │
 └── [clone-from admin-mj] → jusquau-bout         ← Campaign "To the End of My World"
     ├── SOUL.md                   ← World campaign GM

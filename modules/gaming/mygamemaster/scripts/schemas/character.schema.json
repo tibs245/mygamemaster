@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/character.schema.json",
-  "title": "personnages/<id>.json — fiche d'un personnage joueur",
+  "title": "characters/<id>.json — player character sheet",
   "type": "object",
   "required": ["meta", "stats", "inventory", "health"],
   "additionalProperties": true,
@@ -21,13 +21,13 @@
     "health": {
       "type": "object",
       "additionalProperties": true,
-      "description": "PV / seuils de blessure. Champs exacts variables selon le système."
+      "description": "HP / wound thresholds. Exact fields vary by system."
     },
     "progression": { "type": ["object", "array"] },
     "preferences": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Préférences de jeu méta/hors-fiction propres au joueur (rythme, ton, verbosité combat, spotlight, limites de contenu, enjoys_deception, custom). Toutes optionnelles — ré-injectées au MJ à chaque tour (fail-open)."
+      "description": "Player meta/out-of-fiction game preferences (pacing, tone, combat verbosity, spotlight, content limits, enjoys_deception, custom). All optional — re-injected to GM each turn (fail-open)."
     }
   }
 }

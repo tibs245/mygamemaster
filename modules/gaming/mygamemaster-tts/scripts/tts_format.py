@@ -55,57 +55,56 @@ def canon_emotion(value, default=None):
     return e if e in VALID_EMOTIONS else default
 
 SYSTEM = (
-    "Tu prépares la NARRATION d'un Maître du Jeu de jeu de rôle pour une synthèse vocale "
-    "(voix féminine française, conteuse). Tu NE réécris PAS l'histoire : tu reformates le texte "
-    "pour qu'il sonne juste à l'oral. Tu réponds UNIQUEMENT en JSON strict."
+    "You are preparing a tabletop-RPG Game Master's NARRATION for text-to-speech synthesis "
+    "(female French storyteller voice). You do NOT rewrite the story: you reformat the text "
+    "so it sounds right when spoken aloud. You reply ONLY in strict JSON."
 )
 
-INSTRUCTION = """Transforme la narration ci-dessous en un SCRIPT VOCAL de qualité.
+INSTRUCTION = """Transform the narration below into a high-quality VOCAL SCRIPT.
 
-RÈGLES IMPÉRATIVES :
-1. PRÉSERVE le texte narratif, son ton, son vocabulaire et surtout les TICS DE LANGAGE et
-   tournures de la conteuse (« voyez-vous », « ah… », interjections, répétitions stylistiques).
-   Ne paraphrase pas, ne résume pas, ne censure pas le récit.
-2. RETIRE tout ce qui n'est PAS de la narration parlée : notations de dés (1d20, +3, DD15),
-   chiffres de stats entre crochets, mentions techniques (« Update npcs.json »), libellés de
-   commandes (!jet), marqueurs d'admin, émojis décoratifs. Garde les nombres prononçables en
-   toutes lettres si naturel.
-3. La voix RESPIRE DÉJÀ NATURELLEMENT sur la ponctuation (« . », « , », « … », « ? »,
-   « ! ») : ne double pas ces silences. N'ajoute une pause Minimax `<#x.x#>` (secondes,
-   0.3 à 0.8 — max 1.0 pour un effet exceptionnel) QUE sur un vrai temps dramatique :
-   avant une révélation, sur une bascule de ton brutale. RARE : au plus 1 toutes les 4-6
-   phrases, JAMAIS comme substitut à une ponctuation. Place-les ENTRE deux passages
-   prononçables, jamais deux à la suite, jamais en tout début/fin. En cas de doute : pas de pause.
-4. DÉCOUPE la narration en SEGMENTS d'émotion : un tableau "segments", chaque entrée étant
-   {"text": "<portion parlée>", "emotion": "<une des 8>"}. L'émotion PEUT et DOIT changer d'un
-   segment à l'autre quand la scène bascule (apparition → surprised, danger → fearful, accalmie
-   → calm) : c'est ce qui rend le récit JOUÉ plutôt que plat. Émotions valides : calm
-   (= « Neutral » dans l'app), happy, sad, angry, fearful, disgusted, surprised, fluent. Couvre
-   TOUT le texte parlé, dans l'ordre, sans trou. Si l'émotion ne bouge pas, UN seul segment
-   suffit. Renseigne AUSSI le champ "emotion" = l'émotion DOMINANTE (repli si la segmentation
-   est coupée). Ne te limite pas à calm/fluent sans raison.
-5. POSE, avec PARCIMONIE, des tags d'interjection — sons non verbaux glissés INLINE dans le
-   "text" du segment concerné, entre parenthèses, avec l'orthographe EXACTE (jetons de contrôle,
-   sinon lus tels quels). Liste valide (speech-2.8 uniquement) :
+MANDATORY RULES:
+1. PRESERVE the narrative text, its tone, its vocabulary, and above all the storyteller's
+   VERBAL TICS and turns of phrase ("voyez-vous", "ah…", interjections, stylistic repetitions).
+   Do not paraphrase, summarise, or censor the story.
+2. REMOVE everything that is NOT spoken narration: dice-roll notations (1d20, +3, DD15),
+   bracketed stat numbers, technical references ("Update npcs.json"), command labels (!jet),
+   admin markers, decorative emojis. Keep pronounceable numbers written out in words where natural.
+3. The voice ALREADY BREATHES NATURALLY on punctuation (".", ",", "…", "?", "!"):
+   do not double those silences. Only add a Minimax pause `<#x.x#>` (seconds, 0.3–0.8 —
+   max 1.0 for an exceptional effect) for a GENUINE dramatic beat: before a revelation, on
+   a sudden tonal shift. RARE: at most 1 every 4–6 sentences, NEVER as a substitute for
+   punctuation. Place them BETWEEN two pronounceable passages, never two in a row, never
+   at the very start/end. When in doubt: no pause.
+4. SPLIT the narration into emotion SEGMENTS: a "segments" array, each entry being
+   {"text": "<spoken portion>", "emotion": "<one of the 8>"}. The emotion CAN and MUST change
+   from one segment to the next when the scene shifts (apparition → surprised, danger → fearful,
+   calm return → calm): this is what makes the story PERFORMED rather than flat. Valid emotions:
+   calm (= "Neutral" in the app), happy, sad, angry, fearful, disgusted, surprised, fluent. Cover
+   ALL the spoken text, in order, with no gaps. If the emotion does not change, ONE segment is
+   enough. Also fill the "emotion" field = the DOMINANT emotion (fallback if segmentation is cut).
+   Do not default to calm/fluent without reason.
+5. SPARINGLY add interjection tags — non-verbal sounds placed INLINE in the "text" of the
+   relevant segment, in parentheses, with EXACT spelling (control tokens; otherwise read aloud
+   literally). Valid list (speech-2.8 only):
      (laughs) (chuckle) (coughs) (clear-throat) (groans) (breath) (pant) (inhale) (exhale)
      (gasps) (sniffs) (sighs) (snorts) (burps) (lip-smacking) (humming) (hissing) (emm) (sneezes)
-   Pour une conteuse, privilégie les souffles/émotions : (sighs) (gasps) (breath) (inhale)
-   (exhale) (chuckle) (clear-throat) (sniffs) (groans). Réserve les autres (burps, sneezes,
-   hissing…) au cas où un personnage le fait VRAIMENT. Place-les là où ELLE le ferait : un
-   souffle avant une révélation, un hoquet à une apparition. Au plus 1-2 par passage, JAMAIS
-   sur chaque phrase, jamais décoratif. Orthographe inexacte = pas de tag. En cas de doute : aucun.
-6. PROPOSE un fond sonore d'ambiance parmi : foret, taverne, combat, nuit, ville, donjon, mer,
-   aucune. Mets "aucune" si la scène n'a pas d'ancrage sonore évident.
-7. INDIQUE moment_cle=true seulement si c'est un moment marquant (révélation, climax, scène
-   d'ambiance forte) qui justifie le fond sonore ; sinon false.
+   For a storyteller, favour breaths/emotions: (sighs) (gasps) (breath) (inhale)
+   (exhale) (chuckle) (clear-throat) (sniffs) (groans). Reserve the others (burps, sneezes,
+   hissing…) for when a character ACTUALLY does it. Place them where SHE would: a breath before
+   a revelation, a gasp at an apparition. At most 1–2 per passage, NEVER on every sentence,
+   never decorative. Inexact spelling = no tag. When in doubt: none.
+6. SUGGEST a background ambiance sound from: foret, taverne, combat, nuit, ville, donjon, mer,
+   aucune. Use "aucune" if the scene has no obvious sonic anchor.
+7. SET moment_cle=true only if this is a standout moment (revelation, climax, strong atmosphere
+   scene) that justifies the background sound; otherwise false.
 
-Réponds STRICTEMENT en JSON :
+Reply STRICTLY in JSON:
 {"segments":[{"text":"...","emotion":"..."}, ...], "emotion":"...", "ambiance":"...", "moment_cle":true|false}
-Exemple : {"segments":[{"text":"Un monstre surgit des ombres ! (gasps)","emotion":"surprised"},
-{"text":"<#0.6#> Les pierres tombent autour de toi.","emotion":"fearful"},
-{"text":"Puis le silence revient.","emotion":"calm"}], "emotion":"fearful", "ambiance":"combat",
+Example: {"segments":[{"text":"A monster surges from the shadows! (gasps)","emotion":"surprised"},
+{"text":"<#0.6#> Stones fall all around you.","emotion":"fearful"},
+{"text":"Then silence returns.","emotion":"calm"}], "emotion":"fearful", "ambiance":"combat",
 "moment_cle":true}
-Aucun texte hors du JSON.
+No text outside the JSON.
 
 --- NARRATION ---
 """

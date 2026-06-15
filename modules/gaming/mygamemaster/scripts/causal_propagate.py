@@ -31,7 +31,7 @@ This module is both:
   * IMPORTABLE — `from causal_propagate import propager, regle_de_propagation,
     programmer_evenement, appliquer`;
   * EXECUTABLE — CLI `argparse` with subcommand `propager` (first positional =
-    campaign), messages in French, markers (🌊 ➜ ⏱ ⚠ ✅ ℹ), output `--json`.
+    campaign), messages in English, markers (🌊 ➜ ⏱ ⚠ ✅ ℹ), output `--json`.
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
@@ -455,7 +455,7 @@ def _evt_racine_depuis_intention(campagne: Path, acteur_id: str,
             intention = it
             break
     if intention is None:
-        _log(f"❌ Intention « {intent_id} » not found in {acteur_id}'s plan.")
+        _log(f"❌ Intention '{intent_id}' not found in {acteur_id}'s plan.")
         return None
 
     cible = intention.get("lieu")
@@ -463,12 +463,17 @@ def _evt_racine_depuis_intention(campagne: Path, acteur_id: str,
         cible = acteur_id
 
     # Root effect type: LIGHTWEIGHT deterministic heuristic on the action label.
+    # Emitted TYPE values (raid/incendie/penurie) are load-bearing keys consumed
+    # by the propagation rule table; only the MATCH stems carry EN aliases.
     action = (intention.get("action") or "").lower()
-    if "raid" in action or "pille" in action or "pillage" in action or "razzia" in action:
+    if ("raid" in action or "pille" in action or "pillage" in action
+            or "razzia" in action or "loot" in action):
         type_evt = "raid"
-    elif "incend" in action or "brûl" in action or "brul" in action:
+    elif ("incend" in action or "brûl" in action or "brul" in action
+            or "burn" in action or "fire" in action):
         type_evt = "incendie"
-    elif "pénur" in action or "penur" in action or "famine" in action:
+    elif ("pénur" in action or "penur" in action or "famine" in action
+            or "shortage" in action):
         type_evt = "penurie"
     else:
         type_evt = "consequence"
@@ -635,7 +640,7 @@ def _charger_evt_arg(spec: str) -> dict | None:
     else:
         data = W.charger_json(spec, None)
         if data is None:
-            _log(f"❌ event: file not found or unreadable « {spec} ».")
+            _log(f"❌ event: file not found or unreadable '{spec}'.")
             return None
     if isinstance(data, dict) and isinstance(data.get("events"), list) and data["events"]:
         prem = data["events"][0]
@@ -748,11 +753,11 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 causal_propagate.py propager <campagne> --evt racine.json --json\n"
+            "  python3 causal_propagate.py propager <campaign> --evt root.json --json\n"
             "  echo '{\"id\":\"evt:incendie-4000\",\"T\":4000,\"type\":\"incendie\","
             "\"cible\":\"ville:<ville>\",\"significativite\":0.9}' | \\\n"
-            "      python3 causal_propagate.py propager <campagne> --evt -\n"
-            "  python3 causal_propagate.py propager <campagne> "
+            "      python3 causal_propagate.py propager <campaign> --evt -\n"
+            "  python3 causal_propagate.py propager <campaign> "
             "--intention faction:<faction>:intent:<intent> --apply\n"
             "\nSafeguards (guaranteed termination): PROFONDEUR_MAX="
             f"{PROFONDEUR_MAX}, SEUIL={SEUIL}, ATTENUATION={ATTENUATION}, "

@@ -6,12 +6,12 @@ triggers:
   - "!cloture"
   - "!reprendre"
   - "!session"
-  - "clôture de session"
-  - "fin de session"
-  - "reprise de session"
-  - "résumé de session"
-  - "correctifs à prioriser"
-  - "Problème / Solution proposée / Conséquence"
+  - "session wrap-up"
+  - "end of session"
+  - "session resumption"
+  - "session summary"
+  - "fixes to prioritize"
+  - "Problem / Proposed Solution / Consequence"
   - "post-session"
 ---
 
@@ -125,7 +125,7 @@ The scripts in `outils/gestion_temps.py` allow :
 ```json
 {
   "timestamp": "2026-05-14T20:15:00",
-  "type": "jet|action|combat|dialogue|modif_perso|meta",
+  "type": "roll|action|combat|dialogue|modif_perso|meta",
   "joueur": "discord_id",
   "description": "Attempts to pick the lock on the north door",
   "details": {},
@@ -285,7 +285,7 @@ In all cases, execute the complete wrap-up workflow (Phase 1-6). Don't interrupt
    ⚠️ **Fallback — no response :** Same rule as title/teaser. If no response in 10 minutes, don't block. Continue without evaluation.
    
    **Storage :** Evaluation is recorded in `collecte.csv` with :
-   - `origine_type = "Joueur"`, `origine_detail = <username>`, `action_type = "evaluation_session"`
+   - `origine_type = "Player"`, `origine_detail = <username>`, `action_type = "evaluation_session"`
    - `exactitude = <score>` (reuse column for player score)
    - `notes = <player comment>`
 
@@ -745,7 +745,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | 1 | Add `regles.temps.suivi` | `world.json` | `patch` / `write_file` |
 | 2 | Sync `global_state` | `world.json` | `patch` (quete, pop, phase, influence) |
 | 3 | Create next session | `sessions/NNN+1.json` | `write_file` (from last `etat_fin`) |
-| 4 | Migrate character sheet | `characters/<id>.json` | `patch` (historique, connaissances_privées) |
+| 4 | Migrate character sheet | `characters/<id>.json` | `patch` (historique, connaissances_privees) |
 | 5 | Create/update NPC | `npcs.json` | `patch` (attitude, position) |
 
 ### Pitfalls

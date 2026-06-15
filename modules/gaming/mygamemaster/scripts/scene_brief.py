@@ -97,9 +97,9 @@ def _log(message: str) -> None:
 #  Temporal bridge: textual 't' from events.json → T (UT)  [READ ONLY]
 # ════════════════════════════════════════════════════════════════════════════
 #
-# events.json stores TEXTUAL 't' values ("Jour 7, fin d'après-midi") — the
+# events.json stores TEXTUAL 't' values ("Day 7, late afternoon") — the
 # narrative timeline generated from sessions. We do NOT convert them in place
-# (non-destructive). For the RECENT filter, we derive a COMPARABLE T: "Jour N"
+# (non-destructive). For the RECENT filter, we derive a COMPARABLE T: "Day N"
 # → the UT of the midpoint of the named time slice (or noon by default). This is
 # the approximate inverse of worldlib.t_vers_narratif, sufficient to place events
 # in the window [T−δ, T].
@@ -107,38 +107,32 @@ def _log(message: str) -> None:
 # Narrative slice → "representative" hour (midpoint of slice). Aligned with
 # worldlib._TRANCHES_NARRATIVES (frozen contract §3.3).
 _TRANCHE_VERS_HEURE = {
-    "nuit": 0,
-    "aube": 6,
-    "matin": 10,
-    "midi": 12,
-    "apres-midi": 15,
-    "fin d'apres-midi": 18,
-    "soir": 20,
+    "night": 0,
+    "dawn": 6,
+    "morning": 10,
+    "noon": 12,
+    "afternoon": 15,
+    "late afternoon": 18,
+    "evening": 20,
 }
 # Variants/synonyms encountered in real timelines.
 _TRANCHE_SYNONYMES = {
-    "debut d'apres-midi": 14,
-    "debut apres-midi": 14,
-    "fin apres-midi": 18,
-    "matinee": 10,
-    "apres midi": 15,
-    "soiree": 20,
-    "aurore": 6,
-    "midi pile": 12,
-    "milieu d'apres-midi": 15,
-    "tard": 22,
+    "early afternoon": 14,
+    "mid afternoon": 15,
+    "late": 22,
+    "high noon": 12,
 }
 
 
 def _norm_txt(texte: str) -> str:
-    """Normalises a French text to match time slices (NFKD without accents, lowercase)."""
+    """Normalises a text to match time slices (NFKD without accents, lowercase)."""
     s = unicodedata.normalize("NFKD", str(texte))
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.lower()
 
 
 def _t_textuel_vers_t(t_texte) -> int | None:
-    """«Jour N[, tranche]» → T (UT), or None if no usable «Jour N» is found.
+    """«Day N[, slice]» → T (UT), or None if no usable «Day N» is found.
 
     READ ONLY: used SOLELY to place narrative events within the temporal
     window. Heuristic aligned with t_vers_narratif (approximate inverse).
@@ -153,13 +147,13 @@ def _t_textuel_vers_t(t_texte) -> int | None:
         return None
 
     n = _norm_txt(t_texte)
-    m = re.search(r"jour\s+(\d+)", n)
+    m = re.search(r"day\s+(\d+)", n)
     if not m:
         return None
     jour = int(m.group(1))
 
-    # Remainder after "Jour N" → look for a known time slice (longest match
-    # first, to capture "fin d'apres-midi" before "apres-midi").
+    # Remainder after "Day N" → look for a known time slice (longest match
+    # first, to capture "late afternoon" before "afternoon").
     reste = n[m.end():].lstrip(" ,;-—–").strip()
     heure = 12  # default: noon (consistent with t_courant and echeance_en_t)
     if reste:
@@ -212,10 +206,10 @@ def _charger_evenements_programmes(campagne: Path) -> list[dict]:
 
 def _axe_spatial(campagne: Path, geo: dict, lieu_id: str, T: int,
                  rayon: float) -> dict:
-    """Builds AUTOUR (edges), CONTENUS (ids) and PRÉSENTS (actors).
+    """Builds AUTOUR (edges), CONTENUS (ids) and PRESENT (actors).
 
     Delegates to geo_query (voisins / qui_est_a) when available, otherwise to worldlib.
-    PRÉSENTS = exact presence at the location (or contained) UNION presence within the anchor
+    PRESENT = exact presence at the location (or contained) UNION presence within the anchor
     radius (deduplicated), to capture actors "within range" of a scene.
     """
     # AUTOUR + CONTENUS.
@@ -243,7 +237,7 @@ def _axe_spatial(campagne: Path, geo: dict, lieu_id: str, T: int,
         })
     contenus = list(vois.get("contenus", [])) if isinstance(vois, dict) else []
 
-    # PRÉSENTS: exact (location + contained) ∪ radius.
+    # PRESENT: exact (location + contained) ∪ radius.
     presents_map: dict[str, dict] = {}
     if G is not None:
         for p in (G.qui_est_a(campagne, lieu_id, T=T, rayon=None) or []):
@@ -265,7 +259,7 @@ def _axe_spatial(campagne: Path, geo: dict, lieu_id: str, T: int,
 # ════════════════════════════════════════════════════════════════════════════
 
 def _axe_temporel(campagne: Path, T: int, fenetre_ut: int) -> dict:
-    """Builds RÉCENT ([T−δ, T]) and IMMINENT ([T, T+δ]).
+    """Builds RECENT ([T−δ, T]) and IMMINENT ([T, T+δ]).
 
     RECENT   : narrative events (events.json) datable within the past window,
                + SCHEDULED events already 'resolu' within that window.
@@ -587,7 +581,7 @@ def scene_brief(campagne: Path, lieu_id: str, T: int | None = None,
 # ════════════════════════════════════════════════════════════════════════════
 #
 # Framed block ~1 screen. Header: "T=<int> (<narrative>)". EXACT column labels:
-# LIEU AUTOUR PRÉSENTS MOUVEMENT RÉCENT IMMINENT ENJEUX. Durations in
+# LIEU AUTOUR PRESENT MOUVEMENT RECENT IMMINENT ENJEUX. Durations in
 # NARRATIVE form (never the raw T on the player side, never the (x,y)). "⏰" for
 # scheduled events. Lines omitted if empty. Target width 74 columns
 # (soft truncation; no error on overflow).
@@ -631,7 +625,7 @@ def _rendre_texte(brief: dict, acteurs: dict, lang: str | None = None) -> str:
             morceaux.append(f"{a.get('dir', '?')} → {nom_v} ({duree})")
         lignes.append([t("brief.around", lang), _joindre(morceaux, " · ", reste, lang)])
 
-    # PRÉSENTS: "id (name) · …".
+    # PRESENT: "id (name) · …".
     presents = brief.get("presents", [])
     if presents:
         gardes, reste = _plafonner(presents, MAX_PRESENTS)
@@ -654,7 +648,7 @@ def _rendre_texte(brief: dict, acteurs: dict, lang: str | None = None) -> str:
             morceaux.append(f"{nom_m} {t('brief.crosses', lang)} {lieu_m} ({quand})")
         lignes.append([t("brief.movement", lang), _joindre(morceaux, " ; ", reste, lang)])
 
-    # RÉCENT: "JN <label> ; …" (most recent first).
+    # RECENT: "JN <label> ; …" (most recent first).
     recent = brief.get("recent", [])
     if recent:
         ordonne = sorted(recent, key=lambda x: x.get("T", 0), reverse=True)
@@ -903,14 +897,14 @@ def _duree_narr(temps_ut) -> str:
 
 
 def _jour_court(T) -> str:
-    """T (UT) → compact "JN" (e.g. 'J7'), for the RÉCENT/IMMINENT columns.
+    """T (UT) → compact "DN" (e.g. 'D7'), for the RECENT/IMMINENT columns.
 
     The player sees only a day marker (never the raw UT). '?' if not datable.
     """
     if not isinstance(T, int) or isinstance(T, bool):
         return "?"
     jour, _, _ = W.t_vers_jour_heure(T)
-    return f"J{jour}"
+    return f"D{jour}"
 
 
 def _nom_lieu_court(lieu_id, idx_act: dict) -> str:
@@ -981,9 +975,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 scene_brief.py <campagne> "
+            "  python3 scene_brief.py <campaign> "
             "lieu:<region>/<lieu>\n"
-            "  python3 scene_brief.py <campagne> "
+            "  python3 scene_brief.py <campaign> "
             "lieu:<region>/<lieu> --t 1224 --json\n"
         ),
     )

@@ -3,25 +3,25 @@ name: mygamemaster-intendant
 description: THE STEWARD — transactional verifier of every game action. Verifies inventory, knowledge, coherence, time. Applies transfers (objects, info, states). Refuses with reason if invalid. Rules engine, not an agent.
 category: gaming
 triggers:
-  - "banquier"
-  - "intendant"
-  - "vérification"
+  - "banker"
+  - "steward"
+  - "verification"
   - "transaction"
-  - "cohérence"
+  - "coherence"
   - "!action"
   - "N0"
   - "N1"
   - "N2"
-  - "agent niveau 1"
-  - "agent niveau 2"
+  - "agent level 1"
+  - "agent level 2"
   - "build_brief"
-  - "call_pnj"
-  - "architecture agent"
-  - "3 niveaux"
-  - "!verbosite"
-  - "!collecte"
-  - "verbosite"
-  - "collecte csv"
+  - "call_npc"
+  - "agent architecture"
+  - "3 levels"
+  - "!verbosity"
+  - "!collect"
+  - "verbosity"
+  - "collect csv"
 ---
 
 # 🧮 MJ Tonnerre — THE STEWARD (transactional)
@@ -69,7 +69,7 @@ For every declared action, the Steward applies 3 checks in order:
 | Position | `localisation_actuelle` (npcs.json) | Is [NPC] at [a location]? |
 | Time | `regles.temps.suivi.jour_courant` + `heure_courante` (world.json) | Is enough time available? |
 | Hard line | `limites.lignes_rouges[]` (npcs.json) | Does the action violate an NPC's limit? |
-| **Named NPCs** (mentioned in PC or NPC dialogue) | Verify if the name exists in `npcs.json`. If absent → 🔍 INSUFFICIENTLY DOCUMENTED | [NPC A] mentions « [NPC B], [NPC C], [NPC D] » → verify existence in npcs.json |
+| **Named NPCs** (mentioned in PC or NPC dialogue) | Verify if the name exists in `npcs.json`. If absent → 🔍 INSUFFICIENTLY DOCUMENTED | [NPC A] mentions [NPC B], [NPC C], [NPC D] → verify existence in npcs.json |
 
 **If the resource does not exist → REFUSAL or 🔍 INSUFFICIENTLY DOCUMENTED:**
 > ❌ *Inventory: [the PC] does not have a sausage. Source: characters/<id>.json → inventory[]*
@@ -108,7 +108,7 @@ For every declared action, the Steward applies 3 checks in order:
 > ❌ *Coherence: [NPC]'s men left (on route to [a location]). No one hears this revelation. No knowledge propagated.*
 > ❌ *Coherence: It is night, no fire. Impossible to read [NPC]'s notebook. Source: regles.meteo.conditions_actuelles.*
 > ❌ *Relationship: [NPC] has a hard line « Does not betray [an NPC] ». The action '[NPC] reveals [a faction]'s plan' is refused without valid reason.*
-> ❌ *Emotion: [NPC] cannot be "calmed" when the cause was an event 3 months ago and a new threat just appeared. Source: npcs.json → [NPC] → memoire_emotionnelle[last].*
+> ❌ *Emotion: [NPC] cannot be "calmed" when the cause was an event 3 months ago and a new threat just appeared. Source: npcs.json → [NPC] → emotional_memory[last].*
 
 ---
 
@@ -265,10 +265,10 @@ Your role:
 2. If all 3 pass → write the **7 operations** (§3) to the files (inventory, knowledge, time, positions, log).
 3. Narrate the response. The hook reports the real diff after your narration.
 
-The *Persisted* block format is documented in `references/verbosite/info.md` — **produced by the hook, not by you.**
+The *Persisted* block format is documented in `references/verbosity/info.md` — **produced by the hook, not by you.**
 
 ### Level 2 — Assisted checklist
-The GM uses a written checklist (or a `checklist-banquier.md` file):
+The GM uses a written checklist (or a `checklist-steward.md` file):
 ```
 □ Check 1 — Source verified (inventory / knowledge) → OK/REFUSAL
 □ Check 2 — Valid transfer (route / recipient) → OK/REFUSAL
@@ -279,9 +279,9 @@ The GM uses a written checklist (or a `checklist-banquier.md` file):
 
 ### Level 3 — Partial script
 > ⚠️ **Hypothetical scripts — NOT implemented.** The files below do NOT exist; do NOT try to call them. They describe a future target:
-> - `check_inventaire.py <character> <object>` → ✅/❌
+> - `check_inventory.py <character> <object>` → ✅/❌
 > - `check_route.py <departure> <arrival>` → duration or ❌
-> - `check_connaissance.py <npc> <knowledge>` → ✅/❌
+> - `check_knowledge.py <npc> <knowledge>` → ✅/❌
 
 The GM remains responsible for narrative checks (coherence, limits).
 
@@ -316,7 +316,7 @@ becomes hard after migration to **structured** inventory (`{name, qty, type}`) �
 | **Time clock (world.json > regles.temps.suivi)** | Source of Check 2 (time available). Target of operation 4 |
 | **Sessions (sessions/NNN.json)** | Target of operation 7 (logging). Check 3 (verify previous actions) |
 | **Positions (npcs.json > localisation_actuelle)** | Source of Check 1 (presence). Target of operation 6 |
-| **Wrap-up module (mygamemaster-session)** | Post-session verification pipeline. Ensures all transactions were properly logged during session — protocol: `references/audit-cloture.md` |
+| **Wrap-up module (mygamemaster-session)** | Post-session verification pipeline. Ensures all transactions were properly logged during session — protocol: `references/audit-wrap-up.md` |
 
 ---
 
@@ -339,7 +339,7 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 |---|---|---|
 | **§8 — Action-by-action validation mode** (Level 2 agents) | Concept never approved by GM | Standard Steward transaction (3 checks) |
 | **§9 — Narrative validation mode** | Concept never approved by GM | Workflow: GM declares → Steward verifies |
-| **§10 — Bug analyst mode** | Already covered by `mygamemaster-analyste` skill | Let `mygamemaster-analyste` handle bugs |
+| **§10 — Bug analyst mode** | Already covered by `mygamemaster-analyzer` skill | Let `mygamemaster-analyzer` handle bugs |
 | **§2-3 — delegate_task calls** | Steward is NOT an invocable sub-agent | It is a transparent process running at each action |
 | **§6 — Structured JSON report** | Overkill — standard session log suffices | Operation 7 (Log) in sessions/NNN.json > actions[] |
 
@@ -366,13 +366,13 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 
 **Current level: Manual (Level 1).** The GM applies the 3 checks (§2) and writes the 7 operations (§3) to files. The *Persisted* block is emitted by the `transform_llm_output` hook on real diff (cf. `specs/hooks-runtime.md §3`) — not written by hand.
 
-**Session wrap-up:** post-session verification (were all transactions logged?) follows the protocol in `references/audit-cloture.md`.
+**Session wrap-up:** post-session verification (were all transactions logged?) follows the protocol in `references/audit-wrap-up.md`.
 
 ---
 
 ## 11. Verbosity mode
 
-> **Verbosity is applied AUTOMATICALLY by the `transform_llm_output` hook** (it reads `world.json > meta.verbosite` and formats the *Persisted* block accordingly — cf. `specs/hooks-runtime.md §3`). Default: `INFO`. **You do not format by level yourself.**
+> **Verbosity is applied AUTOMATICALLY by the `transform_llm_output` hook** (it reads `world.json > meta.verbosity` and formats the *Persisted* block accordingly — cf. `specs/hooks-runtime.md §3`). Default: `INFO`. **You do not format by level yourself.**
 
 | Level | What is reported |
 |--------|---------------------|
@@ -382,25 +382,25 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 | **WARN** | Only when a Check detects a problem (REFUSAL, incoherence) |
 | **ERROR** | Blocking only |
 
-> Detail of renders by level: `references/verbosite/README.md` and dedicated files (`trace.md`, `debug.md`, `info.md`, `warn.md`, `error.md`).
+> Detail of renders by level: `references/verbosity/README.md` and dedicated files (`trace.md`, `debug.md`, `info.md`, `warn.md`, `error.md`).
 
 **Escalation rule:** a REFUSAL (Check failed) is **always** reported, regardless of level — even in ERROR.
 
-**Hot change (player command):** `!verbosite TRACE|DEBUG|INFO|WARN|ERROR` updates `world.json > meta.verbosite`. Hook reads the level each turn — no restart needed.
+**Hot change (player command):** `!verbosity TRACE|DEBUG|INFO|WARN|ERROR` updates `world.json > meta.verbosity`. Hook reads the level each turn — no restart needed.
 
 ---
 
 ## 12. CSV improvement collection
 
-> **The CSV line is written AUTOMATICALLY by the `transform_llm_output` hook** (in+out of each turn — cf. `specs/hooks-runtime.md §3`), if `world.json > meta.diagnostic.actif == true`. **The model does NOT write the CSV.**
+> **The CSV line is written AUTOMATICALLY by the `transform_llm_output` hook** (in+out of each turn — cf. `specs/hooks-runtime.md §3`), if `world.json > meta.diagnostic.active == true`. **The model does NOT write the CSV.**
 
-**Path:** `campaigns/<name>/collecte.csv` (UTF-8, comma delimiter, double-quote escape).
+**Path:** `campaigns/<name>/collect.csv` (UTF-8, comma delimiter, double-quote escape).
 
-Columns: `timestamp, session, verbosite, origine_type, origine_detail, action_type, prompt_resume, sortie, consequence, erreur, type_erreur, correction_immediate, exactitude, completude, conteste, modele, notes` — **all filled automatically by the hook** (except player wrap-up evaluation below).
+Columns: `timestamp, session, verbosity, origin_type, origin_detail, action_type, prompt_summary, output, consequence, error, error_type, immediate_correction, accuracy, completeness, contested, model, notes` — **all filled automatically by the hook** (except player wrap-up evaluation below).
 
-**Player evaluation (at wrap-up `!cloture`):** the player can give a 1-5 rating + comment; added to CSV with `origine_type = "Joueur"`, `action_type = "evaluation_session"`.
+**Player evaluation (at wrap-up `!wrap-up`):** the player can give a 1-5 rating + comment; added to CSV with `origin_type = "Player"`, `action_type = "evaluation_session"`.
 
-**CSV objective (post-hoc analysis):** identify recurring errors (`type_erreur`), problematic prompts, missing data, efficiency by model, NPC hallucinations.
+**CSV objective (post-hoc analysis):** identify recurring errors (`error_type`), problematic prompts, missing data, efficiency by model, NPC hallucinations.
 
 ---
 
@@ -408,14 +408,14 @@ Columns: `timestamp, session, verbosite, origine_type, origine_detail, action_ty
 
 - `mygamemaster/SKILL.md` — GM heading (persona, rules, sections to update)
 - `mygamemaster/SKILL.md §6.7` — Sequential action protocol
-- `mygamemaster-outils/SKILL.md` — Dice rolls and action resolution
-- `world.json > regles.temps` — campaign time rules
-- `world.json > meta.verbosite` — active verbosity level (TRACE → ERROR), see §11
+- `mygamemaster-tools/SKILL.md` — Dice rolls and action resolution
+- `world.json > rules.time` — campaign time rules
+- `world.json > meta.verbosity` — active verbosity level (TRACE → ERROR), see §11
 - `world.json > meta.diagnostic` — CSV collection configuration (columns, frequency rules), see §12
-- `world.json > global_state.factions[].limites` — NPC hard lines
+- `world.json > global_state.factions[].limits` — NPC hard lines
 - `npcs.json` — NPC sheets (established_facts, knowledge, inventory)
 - `characters/<discord_id>.json` — PC sheets (inventory, stats, state)
 - `sessions/NNN.json` — session action log
-- `collecte.csv` — diagnostic file per campaign (format, columns), see §12
-- `references/verbosite/README.md` — emoji convention, data type mapping, formats by level, scenario templates — **unique reference**
-- `references/architecture-3-niveaux-agents.md` — N0/N1/N2: the 3 levels of NPC autonomy (costs, scripts, when to use what)
+- `collect.csv` — diagnostic file per campaign (format, columns), see §12
+- `references/verbosity/README.md` — emoji convention, data type mapping, formats by level, scenario templates — **unique reference**
+- `references/architecture-3-levels-agents.md` — N0/N1/N2: the 3 levels of NPC autonomy (costs, scripts, when to use what)

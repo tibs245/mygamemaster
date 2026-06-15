@@ -9,7 +9,7 @@
 #   skills/gaming/mygamemaster*           -> modules/gaming/
 #   home/.hermes/mygamemaster/base_items.yaml         -> data/mygamemaster/
 #   home/.hermes/mygamemaster/campaigns/_template     -> data/mygamemaster/campaigns/
-#   .hermes/mygamemaster/campaigns/<campagne>         -> data/mygamemaster/campaigns/
+#   .hermes/mygamemaster/campaigns/<campaign>          -> data/mygamemaster/campaigns/
 #
 # Purged on copy: macOS ._* files, nested .git folders, __pycache__.
 # ───────────────────────────────────────────────────────────────────────────
@@ -35,11 +35,11 @@ EXCLUDES=(
 )
 
 if [[ ! -d "$ARCHIVE" ]]; then
-  echo "✗ archive_hermes/ introuvable à ${ARCHIVE}" >&2
+  echo "✗ archive_hermes/ not found at ${ARCHIVE}" >&2
   exit 1
 fi
 
-echo "▶ Extraction depuis ${ARCHIVE}"
+echo "▶ Extracting from ${ARCHIVE}"
 mkdir -p "$DST_MODULES" "$DST_CAMP"
 
 # 1. Modules (mygamemaster* skills) ------------------------------------------
@@ -73,6 +73,6 @@ done
 # 5. Safety net: no residual ._* files ---------------------------------
 find "${REPO_ROOT}/modules" "${REPO_ROOT}/data" -name '._*' -delete 2>/dev/null || true
 
-echo "✓ Extraction terminée."
+echo "✓ Extraction complete."
 echo "  Modules : $(find "${DST_MODULES}" -maxdepth 1 -type d -name 'mygamemaster*' | wc -l | tr -d ' ') skills"
-echo "  Campagnes : $(find "${DST_CAMP}" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ') (dont _template)"
+echo "  Campaigns: $(find "${DST_CAMP}" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ') (including _template)"

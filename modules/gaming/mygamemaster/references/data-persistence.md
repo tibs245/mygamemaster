@@ -12,7 +12,7 @@ After each significant narrative action (NPC dialogue, discovery, combat, event)
 
 - [ ] `npcs.json` — every new NPC named, described, with their role, attitude, location
 - [ ] `world.json` — every new location visited or mentioned added to `regions` or `lieux`
-- [ ] **`world.json > regles.temps.suivi`** — game time elapsed? rations consumed? mission constraint advanced?
+- [ ] **`world.json > regles.temps.suivi`** — elapsed game time? rations consumed? mission constraint advanced?
 - [ ] `characters/<id>.json` — equipment updated, `notes_perso.relations` enriched, `notes_perso.secrets` if new personal info, **rations deducted if the day changed**
 - [ ] `sessions/NNN.json` — action logged in `actions[]`, NPC in `pnj_rencontres[]`, location in `lieux_visites[]`
 
@@ -21,7 +21,7 @@ After each significant narrative action (NPC dialogue, discovery, combat, event)
 | ❌ Pitfall | ✅ Fix |
 |----------|--------|
 | Create an NPC in narration without saving it to `npcs.json` | Save immediately after first mention |
-| Give equipment without updating the character sheet | Patch `equipement[]` right away |
+| Grant equipment without updating the character sheet | Patch `equipement[]` right away |
 | Establish a relationship between PC/NPC without writing it in `notes_perso.relations` | Add to the relations in the relevant character sheets |
 | Narrate a flashback/background without adding it to `notes_perso.secrets` | Log in the character's secrets |
 | Forget to log an action in `sessions/NNN.json > actions[]` | Log immediately after resolution |
@@ -35,7 +35,7 @@ Without this discipline, the GM loses long-term coherence:
 - The wrap-up session will be incomplete
 - **Game time becomes unclear** — impossible to know what day it is, how many rations remain, if the mission constraint has expired, or what NPCs were doing while the PCs were away
 
-**MJ Tonnerre, what do the notes say?** — this ritual question only makes sense if the notes are up to date.
+**MJ Tonnerre, what do the notes say?** — this ritual question only makes sense if the notes are current.
 
 ---
 
@@ -73,10 +73,10 @@ git commit -m "Initialize MJ Tonnerre — campaign <name>"
 # After each session
 cd ~/.hermes/mygamemaster/
 git add campaigns/<campaign-name>/
-git commit -m "🎲 <Campaign Name> — Session <N> wrapped: <episode title>"
+git commit -m "🎲 <Campaign Name> — Session <N> wrapped-up: <episode title>"
 
 # Verification
-git status  # should display "nothing to commit, working tree clean"
+git status  # should show "nothing to commit, working tree clean"
 ```
 
 ### What Gets Committed
@@ -85,7 +85,7 @@ git status  # should display "nothing to commit, working tree clean"
 - `npcs.json` — all NPCs
 - `characters/<id>.json` — player character sheets
 - `sessions/NNN.json` — session logs
-- `images/` — generated illustrations (portraits, maps, scenes)
+- `images/` — generated artwork (portraits, maps, scenes)
 
 ### What Gets Ignored
 
@@ -151,9 +151,9 @@ The `regles.temps.deplacements.gouvernance` block is **injected at campaign crea
 "deplacements": {
   "gouvernance": {
     "regles": [
-      "durees_fixes: une durée figée ne change pas sans justification narrative",
+      "durees_fixes: a fixed duration does not change without narrative justification",
       "indirect_superieur_ou_egal_direct",
-      "allers_simples: aller-retour + travail <= 12h (journée jouable)",
+      "allers_simples: round trip + work <= 12h (playable day)",
       "point_lointain_superieur_ou_egal_point_proche"
     ],
     "validation": "python3 /opt/modules/gaming/mygamemaster/scripts/validator-distances.py <campaign>/world.json"
@@ -174,4 +174,4 @@ python3 /opt/modules/gaming/mygamemaster/scripts/validator-distances.py <path/ca
 # → 0 OK, 1 warning (inconsistent route), 2 error
 ```
 
-Run **after every route addition** in `regles.temps.deplacements`. If a route breaks one of the 4 rules, correct the duration or document the narrative reason before committing.
+Run **after every route addition** in `regles.temps.deplacements`. If a route violates one of the 4 rules, correct the duration or document the narrative reason before committing.

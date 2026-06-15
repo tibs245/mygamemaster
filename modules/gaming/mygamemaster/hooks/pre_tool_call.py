@@ -51,7 +51,7 @@ def handle(payload):
             if L.hooks_cfg(monde)["garde_json_strict"]:
                 L.ledger_append(camp, payload, {
                     "erreur": True, "type_erreur": "json_casse", "emoji": "🛑",
-                    "phrase": "🛑 Écriture refusée — JSON invalide : %s" % rel,
+                    "phrase": "🛑 Write refused — invalid JSON: %s" % rel,
                 })
                 return {
                     "action": "block",
@@ -60,7 +60,7 @@ def handle(payload):
                 }
             L.ledger_append(camp, payload, {
                 "erreur": True, "type_erreur": "json_casse", "emoji": "⚠️",
-                "phrase": "⚠️ JSON potentiellement invalide écrit : %s" % rel,
+                "phrase": "⚠️ Potentially invalid JSON written: %s" % rel,
             })
     return {}
 

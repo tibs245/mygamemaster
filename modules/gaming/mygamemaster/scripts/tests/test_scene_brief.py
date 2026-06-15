@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-test_scene_brief.py — Tests for the context assembler « BRIEF DE SCÈNE » (contract §12).
+test_scene_brief.py — Tests for the context assembler « SCENE BRIEF » (contract §12).
 
 STDLIB `unittest` (no pytest required). Run from `scripts/`:
     python3 -m unittest discover
@@ -125,11 +125,11 @@ class TestContratRetour(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  2. SPATIAL axis — AUTOUR (edges) + PRÉSENTS (actors at location / radius)
+#  2. SPATIAL axis — AUTOUR (edges) + PRESENT (actors at location / radius)
 # ════════════════════════════════════════════════════════════════════════════
 
 class TestAxeSpatial(unittest.TestCase):
-    """AUTOUR and PRÉSENTS reflect the graph and actors from the real campaign."""
+    """AUTOUR and PRESENT reflect the graph and actors from the real campaign."""
 
     @classmethod
     def setUpClass(cls):
@@ -194,7 +194,7 @@ class TestAxeRelationnel(unittest.TestCase):
     def test_enjeux_vers_le_lieu(self):
         # Berthe has a 'tutelle' relation toward the cabin (actors.json §10).
         vers_lieu = [e for e in self.brief["enjeux"] if e.get("_vers") == LIEU_CABANE]
-        self.assertTrue(vers_lieu, "des enjeux doivent pointer vers le lieu")
+        self.assertTrue(vers_lieu, "some stakes must point toward the location")
         self.assertTrue(any(e["actor"] == "acteur:berthe" and e["type"] == "tutelle"
                             for e in vers_lieu))
 
@@ -236,7 +236,7 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
         # Two PCs declared in canonical list (e.g. Oscar AND Cendre).
         W.sauver_json_atomique(self.camp / "world.json", {
             "meta": {"name": "MultiPJ", "pj_ids": ["acteur:oscar", "acteur:cendre"]},
-            "global_state": {"timeline": "Jour 7 : début."},
+            "global_state": {"timeline": "Day 7: beginning."},
         })
         # Actors:
         #  - garde: 'serment' relation toward the SECOND PC (Cendre) → without the
@@ -245,7 +245,7 @@ class TestAxeRelationnelMultiPj(unittest.TestCase):
         acteurs = {
             "meta": {"campagne": "multi-pj", "version": 1},
             "actors": [
-                {"id": "acteur:garde", "name": "Le Garde", "type": "npcs",
+                {"id": "acteur:garde", "name": "The Guard", "type": "npcs",
                  "majeur": True, "trajectory": [{"lieu": "lieu:scene", "de": 0, "a": None}],
                  "relations": [{"vers": "acteur:cendre", "type": "serment",
                                 "intensite": 0.7}]},
@@ -306,10 +306,10 @@ class TestAxeTemporel(unittest.TestCase):
                 {"id": "evt:raid-1300", "T": 1300, "type": "raid",
                  "cible": LIEU_CABANE, "cause": "intent:raid-hivernal",
                  "significativite": 0.6, "statut": "programme",
-                 "label": "Raid imminent de la Bande"},
+                 "label": "Imminent Raid by the Band"},
                 {"id": "evt:rumeur-1200", "T": 1200, "type": "rumeur",
                  "cible": LIEU_GUE, "cause": "x", "significativite": 0.3,
-                 "statut": "resolu", "label": "Rumeur au Gue"},
+                 "statut": "resolu", "label": "Rumour at the Ford"},
             ],
         }
         (self.camp / "evenements_programmes.json").write_text(
@@ -321,16 +321,16 @@ class TestAxeTemporel(unittest.TestCase):
     def test_imminent_capture_le_programme(self):
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1224, fenetre_ut=432)
         labels = [i.get("label") for i in b["imminent"]]
-        self.assertIn("Raid imminent de la Bande", labels)
+        self.assertIn("Imminent Raid by the Band", labels)
         # Expected fields (contract §9.1): T + label + type.
-        cible = next(i for i in b["imminent"] if i["label"] == "Raid imminent de la Bande")
+        cible = next(i for i in b["imminent"] if i["label"] == "Imminent Raid by the Band")
         self.assertEqual(cible["T"], 1300)
         self.assertEqual(cible["type"], "raid")
 
     def test_recent_capture_le_resolu(self):
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1224, fenetre_ut=432)
         labels = [r.get("label") for r in b["recent"]]
-        self.assertIn("Rumeur au Gue", labels)
+        self.assertIn("Rumour at the Ford", labels)
 
     def test_imminent_trie_et_dans_la_fenetre(self):
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1224, fenetre_ut=432)
@@ -344,7 +344,7 @@ class TestAxeTemporel(unittest.TestCase):
         # With a tiny δ, the raid at T=1300 (>1224+10) falls OUTSIDE the window.
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1224, fenetre_ut=10)
         labels = [i.get("label") for i in b["imminent"]]
-        self.assertNotIn("Raid imminent de la Bande", labels)
+        self.assertNotIn("Imminent Raid by the Band", labels)
 
     def test_texte_marque_imminent_par_horloge(self):
         b = SB.scene_brief(self.camp, LIEU_CABANE, T=1224, fenetre_ut=432)
@@ -372,7 +372,7 @@ class TestMouvementCroisement(unittest.TestCase):
                 a["trajectory"] = [
                     {"lieu": LIEU_MAISON, "de": 0, "a": 1230},
                     {"type": "deplacement", "de": 1230, "a": 1290,
-                     "chemin": [LIEU_MAISON, LIEU_CABANE], "motif": "test croisement"},
+                     "chemin": [LIEU_MAISON, LIEU_CABANE], "motif": "test crossing"},
                     {"lieu": LIEU_CABANE, "de": 1290, "a": None},
                 ]
         (self.camp / "actors.json").write_text(
@@ -405,7 +405,7 @@ class TestMouvementCroisement(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  6. TEXT rendering — EXACT template of the BRIEF DE SCÈNE (contract §9.2)
+#  6. TEXT rendering — EXACT template of the SCENE BRIEF (contract §9.2)
 # ════════════════════════════════════════════════════════════════════════════
 
 class TestRenduTexte(unittest.TestCase):
@@ -440,7 +440,7 @@ class TestRenduTexte(unittest.TestCase):
     def test_colonnes_obligatoires_presentes(self):
         # LOCATION is always present; AROUND/PRESENT/STAKES are present for the real cabin.
         for col in ("LOCATION", "AROUND", "PRESENT", "STAKES"):
-            self.assertIn(col, self.texte, f"colonne {col} attendue")
+            self.assertIn(col, self.texte, f"column {col} expected")
 
     def test_libelles_de_colonnes_exacts(self):
         # No unexpected labels: every column label encountered (at the start of
@@ -466,7 +466,7 @@ class TestRenduTexte(unittest.TestCase):
                           "the text must NEVER expose an anchor pair (x, y)")
 
     def test_un_seul_T_brut_dans_l_entete(self):
-        # « T= » appears ONLY in the header (never in a PRÉSENTS/RÉCENT… column).
+        # « T= » appears ONLY in the header (never in a PRESENT/RECENT… column).
         self.assertEqual(self.texte.count("T="), 1,
                          "the raw T only appears in the header (followed by the narrative)")
 
@@ -554,13 +554,13 @@ class TestHelpersInternes(unittest.TestCase):
     """Small deterministic bridges (narrative renderings, reverse text dating)."""
 
     def test_t_textuel_vers_t_jour_et_tranche(self):
-        # « Jour 7, fin d'apres-midi » → Day 7 (hour 18) = 6*144 + 18*6 = 972.
-        self.assertEqual(SB._t_textuel_vers_t("Jour 7, fin d'apres-midi"), 972)
-        # « Jour 7 » alone → noon by default = 936.
-        self.assertEqual(SB._t_textuel_vers_t("Jour 7"), 936)
+        # « Day 7, late afternoon » → Day 7 (hour 18) = 6*144 + 18*6 = 972.
+        self.assertEqual(SB._t_textuel_vers_t("Day 7, late afternoon"), 972)
+        # « Day 7 » alone → noon by default = 936.
+        self.assertEqual(SB._t_textuel_vers_t("Day 7"), 936)
 
     def test_t_textuel_vers_t_non_datable(self):
-        self.assertIsNone(SB._t_textuel_vers_t("un texte sans jour"))
+        self.assertIsNone(SB._t_textuel_vers_t("a text without a day"))
         self.assertIsNone(SB._t_textuel_vers_t(""))
         self.assertIsNone(SB._t_textuel_vers_t(None))
 
@@ -569,8 +569,8 @@ class TestHelpersInternes(unittest.TestCase):
         self.assertEqual(SB._t_textuel_vers_t(936), 936)
 
     def test_jour_court(self):
-        self.assertEqual(SB._jour_court(1224), "J9")     # 1224 // 144 + 1 = 9
-        self.assertEqual(SB._jour_court(0), "J1")
+        self.assertEqual(SB._jour_court(1224), "D9")     # 1224 // 144 + 1 = 9
+        self.assertEqual(SB._jour_court(0), "D1")
         self.assertEqual(SB._jour_court(None), "?")
         self.assertEqual(SB._jour_court("x"), "?")
 

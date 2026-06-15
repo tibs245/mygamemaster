@@ -122,10 +122,10 @@ def main():
         print("\n[1] pre_llm_call — state injection")
         out, err = run_hook("pre_llm_call.py", {
             "hook_event_name": "pre_llm_call", "cwd": camp, "session_id": sid,
-            "message": "Rubis mange un saucisson", "extra": {"model": "deepseek/x"},
+            "message": "Rubis eats a sausage", "extra": {"model": "deepseek/x"},
         })
         ctx = out.get("context", "")
-        check("context injected", "ÉTAT FAISANT AUTORITÉ" in ctx, ctx[:80])
+        check("context injected", "AUTHORITATIVE STATE" in ctx, ctx[:80])
         check("PC Rubis present in context", "Rubis" in ctx)
         check("real inventory exposed", "saucisson" in ctx)
         check("NPCs listed", "Berthe" in ctx and "Firmin" in ctx)
@@ -157,7 +157,7 @@ def main():
         # transform_llm_output : augments the response + CSV
         out, err = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": sid,
-            "response": "Rubis croque dans le saucisson.",
+            "response": "Rubis bites into the sausage.",
             "extra": {"model": "deepseek/x"},
         })
         check("INFO transaction → no-op (Persisted block internal, not shown to player)",
@@ -171,7 +171,7 @@ def main():
         # render_block : INTERNAL at INFO level, exposed only in DEBUG/TRACE (R4)
         sys.path.insert(0, HOOKS_DIR)
         import transform_llm_output as _T
-        _pd = [{"emoji": "🎒", "phrase": "Inventaire de Rubis : 3 → 2 objet(s)"}]
+        _pd = [{"emoji": "🎒", "phrase": "Rubis inventory: 3 → 2 item(s)"}]
         check("render_block INFO → empty (internal)", _T.render_block("INFO", _pd, []) == "")
         _bd = _T.render_block("DEBUG", _pd, [])
         check("render_block DEBUG → exposes the delta", "Persisted" in _bd and "3 → 2" in _bd, _bd[:80])
@@ -183,11 +183,11 @@ def main():
         })
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_b2", "message": "⏸️ check",
-            "response": "Narration brute.", "extra": {"model": "m"},
+            "response": "Raw narration.", "extra": {"model": "m"},
         })
         resp = out.get("response", "")
         check("pause ⏸️ : narration preserved + resume banner",
-              "Narration brute." in resp and "▶️" in resp, json.dumps(out)[:120])
+              "Raw narration." in resp and "▶️" in resp, json.dumps(out)[:120])
 
         # ── 4a. bypass !pause : ASCII text alias, identical to ⏸️ ───────────
         print("\n[4a] bypass !pause — text alias")
@@ -198,30 +198,30 @@ def main():
         check("!pause : no context injected", out == {}, json.dumps(out)[:80])
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_pause_cmd", "message": "!pause check",
-            "response": "Narration brute.", "extra": {"model": "m"},
+            "response": "Raw narration.", "extra": {"model": "m"},
         })
         resp = out.get("response", "")
         check("!pause : narration preserved + resume banner",
-              "Narration brute." in resp and "▶️" in resp, json.dumps(out)[:120])
+              "Raw narration." in resp and "▶️" in resp, json.dumps(out)[:120])
 
         # ── 4b. auto-TTS (tts axis) : MEDIA: appended, gating, snapshot ──────
         print("\n[4b] transform_llm_output — narrative voice (auto-TTS, mocked)")
-        narration = ("Tu pousses la lourde porte du donjon. L'air glacial te saisit, chargé "
-                     "d'une odeur de pierre humide et d'un secret plus ancien encore. Au fond "
-                     "de la salle, un trône brisé attend dans la pénombre, et un regard invisible "
-                     "se pose lentement sur toi.")
+        narration = ("You push the heavy dungeon door. The icy air grips you, laden "
+                     "with the smell of damp stone and an even older secret. At the far "
+                     "end of the hall, a broken throne waits in the shadows, and an invisible gaze "
+                     "slowly settles on you.")
         tts_env = {
             "MINIMAX_API_KEY": "test", "MGM_TTS_MOCK": "1", "MGM_TTS_MIN_CHARS": "100",
             "MGM_TTS_FORMAT_MOCK": json.dumps({
-                "script": "Tu pousses la porte. <#1.0#> Un trône brisé.", "emotion": "fearful",
-                "ambiance": "donjon", "moment_cle": True}),
+                "script": "You push the door. <#1.0#> A broken throne.", "emotion": "fearful",
+                "ambiance": "dungeon", "moment_cle": True}),
         }
         out, err = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_tts", "response": narration,
             "extra": {"model": "m"}}, env=tts_env)
         resp = out.get("response", "")
         check("auto-TTS appends a MEDIA:", "MEDIA:" in resp, resp[-80:] if resp else "(empty)")
-        check("original narration preserved", "trône brisé attend" in resp)
+        check("original narration preserved", "broken throne waits" in resp)
 
         # tts axis OFF (env MGM_FEATURE_TTS=0) → no voice
         off_env = dict(tts_env); off_env["MGM_FEATURE_TTS"] = "0"
@@ -232,14 +232,14 @@ def main():
 
         # short narration → silent even with tts axis ON
         out, _ = run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_tts3", "response": "Ok, ça marche.",
+            "cwd": camp, "session_id": "sess_tts3", "response": "Ok, that works.",
             "extra": {"model": "m"}}, env=tts_env)
         check("short narration → no MEDIA:", "MEDIA:" not in json.dumps(out))
 
         # snapshot last_narration written (feeds !raconte), even when Minimax key absent
         nokey = {"MINIMAX_API_KEY": ""}
         run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_tts4", "response": "Une brève scène nocturne.",
+            "cwd": camp, "session_id": "sess_tts4", "response": "A brief nocturnal scene.",
             "extra": {"model": "m"}}, env=nokey)
         snap = os.path.join(camp, ".banquier", "snap-sess_tts4.json")
         snap_ok = os.path.exists(snap) and "last_narration" in open(snap, encoding="utf-8").read()
@@ -249,11 +249,11 @@ def main():
         print("\n[4c] transform_llm_output — player channel scrub")
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_scrub1",
-            "response": "Berthe te tend une anguille.\n\n```python\nx = load_pnj()\n```\n\nElle sourit.",
+            "response": "Berthe hands you an eel.\n\n```python\nx = load_pnj()\n```\n\nShe smiles.",
             "extra": {"model": "m"}})
         resp = out.get("response", "")
         check("code block removed from player channel", "```" not in resp and "load_pnj" not in resp, resp[:120])
-        check("narration preserved around code", "anguille" in resp and "sourit" in resp)
+        check("narration preserved around code", "eel" in resp and "smiles" in resp)
 
         # 100% code response → neutral fallback, never a no-op (original would leak otherwise)
         out, _ = run_hook("transform_llm_output.py", {
@@ -266,15 +266,15 @@ def main():
         # bypass ⏸️ : admin sees everything, no scrub (but pause banner added)
         out, _ = run_hook("transform_llm_output.py", {
             "cwd": camp, "session_id": "sess_scrub3", "message": "⏸️ debug",
-            "response": "Texte.\n```python\nprint(1)\n```", "extra": {"model": "m"}})
+            "response": "Text.\n```python\nprint(1)\n```", "extra": {"model": "m"}})
         resp = out.get("response", "")
         check("bypass ⏸️ → code not scrubbed", "print(1)" in resp and "```" in resp, json.dumps(out)[:120])
         check("pause ⏸️ → resume banner added", "▶️" in resp, json.dumps(out)[:120])
 
-        # explicit exception "MJ, montre-moi" : no scrub (no-op → original delivered as-is),
+        # explicit exception "MJ, show me" : no scrub (no-op → original delivered as-is),
         # whereas the same all-code response is rewritten outside the exception (cf. sess_scrub2).
         out, _ = run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_scrub4", "message": "MJ, montre-moi le script",
+            "cwd": camp, "session_id": "sess_scrub4", "message": "MJ, show me the script",
             "response": "```python\nimport json\njson.load(open('npcs.json'))\n```", "extra": {"model": "m"}})
         check("explicit request → no scrub (no-op)", out == {}, json.dumps(out)[:80])
 
@@ -283,14 +283,14 @@ def main():
         camp2 = build_fixture(os.path.join(root, "strict"), strict=True)
         out, _ = run_hook("pre_tool_call.py", {
             "cwd": camp2, "session_id": "s", "tool_name": "write_file",
-            "tool_input": {"path": "sessions/009.json", "content": "{ casse: pas du json"},
+            "tool_input": {"path": "sessions/009.json", "content": "{ broken: not json"},
         })
         check("write blocked (action=block)", out.get("action") == "block", json.dumps(out)[:120])
         # advisory mode : non-blocking
         camp3 = build_fixture(os.path.join(root, "advisory"), strict=False)
         out, _ = run_hook("pre_tool_call.py", {
             "cwd": camp3, "session_id": "s", "tool_name": "write_file",
-            "tool_input": {"path": "sessions/009.json", "content": "{ casse"},
+            "tool_input": {"path": "sessions/009.json", "content": "{ broken"},
         })
         check("not blocked in advisory mode", out.get("action") != "block", json.dumps(out)[:120])
 
@@ -307,14 +307,14 @@ def main():
         sidj = "sess_judge"
         VIOL = json.dumps({"ok": False, "violations": [{
             "domaine": "conduite", "regle": "AGENTIVITE",
-            "extrait": "la peur te saisit et tu recules",
-            "pourquoi": "réaction imposée au PJ", "correction": "décris seulement ce qu'il perçoit",
+            "extrait": "fear grips you and you step back",
+            "pourquoi": "imposed reaction on the PC", "correction": "describe only what they perceive",
         }]})
-        long_resp = ("La peur te saisit et tu recules dans l'ombre tandis que le vent "
-                     "hurle entre les pierres glacées du vieux temple oublié.")
+        long_resp = ("Fear grips you and you step back into the shadows as the wind "
+                     "howls between the frozen stones of the forgotten old temple.")
         # turn 1 : pre_llm_call then transform with mocked violation
         run_hook("pre_llm_call.py", {"cwd": campj, "session_id": sidj,
-                                     "message": "j'avance prudemment", "extra": {"model": "deepseek/x"}})
+                                     "message": "I advance carefully", "extra": {"model": "deepseek/x"}})
         out, _ = run_hook("transform_llm_output.py",
                           {"cwd": campj, "session_id": sidj, "response": long_resp,
                            "extra": {"model": "deepseek/x"}},
@@ -328,7 +328,7 @@ def main():
             check("conduct violation counted", data.get("infractions_conduite", 0) == 1, json.dumps(data))
         # turn 2 : pre_llm_call reinjects the feedback and clears it
         out, _ = run_hook("pre_llm_call.py", {"cwd": campj, "session_id": sidj,
-                                              "message": "je continue", "extra": {"model": "deepseek/x"}},
+                                              "message": "I continue", "extra": {"model": "deepseek/x"}},
                           env={})
         check("feedback reinjected on next turn", "CORRECTION" in out.get("context", ""), out.get("context", "")[:80])
         check("pending cleared after reinjection", not _pending_has_text(pend))
@@ -351,7 +351,7 @@ def main():
         check("1st attempt : violation reported (exit 1)", code1 == 1 and "AGENTIVITE" in out1, out1[:80])
         out2, code2 = run_cli("mj_checkpoint.py", args=["--draft", long_resp], cwd=campj,
                               env={"MGM_JUDGE_MOCK": VIOL})
-        check("2nd attempt : FORCED to avoid looping (exit 0)", code2 == 0 and "FORCÉ" in out2, out2[:80])
+        check("2nd attempt : FORCED to avoid looping (exit 0)", code2 == 0 and "FORCED" in out2, out2[:80])
         outok, codeok = run_cli("mj_checkpoint.py", args=["--draft", long_resp], cwd=campj,
                                 env={"MGM_JUDGE_MOCK": json.dumps({"ok": True})})
         check("checkpoint OK when nothing to report (exit 0)", codeok == 0 and "OK" in outok, outok[:80])
@@ -377,17 +377,17 @@ def main():
         print("\n[11b] pre_llm_call — persistent pause mode ⏸️ … ▶️")
         sidp = "sess_pausemode"
         out, _ = run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sidp,
-                                              "message": "⏸️ on coupe", "extra": {"model": "m"}})
+                                              "message": "⏸️ pausing now", "extra": {"model": "m"}})
         check("⏸️ arms the mode (no context)", out == {}, json.dumps(out)[:80])
         # NEXT turn without marker, same session → still paused (persistent).
         out, _ = run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sidp,
-                                              "message": "note hors-jeu", "extra": {"model": "m"}})
+                                              "message": "out-of-game note", "extra": {"model": "m"}})
         check("next turn without marker → still paused", out == {}, json.dumps(out)[:80])
         # ▶️ lifts the mode → state injection resumes from this turn.
         out, _ = run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sidp,
-                                              "message": "▶️ on reprend", "extra": {"model": "m"}})
+                                              "message": "▶️ resuming now", "extra": {"model": "m"}})
         check("▶️ lifts the mode → context reinjected",
-              "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""), json.dumps(out)[:80])
+              "AUTHORITATIVE STATE" in out.get("context", ""), json.dumps(out)[:80])
         # Text alias : !pause … !reprise.
         sidp2 = "sess_pausemode2"
         run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sidp2,
@@ -395,17 +395,17 @@ def main():
         out, _ = run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sidp2,
                                               "message": "!reprise", "extra": {"model": "m"}})
         check("!reprise also lifts the mode",
-              "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""), json.dumps(out)[:80])
+              "AUTHORITATIVE STATE" in out.get("context", ""), json.dumps(out)[:80])
         # On the transform side : pause banner on each persistent turn, then confirmation at ▶️.
         run_hook("pre_llm_call.py", {"cwd": camp, "session_id": "sess_pm3",
-                                     "message": "⏸️ aparté", "extra": {"model": "m"}})
+                                     "message": "⏸️ aside", "extra": {"model": "m"}})
         out, _ = run_hook("transform_llm_output.py", {"cwd": camp, "session_id": "sess_pm3",
-                                                      "response": "Note technique.", "extra": {"model": "m"}})
+                                                      "response": "Technical note.", "extra": {"model": "m"}})
         check("turn in persistent pause (without marker) → ▶️ banner displayed",
-              "▶️" in out.get("response", "") and "Note technique." in out.get("response", ""),
+              "▶️" in out.get("response", "") and "Technical note." in out.get("response", ""),
               json.dumps(out)[:100])
         out, _ = run_hook("transform_llm_output.py", {"cwd": camp, "session_id": "sess_pm3",
-                                                      "message": "▶️ on reprend", "response": "On repart à l'aventure.",
+                                                      "message": "▶️ resuming now", "response": "Back to the adventure.",
                                                       "extra": {"model": "m"}})
         check("▶️ turn → game resume confirmation",
               "Game resumed" in out.get("response", ""), json.dumps(out)[:100])
@@ -415,7 +415,7 @@ def main():
         campa = build_fixture(os.path.join(root, "adminjudge"), judge=True)
         ADMIN = "999000111"  # listed in meta.admins of the fixture
         run_hook("pre_llm_call.py", {"cwd": campa, "session_id": "sa", "author_id": ADMIN,
-                                     "message": "je teste", "extra": {"model": "deepseek/x"}})
+                                     "message": "I am testing", "extra": {"model": "deepseek/x"}})
         run_hook("transform_llm_output.py",
                  {"cwd": campa, "session_id": "sa", "author_id": ADMIN, "response": long_resp,
                   "extra": {"model": "deepseek/x"}},
@@ -424,14 +424,14 @@ def main():
               _pending_has_text(os.path.join(campa, ".banquier", "pending-sa.json")))
         # The correction is reinjected even on the next admin turn (otherwise it would never be corrected).
         out, _ = run_hook("pre_llm_call.py", {"cwd": campa, "session_id": "sa", "author_id": ADMIN,
-                                              "message": "suite", "extra": {"model": "deepseek/x"}})
+                                              "message": "continuing", "extra": {"model": "deepseek/x"}})
         check("correction reinjected even on admin turn",
               "CORRECTION" in out.get("context", ""), out.get("context", "")[:80])
         # BUT an EXPLICIT pause ⏸️ does suspend the judge, admin or not.
         run_hook("pre_llm_call.py", {"cwd": campa, "session_id": "sp", "author_id": ADMIN,
-                                     "message": "⏸️ aparté", "extra": {"model": "deepseek/x"}})
+                                     "message": "⏸️ aside", "extra": {"model": "deepseek/x"}})
         run_hook("transform_llm_output.py",
-                 {"cwd": campa, "session_id": "sp", "author_id": ADMIN, "message": "⏸️ aparté",
+                 {"cwd": campa, "session_id": "sp", "author_id": ADMIN, "message": "⏸️ aside",
                   "response": long_resp, "extra": {"model": "deepseek/x"}},
                  env={"MGM_JUDGE_MOCK": VIOL})
         check("explicit pause ⏸️ suspends the judge (no pending)",
@@ -486,7 +486,7 @@ def main():
         campb = build_fixture(os.path.join(root, "brokencommit"), auto_commit=None)
         sb_path = os.path.join(campb, "sessions", "009.json")
         with open(sb_path, "w", encoding="utf-8") as fh:
-            fh.write("{ casse pas du json")
+            fh.write("{ broken not json")
         run_hook("post_tool_call.py", {
             "cwd": campb, "session_id": "sb", "tool_name": "write_file",
             "tool_input": {"path": "sessions/009.json"},
@@ -524,8 +524,8 @@ def main():
 
         # transform_llm_output: FR pause banner end-to-end (subprocess).
         outfr, _ = run_hook("transform_llm_output.py", {
-            "cwd": campfr, "session_id": "sfr", "message": "⏸️ aparté",
-            "response": "Une longue narration." * 5, "extra": {"model": "m"}})
+            "cwd": campfr, "session_id": "sfr", "message": "⏸️ aside",
+            "response": "A long narration." * 5, "extra": {"model": "m"}})
         check("FR pause banner via transform", "Pause active — la partie" in outfr.get("response", ""),
               json.dumps(outfr)[:120])
         # ── 14. NPC emotions injection (skill mygamemaster-emotions) ─────────
@@ -564,17 +564,17 @@ def main():
             "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
         check("axis OFF → no emotions block, turn intact",
               "NPC EMOTIONS" not in out.get("context", "")
-              and "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""))
+              and "AUTHORITATIVE STATE" in out.get("context", ""))
         # 13d — broken npcs.json → fail-open (state injection survives, no block).
         mondem["meta"]["features"] = {}
         write_json(os.path.join(campm, "world.json"), mondem)
         with open(pnjm, "w", encoding="utf-8") as fh:
-            fh.write("{ pas du json")
+            fh.write("{ not json")
         out, _ = run_hook("pre_llm_call.py", {
             "cwd": campm, "session_id": "sm", "message": "x", "extra": {"model": "m"}})
         check("broken npcs.json → fail-open (no block, no crash)",
               "NPC EMOTIONS" not in out.get("context", "")
-              and "ÉTAT FAISANT AUTORITÉ" in out.get("context", ""))
+              and "AUTHORITATIVE STATE" in out.get("context", ""))
 
     finally:
         shutil.rmtree(root, ignore_errors=True)

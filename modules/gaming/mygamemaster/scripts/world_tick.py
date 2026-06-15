@@ -38,10 +38,10 @@ inter-script dependencies, contract §0.9 / §7). Robust to ABSENCE of
 `causal_propagate` (parallel development): degraded propagation if unavailable.
 
 CLI:
-  world_tick.py pre   <campagne> [--t-session T] [--cone <f|->] [--apply] [--json]
-  world_tick.py post  <campagne> [--session <NNN|fichier>] [--apply] [--json]
-  world_tick.py lod   <campagne> [--t T] [--json]
-  world_tick.py actor <campagne> promote|demote <acteur_id> [--apply]
+  world_tick.py pre   <campaign> [--t-session T] [--cone <f|->] [--apply] [--json]
+  world_tick.py post  <campaign> [--session <NNN|file>] [--apply] [--json]
+  world_tick.py lod   <campaign> [--t T] [--json]
+  world_tick.py actor <campaign> promote|demote <actor_id> [--apply]
 
 See contract `docs/monde-vivant/08-contrat-implementation.md` §6, §7, §13, §14.
 """
@@ -295,7 +295,7 @@ def appliquer_consequence(acteur: dict, intention: dict,
     Returns {'ok':True, 'changements':[…]} otherwise.
     """
     if not isinstance(acteur, dict) or not isinstance(intention, dict):
-        return {"ok": False, "motif": "acteur ou intention invalide.", "changements": []}
+        return {"ok": False, "motif": "actor or intention invalid.", "changements": []}
 
     effets = intention.get("consequence_effets")
     changements: list[str] = []
@@ -308,7 +308,7 @@ def appliquer_consequence(acteur: dict, intention: dict,
     ressources = acteur.setdefault("ressources", {})
     if isinstance(deltas, dict):
         if not isinstance(ressources, dict):
-            return {"ok": False, "motif": "ressources de l'acteur non conformes.",
+            return {"ok": False, "motif": "actor resources are not well-formed.",
                     "changements": changements}
         projete = dict(ressources)
         for clef, delta in deltas.items():
@@ -321,8 +321,8 @@ def appliquer_consequence(acteur: dict, intention: dict,
             if nouvelle < 0:
                 return {
                     "ok": False,
-                    "motif": (f"conservation violée : ressource « {clef} » deviendrait "
-                              f"négative ({base} + {delta} = {nouvelle})."),
+                    "motif": (f"conservation violation: resource « {clef} » would become "
+                              f"negative ({base} + {delta} = {nouvelle})."),
                     "changements": changements,
                 }
             projete[clef] = nouvelle
@@ -362,7 +362,7 @@ def appliquer_consequence(acteur: dict, intention: dict,
                         "motif": "trajectoire invalide : " + " ; ".join(viol),
                         "changements": changements}
             traj.append(seg)
-            changements.append(f"trajectoire +séjour@{seg.get('lieu')}")
+            changements.append(f"trajectory +stay@{seg.get('lieu')}")
 
     return {"ok": True, "changements": changements}
 
@@ -531,7 +531,7 @@ def projeter_croisements(campagne: Path, cone: dict,
     For each warm actor: geo_query.croisement(traj(cone), traj(actor),
     seuil). Aggregates and sorts by ascending T. This is the step "does the player
     cross the raid / migration?" (doc 03 §3). DEGRADED mode (geo_query unavailable)
-    → []. Each entry: {'acteur','T','lieu','distance','narratif'}.
+    → []. Each entry: {'actor','T','lieu','distance','narratif'}.
     """
     croisements: list[dict] = []
     if G is None:
@@ -618,7 +618,7 @@ def _trajectoire_cone(cone: dict | None, geo: dict) -> list[dict]:
         arrivee = t_courant + max(duree, pas_t if pas_t > 0 else duree)
         segments.append({
             "type": "deplacement", "de": t_courant, "a": arrivee,
-            "chemin": list(pc["chemin"]), "motif": "cône joueur (projection)",
+            "chemin": list(pc["chemin"]), "motif": "player cone (projection)",
         })
         t_courant = arrivee
     if ok_chaine and segments:
@@ -648,7 +648,7 @@ def agent_decide(acteur: dict, brief: str, campagne: Path) -> dict:
 
     INJECTABLE implementation:
       * default OFFLINE / DETERMINISTIC (this code): returns a STUB intention
-        marked {'statut':'planifie','action':'(à décider) …'} derived from the
+        marked {'statut':'planifie','action':'(to decide) …'} derived from the
         actor's long-term goal, WITHOUT any network call (ideal for tests & pure
         stdlib dev);
       * LLM implementation (gemma-4 via `hermes -p acteur-<slug>`): wired by
@@ -721,16 +721,16 @@ def _intention_stub(acteur: dict, campagne: Path) -> dict:
 
     Depends on no network. The default deadline is pushed back by a reasonable
     horizon (1 game week = 7 days) after the current T, so the plan "breathes"
-    without being immediately due again. `action` marked "(à décider)" to
+    without being immediately due again. `action` marked "(to decide)" to
     signal to the GM that a real LLM decision will replace this placeholder.
     """
     aid = acteur.get("id", "actor")
-    but = acteur.get("but_long_terme", "") or "poursuivre ses objectifs"
+    but = acteur.get("but_long_terme", "") or "pursue their objectives"
     try:
         T_now = W.t_courant(Path(campagne))
     except Exception:
         T_now = 0
-    echeance = T_now + 7 * W.UT_PAR_JOUR     # +7 jours
+    echeance = T_now + 7 * W.UT_PAR_JOUR     # +7 days
 
     # Location: base/last stay of the actor if it exists (otherwise null).
     lieu = _lieu_courant_acteur(acteur)
@@ -738,11 +738,11 @@ def _intention_stub(acteur: dict, campagne: Path) -> dict:
     base_slug = W.slug(but)[:32] or "suite"
     return {
         "id": f"intent:suite-{base_slug}",
-        "action": f"(à décider) Poursuivre : {but}",
+        "action": f"(to decide) Continue: {but}",
         "lieu": lieu,
         "echeance": int(echeance),
         "echeance_source": {
-            "texte": "Horizon par défaut (reconduction du but) — 1 semaine de jeu",
+            "texte": "Default horizon (goal renewal) — 1 game week",
             "unite": "jour",
             "min": 7, "max": 7,
             "ancre": W.t_vers_jour_heure(T_now)[0],
@@ -750,8 +750,8 @@ def _intention_stub(acteur: dict, campagne: Path) -> dict:
         },
         "preconditions": [],
         "consequence_attendue": (
-            "Reconduction déterministe du but long terme (placeholder seam LLM). "
-            "Sera remplacée par une intention décidée par l'agent de l'acteur."),
+            "Deterministic renewal of the long-term goal (LLM seam placeholder). "
+            "Will be replaced by an intention decided by the actor's agent."),
         "significativite": 0.3,
         "visible_par_pj": False,
         "statut": "planifie",
@@ -1131,23 +1131,23 @@ def _brief_acteur(campagne: Path, acteur: dict, emis: list[dict]) -> str:
     Aligned with build_brief.py (existing): we give ONLY the relevant to the actor's
     agent (anti-knowledge-leak, doc 02 §3). No network call here.
     """
-    lignes = [f"=== BRIEF ACTEUR : {acteur.get('nom', acteur.get('id'))} ==="]
-    lignes.append(f"But long terme : {acteur.get('but_long_terme', '')}")
+    lignes = [f"=== ACTOR BRIEF: {acteur.get('nom', acteur.get('id'))} ==="]
+    lignes.append(f"Long-term goal: {acteur.get('but_long_terme', '')}")
     motifs = acteur.get("motivations", [])
     if isinstance(motifs, list) and motifs:
-        lignes.append("Motivations : " + ", ".join(str(m) for m in motifs))
-    lignes.append(f"Situation : {acteur.get('situation', '')}")
+        lignes.append("Motivations: " + ", ".join(str(m) for m in motifs))
+    lignes.append(f"Situation: {acteur.get('situation', '')}")
     res = acteur.get("ressources", {})
     if isinstance(res, dict) and res:
-        lignes.append("Ressources : "
+        lignes.append("Resources: "
                       + ", ".join(f"{k}={v}" for k, v in res.items()))
     if emis:
-        lignes.append("Événements récents te concernant :")
+        lignes.append("Recent events concerning you:")
         for e in emis:
             lignes.append(f"  • {e.get('label') or e.get('id')} "
                           f"({W.t_vers_narratif(e.get('T', 0))})")
-    lignes.append("Question : Quelle est ta prochaine intention ?")
-    lignes.append("=== FIN BRIEF ===")
+    lignes.append("Question: What is your next intention?")
+    lignes.append("=== END BRIEF ===")
     return "\n".join(lignes)
 
 
@@ -1285,7 +1285,7 @@ def extraire_faits_joueur(session: dict) -> list[dict]:
     """Extracts the player's FACTS from a session log (what ACTUALLY happened).
 
     Reads the usual fields of a MJ Tonnerre session log: `actions`,
-    `lieux_visites`, `pnj_rencontres`, `etat_fin`. Each fact:
+    `npcs_met`, `visited_locations`, `etat_fin`. Each fact:
       {'type':…, 'libelle':str, 'cible':str|None, 'a_consequences':bool}.
     Robust to partial/null formats (fail-open). DETERMINISTIC.
     """
@@ -1313,14 +1313,14 @@ def extraire_faits_joueur(session: dict) -> list[dict]:
     for pnj in session.get("npcs_met", []) or []:
         nom = pnj if isinstance(pnj, str) else (pnj.get("name") if isinstance(pnj, dict) else None)
         if nom:
-            faits.append({"type": "rencontre", "libelle": f"Rencontre : {nom}",
+            faits.append({"type": "rencontre", "libelle": f"Encounter: {nom}",
                           "cible": str(nom), "a_consequences": False})
 
     # Locations visited → presence fact (useful for position reconciliation).
     for lieu in session.get("visited_locations", []) or []:
         nom = lieu if isinstance(lieu, str) else (lieu.get("name") if isinstance(lieu, dict) else None)
         if nom:
-            faits.append({"type": "presence", "libelle": f"Visité : {nom}",
+            faits.append({"type": "presence", "libelle": f"Visited: {nom}",
                           "cible": str(nom), "a_consequences": False})
 
     # End state: key leads/NPCs → context (no direct mechanical consequence).
@@ -1341,9 +1341,16 @@ def _action_a_consequences(texte: str) -> bool:
     if not isinstance(texte, str):
         return False
     t = texte.lower()
-    mots = ("tue", "tué", "attaqu", "incendi", "brûl", "brule", "détru", "detru",
-            "pille", "vol", "libèr", "liber", "sauve", "escorte", "trahi",
-            "alli", "négoci", "negoci", "menace", "défend", "defend", "fond")
+    mots = (
+        # FR stems
+        "tue", "tué", "attaqu", "incendi", "brûl", "brule", "détru", "detru",
+        "pille", "vol", "libèr", "liber", "sauve", "escorte", "trahi",
+        "alli", "négoci", "negoci", "menace", "défend", "defend", "fond",
+        # EN stems
+        "kill", "attack", "burn", "set fire", "destroy", "raid", "loot",
+        "steal", "free", "rescue", "escort", "betray", "ally", "negotiat",
+        "threaten", "defend", "found",
+    )
     return any(m in t for m in mots)
 
 
@@ -1369,7 +1376,7 @@ def reconcilier_etat(acteur: dict, faits_joueur: list[dict], geo: dict) -> dict:
         targeted 'planifie' intentions as 'echoue' and signals plan_perturbe;
       * otherwise, plan unchanged (the column arrives alone at the pass — doc 03
         §4 "ignored").
-    Mutates the actor IN PLACE. Returns {'acteur','changements':[…],'plan_perturbe':bool}.
+    Mutates the actor IN PLACE. Returns {'actor','changements':[…],'plan_perturbe':bool}.
     """
     changements: list[str] = []
     plan_perturbe = False
@@ -1383,10 +1390,10 @@ def reconcilier_etat(acteur: dict, faits_joueur: list[dict], geo: dict) -> dict:
             if intention.get("statut") in ("planifie", "en_cours"):
                 intention["statut"] = "echoue"
                 plan_perturbe = True
-                changements.append(f"intention « {intention.get('id')} » → echoue (action joueur)")
+                changements.append(f"intention « {intention.get('id')} » → echoue (player action)")
         if plan_perturbe:
             acteur["situation"] = (acteur.get("situation", "")
-                                   + " [Plan perturbé par l'intervention du joueur.]").strip()
+                                   + " [Plan disrupted by player intervention.]").strip()
 
     return {"actor": acteur.get("id"), "changements": changements,
             "plan_perturbe": plan_perturbe}
@@ -1398,19 +1405,19 @@ def renouveler_plan(acteur: dict, faits_joueur: list[dict], campagne: Path) -> d
     Prepares a brief (including the disruption reason) and calls agent_decide
     for a NEW intention (short-term goal → continuation). Validates (schema +
     invariants); refusal → rethinks ONCE; failure → no intention inserted.
-    Mutates the actor IN PLACE. Returns {'acteur','intention':…|None,'refus':[…]}.
+    Mutates the actor IN PLACE. Returns {'actor','intention':…|None,'refus':[…]}.
     """
     refus: list[str] = []
     brief = _brief_acteur(campagne, acteur, [])
-    brief += "\n[Contexte : ton plan précédent a été perturbé — propose une suite.]"
+    brief += "\n[Context: your previous plan was disrupted — propose a follow-up.]"
 
     for tentative in range(2):     # one retry max (feed-forward)
         intention = agent_decide(acteur, brief, campagne)
         if intention and valider_intention(intention):
             _inserer_intention(acteur, intention)
             return {"actor": acteur.get("id"), "intention": intention, "refus": refus}
-        refus.append(f"tentative #{tentative + 1} refusée (schéma/invariants).")
-        brief += f"\n[Refus précédent : {refus[-1]} — corrige.]"
+        refus.append(f"attempt #{tentative + 1} rejected (schema/invariants).")
+        brief += f"\n[Previous rejection: {refus[-1]} — fix it.]"
 
     return {"actor": acteur.get("id"), "intention": None, "refus": refus}
 
@@ -1429,20 +1436,20 @@ def _evenement_depuis_fait(fait: dict, campagne: Path,
         T = W.t_courant(Path(campagne))
     except Exception:
         T = 0
-    libelle = str(fait.get("libelle", "action du joueur"))
+    libelle = str(fait.get("libelle", "player action"))
     type_evt = _type_fait(libelle)
-    slug = W.slug(libelle)[:32] or "action-joueur"
+    slug = W.slug(libelle)[:32] or "player-action"
     evt = {
         "id": f"evt:{slug}-{int(T):05d}",
         "T": int(T),
         "type": type_evt,
         "cible": fait.get("cible") or pj_id,
         "actor": pj_id,
-        "cause": "joueur",
+        "cause": "player",
         "significativite": 0.6,
         "statut": "resolu",
         "label": libelle,
-        "consequence_attendue": "Conséquence d'une action du joueur (propagation).",
+        "consequence_attendue": "Consequence of a player action (propagation).",
         "visible_par_pj": True,
         "narratif": None,
         "source": "world_tick.py (post)",
@@ -1453,11 +1460,21 @@ def _evenement_depuis_fait(fait: dict, campagne: Path,
 def _type_fait(libelle: str) -> str:
     """Event type deduced from a player fact label (deterministic)."""
     t = (libelle or "").lower()
+    # NOTE: the emitted TYPE values (incendie, attaque, raid, secours, diplomatie,
+    # alliance, trahison, fondation) are load-bearing keys consumed by
+    # causal_propagate.py — they stay French. Only the MATCH stems carry EN aliases.
     for mot, typ in (("incendi", "incendie"), ("brûl", "incendie"), ("brule", "incendie"),
-                     ("tue", "attaque"), ("attaqu", "attaque"), ("pille", "raid"),
+                     ("burn", "incendie"), ("set fire", "incendie"),
+                     ("tue", "attaque"), ("attaqu", "attaque"),
+                     ("kill", "attaque"), ("attack", "attaque"),
+                     ("pille", "raid"), ("raid", "raid"), ("loot", "raid"),
                      ("escorte", "secours"), ("sauve", "secours"), ("défend", "secours"),
-                     ("negoci", "diplomatie"), ("négoci", "diplomatie"), ("alli", "alliance"),
-                     ("trahi", "trahison"), ("fond", "fondation")):
+                     ("escort", "secours"), ("rescue", "secours"), ("defend", "secours"),
+                     ("negoci", "diplomatie"), ("négoci", "diplomatie"),
+                     ("negotiat", "diplomatie"),
+                     ("alli", "alliance"), ("ally", "alliance"),
+                     ("trahi", "trahison"), ("betray", "trahison"),
+                     ("fond", "fondation"), ("found", "fondation")):
         if mot in t:
             return typ
     return "action"
@@ -1663,7 +1680,7 @@ def cmd_post(args) -> int:
               f"{len(res['propagations'])} propagation(s)")
         for r in res["reconciliations"]:
             if r.get("changements"):
-                print(f"   • {r['acteur']} : " + " ; ".join(r["changements"]))
+                print(f"   • {r['actor']} : " + " ; ".join(r["changements"]))
         if args.apply and res["ecritures"]:
             print("   ✅ Writes: " + " ; ".join(res["ecritures"]))
         elif not args.apply:
@@ -1693,7 +1710,7 @@ def cmd_lod(args) -> int:
         print(f"🌡  LOD — {camp.name} — {W.t_vers_narratif(T_a)}")
         for r in rangs:
             marq = {"chaud": "🔴", "tiede": "🟠", "froid": "🟢"}.get(r["lod"], "·")
-            print(f"   {marq} {r['lod']:6s} {r['acteur']} ({r['nom']})")
+            print(f"   {marq} {r['lod']:6s} {r['actor']} ({r['name']})")
     return 0
 
 
@@ -1747,17 +1764,17 @@ def build_parser() -> argparse.ArgumentParser:
         description="Living world tick engine (MJ Tonnerre) — pre/post.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Exemples :\n"
-            "  python3 world_tick.py pre  <campagne> --t-session 3960 --json\n"
-            "  python3 world_tick.py pre  <campagne> --cone cone.json --apply\n"
-            "  python3 world_tick.py post <campagne> --session 009 --apply\n"
-            "  python3 world_tick.py lod  <campagne> --t 3960\n"
-            "  python3 world_tick.py actor <campagne> promote acteur:la-corneille --apply\n"
+            "Examples:\n"
+            "  python3 world_tick.py pre  <campaign> --t-session 3960 --json\n"
+            "  python3 world_tick.py pre  <campaign> --cone cone.json --apply\n"
+            "  python3 world_tick.py post <campaign> --session 009 --apply\n"
+            "  python3 world_tick.py lod  <campaign> --t 3960\n"
+            "  python3 world_tick.py actor <campaign> promote acteur:la-corneille --apply\n"
             "\nLLM seam: agent_decide is a deterministic STUB by default. To wire a real\n"
             "model, export MGM_AGENT_DECIDE_CMD (e.g. 'hermes -p acteur-{slug}').\n"
         ),
     )
-    sub = ap.add_subparsers(dest="commande", required=True)
+    sub = ap.add_subparsers(dest="command", required=True)
 
     def _ajout_json(p):
         p.add_argument("--json", action="store_true", dest="as_json",
@@ -1765,7 +1782,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # pre
     p = sub.add_parser("pre", help="Projection + staging (before the session).")
-    p.add_argument("campagne", help="Path to the campaign folder.")
+    p.add_argument("campagne", metavar="campaign", help="Path to the campaign folder.")
     p.add_argument("--t-session", dest="t_session", type=int, default=None,
                    help="Target T (UT) for the session. Default: t_courant.")
     p.add_argument("--cone", default=None,
@@ -1778,7 +1795,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # post
     p = sub.add_parser("post", help="Reconciliation (after the session).")
-    p.add_argument("campagne")
+    p.add_argument("campagne", metavar="campaign")
     p.add_argument("--session", default=None,
                    help="Number '<NNN>', file path, or last session if absent.")
     p.add_argument("--apply", action="store_true",
@@ -1788,16 +1805,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     # lod
     p = sub.add_parser("lod", help="Classify and display the LOD of each actor.")
-    p.add_argument("campagne")
+    p.add_argument("campagne", metavar="campaign")
     p.add_argument("--t", type=int, default=None, help="Instant T (UT). Default: t_courant.")
     _ajout_json(p)
     p.set_defaults(func=cmd_lod)
 
     # actor
     p = sub.add_parser("actor", help="Promote/demote an actor (major ↔ reactive).")
-    p.add_argument("campagne")
+    p.add_argument("campagne", metavar="campaign")
     p.add_argument("operation", choices=["promote", "demote"])
-    p.add_argument("acteur_id")
+    p.add_argument("acteur_id", metavar="actor_id")
     p.add_argument("--apply", action="store_true", help="Write actors.json (atomic).")
     _ajout_json(p)
     p.set_defaults(func=cmd_actor)

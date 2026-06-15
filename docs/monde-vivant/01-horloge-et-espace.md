@@ -125,7 +125,7 @@ space **4D** and solves the migration example.
 ```json
 {
   "id": "lieu:tonnerre/place-du-marche/eglise",
-  "nom": "Église Saint-Aubin",
+  "nom": "Saint-Aubin Church",
   "parent": "lieu:tonnerre/place-du-marche",
   "type": "edifice",
   "altitude": 215,

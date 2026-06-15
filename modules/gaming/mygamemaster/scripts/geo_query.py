@@ -12,22 +12,22 @@ This module is both:
   * IMPORTABLE — `from geo_query import ou_est, qui_est_a, voisins, chemin,
     distance, dans_rayon, croisement, creer_lieu, deplacer, valider_geo` ;
   * EXECUTABLE — CLI `argparse` with subcommands (first positional = campaign),
-    messages in French, markers (📍 ➜ ⏱ ⚠), optional `--json` output.
+    messages in English, markers (📍 ➜ ⏱ ⚠), optional `--json` output.
 
 Subcommands (map 1-1 to functions):
-  build       <campagne> [--apply] [--force]      generates geo.json (containment +
+  build       <campaign> [--apply] [--force]      generates geo.json (containment +
                                                   adjacency + MDS anchor)
-  ou-est      <campagne> <entite_id> [--t T]
-  qui-est-a   <campagne> <lieu_id> [--t T] [--rayon R]
-  voisins     <campagne> <lieu_id>
-  chemin      <campagne> <a> <b>
-  distance    <campagne> <a> <b> [--vol-d-oiseau]
-  dans-rayon  <campagne> <point_id> <rayon> [--t T]
-  croisement  <campagne> --traj-a <f|-|@id> --traj-b <f|-|@id> --seuil D [--pas-ut N]
-  creer-lieu  <campagne> --nom STR --depuis ID --dir DIR --distance-m M [--type T]
+  ou-est      <campaign> <entite_id> [--t T]
+  qui-est-a   <campaign> <lieu_id> [--t T] [--rayon R]
+  voisins     <campaign> <lieu_id>
+  chemin      <campaign> <a> <b>
+  distance    <campaign> <a> <b> [--vol-d-oiseau]
+  dans-rayon  <campaign> <point_id> <rayon> [--t T]
+  croisement  <campaign> --traj-a <f|-|@id> --traj-b <f|-|@id> --seuil D [--pas-ut N]
+  creer-lieu  <campaign> --nom STR --depuis ID --dir DIR --distance-m M [--type T]
                           [--parent ID] [--apply]
-  deplacer    <campagne> --entite ID --vers ID --depart-t T [--motif STR] [--apply]
-  valider     <campagne>
+  deplacer    <campaign> --entite ID --vers ID --depart-t T [--motif STR] [--apply]
+  valider     <campaign>
 
 Cross-cutting conventions (contract §0):
   * source of truth = files; no state outside files;
@@ -1093,7 +1093,7 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
     # Reciprocal edge depuis <-> nouvel_id.
     arete_aller = {
         "vers": nouvel_id, "dir": direction, "distance_m": dm,
-        "temps_ut": ut_estime, "voie": f"{nom} (déclaré depuis {idx[depuis].get('nom', depuis)})",
+        "temps_ut": ut_estime, "voie": f"{nom} (declared from {idx[depuis].get('nom', depuis)})",
     }
     arete_retour = {
         "vers": depuis, "dir": _OPPOSE_DIR.get(direction, "?"),
@@ -1333,7 +1333,7 @@ def _valider_objet_geo(geo: dict) -> dict:
 
     Implements the structural invariants of the graph (contract §4.3, doc 01 §5):
       (1) Attachment — valid parent + ≥ 1 edge (except root regions);
-      (2) Reference  — every arête.vers exists;
+      (2) Reference  — every edge.vers exists;
       (and types/anchors well-formed).
     Continuity/monotonicity (3,4) concern the trajectories in actors.json (cf.
     valider_trajectoire) and duration governance (5) is delegated to the distance
@@ -1768,11 +1768,11 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python3 geo_query.py build <campagne> --apply\n"
-            "  python3 geo_query.py voisins <campagne> lieu:<region>/<lieu>\n"
-            "  python3 geo_query.py chemin <campagne> "
+            "  python3 geo_query.py build <campaign> --apply\n"
+            "  python3 geo_query.py voisins <campaign> lieu:<region>/<lieu>\n"
+            "  python3 geo_query.py chemin <campaign> "
             "lieu:<region>/<lieu-a> lieu:<region>/<lieu-b>\n"
-            "  python3 geo_query.py croisement <campagne> "
+            "  python3 geo_query.py croisement <campaign> "
             "--traj-a @acteur:<id> --traj-b @faction:<id> --seuil 50\n"
         ),
     )

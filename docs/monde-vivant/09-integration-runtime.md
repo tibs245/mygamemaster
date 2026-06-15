@@ -31,7 +31,7 @@
 > **independent**: you can enable just one.
 >
 > **Default activation = OFF.** Unlike the five historical toggles in `hooks_cfg`
-> (`injection_etat`, `banquier_persiste`, … default `True`), the **three new** living world toggles
+> (`injection_state`, `steward_persists`, … default `True`), the **three new** living world toggles
 > are **`False` by default**: the engine is an **explicit opt-in** per campaign
 > (you need `geo.json` + `actors.json` present and aligned for it to make sense). A campaign that
 > doesn't yet have its spatial graph continues **exactly** as today, with zero side effects.
@@ -40,7 +40,7 @@
 
 ## 1. B4 — Declare toggles in `hooks/_lib.py` (PREREQUISITE)
 
-`meta.hooks` is read by **only one** point: `_lib.hooks_cfg(monde)`. We **add** three keys
+`meta.hooks` is read by **only one** point: `_lib.hooks_cfg(world)`. We **add** three keys
 (default `False`). This is the single source of truth for toggles; B1/B2/B3 reuse it.
 
 **File:** `modules/gaming/mygamemaster/hooks/_lib.py`
@@ -68,7 +68,7 @@
 ```
 
 > **Backward compat guaranteed:** a campaign whose `meta.hooks` does not mention these keys (real case:
-> `la-naissance-dun-roi` has `meta.hooks = {}`) gets `brief_scene=False`, `tick_post=False`,
+> `the-birth-of-a-king` has `meta.hooks = {}`) gets `brief_scene=False`, `tick_post=False`,
 > `tick_pre=False` → behavior **identical** to current. No data migration required.
 
 ---
@@ -84,22 +84,22 @@ the extension described in `05`§5: *one extra line, rest of the loop unchanged.
 ### 2.2 The lock: where does `location_id` come from?
 
 `scene_brief.py` requires the **location id of the current scene**. **Fact verified on the real
-campaign:** the PC `acteur:rubis` is **reserved** (contract §2.5) and **is NOT in
-`actors.json`** → `geo_query ou-est acteur:rubis` returns `{}`. We **cannot therefore** deduce
+campaign:** the PC `actor:ruby` is **reserved** (contract §2.5) and **is NOT in
+`actors.json`** → `geo_query where actor:ruby` returns `{}`. We **cannot therefore** deduce
 the player's position from simulated actors. And it's **intentional**: the player decides where they are
-(SKILL.md « Localisation par défaut au démarrage » l. 602–611) — the code must never
+(SKILL.md « Default location at startup » l. 602–611) — the code must never
 invent it.
 
 **Fail-open resolution, by priority order (first match wins):**
 
-1. **Persisted scene hint** `.banquier/scene-<session_id>.json` → key `"lieu_id"`. This hint
+1. **Persisted scene hint** `.steward/scene-<session_id>.json` → key `"lieu_id"`. This hint
    is **written by B3** at session start (resumption location) and **refreshed** by the
-   `post_tool_call` hook when the GM declares a `deplacer` (outside scope of this doc, mentioned in
+   `post_tool_call` hook when the GM declares a `move` (outside scope of this doc, mentioned in
    `07`). This is the **nominal** source.
 2. **Environment variable** `MGM_SCENE_LIEU` (deployment/test escape hatch).
 3. **Otherwise → do NOT inject the brief** (silent skip). We **never guess** a default location. The turn proceeds as today (state as historical authority remains injected).
 
-> Consequence: as long as B3 (or a played `deplacer`) hasn't placed a location hint, B1 is
+> Consequence: as long as B3 (or a played `move`) hasn't placed a location hint, B1 is
 > **inert** — which is the safe behavior and respects player agency.
 
 ### 2.3 The patch
@@ -189,12 +189,12 @@ invent it.
 - **Toggle OFF (default)** → the block `if cfg.get("brief_scene")` is skipped: **zero** calls,
   **zero** cost, behavior identical to current.
 - **Admin bypass / ⏸️** → `handle()` already returns `{}` **before** reaching the `parts` block
-  (line `if bypass or not cfg["injection_etat"]: return {}`): the brief is thus **not** injected
+  (line `if bypass or not cfg["injection_state"]: return {}`): the brief is thus **not** injected
   in pause/admin mode. Consistent.
 - **`scene_brief.py` is itself fail-open** (contract §9.3: exit 0 always, minimal brief on
   failure). The double safeguard (here + in the script) makes the injection harmless.
 - **8 s timeout** aligned with the judge's network calls (`_lib.http_json` timeout 8). In practice
-  `scene_brief` is purely local (reads `geo.json`/`actors.json`/`evenements_programmes.json`)
+  `scene_brief` is purely local (reads `geo.json`/`actors.json`/`scheduled_events.json`)
   so well within.
 - **No writes**: B1 only **reads** and **injects** text.
 
@@ -212,8 +212,8 @@ diagram `06`§1.
 
 ### 3.2 Where, exactly
 
-`close_session.py` chains its guards via the `lancer(script, args)` helper (subprocess,
-capture exit/stdout/stderr) in `executer()`. The current step 4 is `clock.py` (≈ line 218).
+`close_session.py` chains its guards via the `launch(script, args)` helper (subprocess,
+capture exit/stdout/stderr) in `execute()`. The current step 4 is `clock.py` (≈ line 218).
 We insert a **step 5** right after, **guarded by the toggle `tick_post`**, and **non-blocking**
 (a reconciliation that fails must not prevent wrap-up — it just **alerts**).
 

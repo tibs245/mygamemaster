@@ -27,7 +27,9 @@ _FENCE_RE = re.compile(r"```.*?```|~~~.*?~~~", re.S)
 _TRACEBACK_RE = re.compile(
     r"(?ms)^Traceback \(most recent call last\):\n(?:.*\n)*?^[\w.]*(?:Error|Exception|Warning)\b.*$")
 # One-shot exception: the user explicitly asks to see behind the scenes.
-_SHOW_RE = re.compile(r"\bmj\b[\s,]*(montre|dis|affiche|donne)", re.I)
+# Matches EN ("MJ, show/tell/give me…") and FR ("MJ, montre/dis/affiche/donne…").
+_SHOW_RE = re.compile(
+    r"\bmj\b[\s,]*(montre|dis|affiche|donne|show|tell|give|reveal|display)", re.I)
 
 
 def _scrub_player_channel(text):
@@ -132,7 +134,7 @@ def handle(payload):
         block = render_block(lvl, persisted, errors, lg)
         # Judge feedback is NOT shown to the player (transparency) — except in debug.
         if violations and lvl in ("DEBUG", "TRACE"):
-            note = J.format_feedback(violations, prefix="🔧 Juge (interne)")
+            note = J.format_feedback(violations, prefix="🔧 Judge (internal)")
             block = (block + "\n\n" + note) if block else note
 
     # ── VISIBLE pause reminder (anti-forgotten-bypass) ──
@@ -243,10 +245,10 @@ def _write_csv(camp, monde, payload, input_entry, original, persisted, errors, v
     has_error = bool(errors) or bool(violations)
     cons = "; ".join(e.get("phrase", "") for e in persisted)
     if violations:
-        cons += (" | " if cons else "") + "infractions: " + ", ".join(
+        cons += (" | " if cons else "") + "violations: " + ", ".join(
             "%s/%s" % (v.get("domaine", "?"), v.get("regle", "?")) for v in violations)
     if not cons:
-        cons = "erreur" if has_error else "rien persisté"
+        cons = "error" if has_error else "nothing persisted"
     type_err = ""
     if errors:
         type_err = errors[0].get("type_erreur", "")
@@ -256,7 +258,7 @@ def _write_csv(camp, monde, payload, input_entry, original, persisted, errors, v
         "timestamp": L.now_iso(),
         "session": L.active_session_number(camp) or "",
         "verbosity": L.verbosity(monde),
-        "origine_type": "MJ",
+        "origine_type": "GM",
         "origine_detail": "bypass" if bypass else "MJ Tonnerre",
         "action_type": "transaction" if persisted else "dialogue",
         "prompt_resume": input_entry.get("input", ""),

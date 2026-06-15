@@ -24,7 +24,7 @@ we do not fail — a broken reviewer must not block a session.
 Usage:
   echo "<prompt>" | python3 generate_reviewed.py --out IMG.png --aspect 16:9
   python3 generate_reviewed.py --prompt-file p.txt --out P.png --aspect 3:4 \
-      --criteres "Portrait d'Oscar, rôdeur, capuche" --threshold 8 --max-attempts 3 --json
+      --criteres "Portrait of Oscar, rogue, hooded cloak" --threshold 8 --max-attempts 3 --json
 
 Feature flag guard "images": before any network call, we read
 `meta.features.images` from the `world.json` of the current campaign (resolved by walking
@@ -233,8 +233,8 @@ def main():
             break
         # Prepare regeneration with the reviewer's corrections
         if attempt < args.max_attempts:
-            corr = corrections or "améliore qualité, anatomie et fidélité au brief"
-            prompt = f"{base_prompt}\nCorrections impératives par rapport à la version précédente : {corr}"
+            corr = corrections or "improve quality, anatomy and faithfulness to the brief"
+            prompt = f"{base_prompt}\nMandatory corrections compared to the previous version: {corr}"
 
     passed = best["score"] is not None and best["score"] >= args.threshold
 

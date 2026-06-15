@@ -20,7 +20,7 @@ Minimax pause markup: `<#0.8#>` inserts 0.8 s of silence (0.01–99.99). Must be
 placed BETWEEN pronounceable text, never two consecutive markers.
 
 Usage:
-  echo "Texte <#0.8#> à dire." | python3 tts_generate.py --out voix.mp3
+  echo "Text <#0.8#> to speak." | python3 tts_generate.py --out voix.mp3
   python3 tts_generate.py --text-file script.txt --out voix.mp3 \
       --voice French_Female_Speech_New --emotion fearful --speed 0.95
 

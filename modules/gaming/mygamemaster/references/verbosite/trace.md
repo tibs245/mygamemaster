@@ -38,7 +38,7 @@ Each TRACE block follows the complete Steward sequence:
 [CTRL1-SOURCE] 🎒 inventory Rubis (characters/100000000000000001.json:142)
   → "saucisson" x2 found ✅
 [CTRL2-TRANSFER] 🥦 Consumable — qty ≥ 1 ✅, time available ✅
-[CTRL3-COHERENCE] 🗺️ Location: Chemin des Hêtres (outdoor), witnesses: Firmin — OK
+[CTRL3-COHERENCE] 🗺️ Location: Path of the Beeches (outdoor), witnesses: Firmin — OK
 [OP1-DEDUCE] 🥦 saucisson: Rubis qty 2→1 (file updated L:147)
 [OP4-TIME] 🕒 heure_courante +15min (early afternoon → early afternoon+15)
 [OP7-LOG] 📝 sessions/009.json > actions[] +1 entry (L:89)

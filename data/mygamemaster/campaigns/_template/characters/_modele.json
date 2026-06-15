@@ -1,5 +1,5 @@
 {
-  "_description": "Template de personnage — un fichier par joueur",
+  "_description": "Character template — one file per player",
   "meta": {
     "player_name": "",
     "discord_id": "",
@@ -21,7 +21,7 @@
     "secrets": []
   },
   "preferences": {
-    "_description": "Préférences de jeu (méta / hors-fiction) propres à CE joueur. Enregistrées quand le joueur en exprime une (« retiens que j'aime X ») et ré-injectées au MJ à chaque tour pour adapter l'expérience. Libre mais structuré : clés documentées ci-dessous + un objet « custom » pour le reste. Privées au joueur (même isolation par joueur que la fiche). Toutes optionnelles — un bloc vide/absent ne change rien (fail-open).",
+    "_description": "Player preferences (meta / out-of-fiction) specific to THIS player. Recorded when the player expresses one (\"remember that I like X\") and re-injected to the GM at each turn to adapt the experience. Free-form but structured: keys documented below + a \"custom\" object for the rest. Private to the player (same per-player isolation as the sheet). All optional — an empty/missing block changes nothing (fail-open).",
     "pacing": "",
     "tone_likes": [],
     "tone_dislikes": [],

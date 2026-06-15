@@ -28,7 +28,7 @@ This level can evolve through actions and dialogue.
 ```json
 "relations": {
   "Varek": {
-    "niveau": "Connaissance",
+    "niveau": "Acquaintance",
     "description": "Steward of the Guild. Seems tired but honest."
   }
 }
@@ -39,7 +39,7 @@ This level can evolve through actions and dialogue.
 ```json
 {
   "nom": "Varek",
-  "relation_niveau": "Allié",
+  "relation_niveau": "Ally",
   "attitude": "Tired but determined."
 }
 ```
@@ -57,7 +57,7 @@ Oscar → Varek : Acquaintance
 Varek → group : Ally
 ```
 
-Varek can already consider Oscar an Ally (he is counting on him to find the Khâl Squad) while Oscar still sees him as merely an Acquaintance. Both perspectives coexist.
+Varek can already consider Oscar an Ally (he is counting on him to find the Khal Squad) while Oscar still sees him as merely an Acquaintance. Both perspectives coexist.
 
 ---
 
