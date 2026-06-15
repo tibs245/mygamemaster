@@ -282,15 +282,25 @@ def rename_key(key):
     return key
 
 
-def migrate_obj(obj):
+def migrate_obj(obj, _file_ctx="<unknown>", _key_path=""):
     """Recursively rename dict KEYS in a JSON-like structure. Values untouched."""
     if isinstance(obj, dict):
         out = {}
         for k, v in obj.items():
-            out[rename_key(k)] = migrate_obj(v)
+            new_k = rename_key(k)
+            path = ("%s.%s" % (_key_path, k)) if _key_path else k
+            if new_k in out:
+                print(
+                    "WARNING: key collision in %s at %r: both '%s' and '%s' "
+                    "rename to '%s' — last one wins"
+                    % (_file_ctx, _key_path or "(root)", k, new_k, new_k),
+                    file=sys.stderr,
+                    flush=True,
+                )
+            out[new_k] = migrate_obj(v, _file_ctx, path)
         return out
     if isinstance(obj, list):
-        return [migrate_obj(it) for it in obj]
+        return [migrate_obj(it, _file_ctx, _key_path) for it in obj]
     # scalar value — left exactly as-is (never translated)
     return obj
 
@@ -304,18 +314,29 @@ def log(msg):
 
 
 def make_backup(src_dir, backup_dir, dry_run):
-    """Copy src_dir tree to backup_dir before mutating. Returns backup path."""
+    """Copy src_dir tree to backup_dir before mutating. Returns backup path.
+
+    If backup_dir already exists, auto-increments a numeric suffix
+    (.bak-fr-en, .bak-fr-en-2, .bak-fr-en-3, …) until a free name is found,
+    so that re-runs never crash.
+    """
     if dry_run:
         log("  [dry-run] would back up %s -> %s" % (src_dir, backup_dir))
         return backup_dir
-    if os.path.exists(backup_dir):
-        raise SystemExit(
-            "ERROR: backup target already exists: %s\n"
-            "       Remove it or pass a different --backup-dir." % backup_dir
-        )
-    shutil.copytree(src_dir, backup_dir, symlinks=True)
-    log("  backed up %s -> %s" % (src_dir, backup_dir))
-    return backup_dir
+    # Auto-increment suffix if the default (or specified) target already exists.
+    candidate = backup_dir
+    if os.path.exists(candidate):
+        n = 2
+        while True:
+            candidate = "%s-%d" % (backup_dir, n)
+            if not os.path.exists(candidate):
+                break
+            n += 1
+        log("  backup target '%s' already existed; using '%s' instead"
+            % (backup_dir, candidate))
+    shutil.copytree(src_dir, candidate, symlinks=True)
+    log("  backed up %s -> %s" % (src_dir, candidate))
+    return candidate
 
 
 def migrate_json_file(path, dry_run):
@@ -326,7 +347,7 @@ def migrate_json_file(path, dry_run):
     except json.JSONDecodeError as exc:
         log("  WARNING: %s is not valid JSON (%s) — left untouched" % (path, exc))
         return False
-    migrated = migrate_obj(data)
+    migrated = migrate_obj(data, _file_ctx=path)
     if migrated == data:
         log("    keys: no change  (%s)" % os.path.basename(path))
         return False
@@ -591,6 +612,11 @@ def main(argv=None):
         raise SystemExit("\nERROR: give a <campaign_dir> or use --all DATA_ROOT.")
     if args.campaign_dir and args.all_root:
         raise SystemExit("ERROR: use either <campaign_dir> OR --all, not both.")
+    if args.apply and args.dry_run:
+        raise SystemExit(
+            "ERROR: --apply and --dry-run are mutually exclusive; "
+            "pick one (default without --apply is dry-run)."
+        )
 
     dry_run = not args.apply  # --dry-run is the default; --apply turns it off
     mode = "DRY-RUN (no changes written)" if dry_run else "APPLY (writing changes)"
