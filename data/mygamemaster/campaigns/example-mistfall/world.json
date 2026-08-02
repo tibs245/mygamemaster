@@ -13,12 +13,8 @@
       "Slow-burn dread"
     ],
     "time": {
-      "_note": "Narratif regime — the GM tracks days and time-of-day loosely. The mist never follows a clock.",
-      "regime": "Narratif",
-      "tracking": {
-        "day": 1,
-        "hour": "dusk"
-      }
+      "_note": "Narratif regime — the GM tracks days and time-of-day loosely. The mist never follows a clock. The in-game clock itself lives in rules.time.tracking (current_day/current_hour): that is what clock.py and the hooks read.",
+      "regime": "Narratif"
     },
     "verbosity": "INFO",
     "cloture_auto": true,
@@ -53,11 +49,13 @@
       }
     },
     "features": {
+      "_schema": "Six main ON/OFF axes, ALL true by default. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > true. See docs/monde-vivant/10-features.md.",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,
       "temporality": true,
-      "images": true
+      "images": true,
+      "tts": true
     },
     "pj_ids": [
       "acteur:oryn-ashveil",
@@ -153,6 +151,15 @@
         ]
       }
     },
+    "weather": {
+      "principe": "The Veil is not weather — but it wears weather's clothes. Roll or choose a condition when the party moves between locations or when a scene opens outdoors; fog is always the default in Thornwick.",
+      "conditions": [
+        {"label": "Grey drizzle", "effet": "No mechanical effect — atmosphere only"},
+        {"label": "Chalk mist", "effet": "Visibility ~30m; -2 to sight-based checks at range"},
+        {"label": "The Veil thickens", "effet": "Visibility ~5m; fog-wraiths may move unseen; travel times ×1.5"}
+      ],
+      "saison": "Late autumn — short days, long dusks, first frosts on the downs"
+    },
     "magie_fae": {
       "principe": "Fae bargains are binding — every gift has a price named at the moment of giving. Breaking a bargain costs one permanent HP per clause violated. The Veil (the mist) is the fae presence made manifest; it thickens near active bargains.",
       "rules": [
@@ -172,6 +179,11 @@
         "type": "faction_fae",
         "short_term_goals": "Collect the debt: three souls freely given before the new moon (Day 14). Currently holds two; hunting the third.",
         "long_term_goals": "Anchor a permanent gateway between the mortal world and the Pale Court inside the Warden Tree. Once open, the Veil will be permanent.",
+        "attitude_actuelle": "Patient and predatory — the Court is owed, and it is in no hurry. Courteous to the players so long as they are useful; hostile the moment they burn the Charter.",
+        "indices_observes": [
+          "Fog-wraiths sighted in the Mire of Sighs",
+          "Villagers replaced one by one, always overnight"
+        ],
         "ressources": "Unlimited mist; can animate fog-wraiths; can grant and revoke bargains",
         "localisation": "lieu:ashveil-region/the-pale-court"
       },
@@ -180,6 +192,11 @@
         "type": "faction_humaine",
         "short_term_goals": "Identify which villagers have already been replaced by mist-shades and quarantine them before panic spreads (by Day 5).",
         "long_term_goals": "Recover the original founding charter of Thornwick — the document containing the terms of the century-old bargain — and find a legal fae loophole to void it.",
+        "attitude_actuelle": "Wary allies — frightened, short-handed and suspicious of strangers, but willing to trade information for help. Elder Mosswick keeps his own counsel.",
+        "indices_observes": [
+          "Doors barred at sunset across the whole village",
+          "Cold-iron tools moved from the smithy into the Hall"
+        ],
         "ressources": "Local knowledge; cold-iron weapons; one surviving member who remembers the old bargain",
         "localisation": "lieu:thornwick/village-hall"
       }
@@ -194,18 +211,65 @@
         ],
         "renouvellement": "At the start of each session, before playing: check each faction. If its short-term objective is moot → replace it."
       },
+      "_schema": "One entry per faction: {faction, actions_en_cours:[{action, echeance, consequence}]}. 'echeance' is a PINNED object {texte, unite, min, max, ancre, statut} — 'ancre' is the game day the deadline was set on, so due day = ancre + max. A free-form string is tolerated as legacy but is not machine-processable (check_session cannot advance the clock on it).",
       "actions": [
         {
           "faction": "The Pale Court",
-          "action": "Send a fog-wraith to shadow the players and report their intentions to the Lady of Sighs",
-          "echeance_jours": 2,
-          "statut": "en_cours"
+          "actions_en_cours": [
+            {
+              "action": "Send a fog-wraith to shadow the players and report their intentions to the Lady of Sighs",
+              "echeance": {
+                "texte": "Within two days of the players' arrival",
+                "unite": "jour",
+                "min": 1,
+                "max": 2,
+                "ancre": 1,
+                "statut": "en_cours"
+              },
+              "consequence": "The Court learns what the players are looking for; the Lady of Sighs prepares a counter-offer tailored to their weakness."
+            },
+            {
+              "action": "Complete the debt — take the third soul and open the gateway inside the Warden Tree at the new moon",
+              "echeance": {
+                "texte": "At the new moon, Day 14",
+                "unite": "jour",
+                "min": 13,
+                "max": 13,
+                "ancre": 1,
+                "statut": "en_cours"
+              },
+              "consequence": "The Veil becomes permanent across the whole Ashveil region; Thornwick is lost and the Court can collect freely from the neighbouring hamlets."
+            }
+          ]
         },
         {
           "faction": "The Thornwick Wardens",
-          "action": "Send Elder Mosswick to Ashveil Crossing to warn any new arrivals before they enter the Veil",
-          "echeance_jours": 1,
-          "statut": "en_cours"
+          "actions_en_cours": [
+            {
+              "action": "Send Elder Mosswick to Ashveil Crossing to warn any new arrivals before they enter the Veil",
+              "echeance": {
+                "texte": "By the end of Day 2",
+                "unite": "jour",
+                "min": 1,
+                "max": 1,
+                "ancre": 1,
+                "statut": "en_cours"
+              },
+              "consequence": "Newcomers are warned and the Wardens gain a possible ally — or Mosswick is taken on the road and the Court holds its third soul."
+            },
+            {
+              "action": "Recover the Thornwick Charter from the village well and find a fae loophole that voids the century-old bargain",
+              "echeance": {
+                "texte": "Before the new moon, Day 14",
+                "unite": "jour",
+                "min": 10,
+                "max": 13,
+                "ancre": 1,
+                "statut": "en_cours"
+              },
+              "consequence": "If the Charter is read in time the bargain can be contested; if not, the Wardens have nothing to bring to the Court and the gateway opens."
+            }
+          ]
         }
       ]
     },
@@ -244,21 +308,42 @@
             "id": "lieu:ashveil-region/ashveil-crossing",
             "name": "Ashveil Crossing",
             "type": "hamlet",
-            "alias": ["Ashveil", "the Crossing"],
+            "alias": ["Ashveil", "the Crossing", "ashveil-crossing"],
             "description": "A cluster of seven stone buildings at a ford. An inn called The Amber Toll, a smithy, a chapel with a leaning steeple. The mist has not yet swallowed this hamlet — but it gathers at the treeline each night and retreats at dawn, a little later each morning."
+          },
+          {
+            "id": "lieu:ashveil-region/ashveil-crossing/the-amber-toll",
+            "name": "The Amber Toll",
+            "type": "habitation",
+            "alias": ["the Toll", "the inn"],
+            "description": "The inn at Ashveil Crossing, kept by Petra Dawnhollow. Low beams, a peat fire that never quite warms the room, amber glass in the windows that gives the fog outside a false sunset colour. A chalk circle now runs around the building."
+          },
+          {
+            "id": "lieu:ashveil-region/ashveil-crossing/ashveil-smithy",
+            "name": "Ashveil Smithy",
+            "type": "edifice",
+            "alias": ["the smithy", "Ashveil smithy"],
+            "description": "A one-forge smithy on the north side of the ford. Closed since the smith left for Thornwick and did not come back, but unlocked. The ash-heap behind it is a ready source of iron filings."
+          },
+          {
+            "id": "lieu:ashveil-region/drovers-road-east",
+            "name": "The drover's road east of Ashveil",
+            "type": "sentier",
+            "alias": ["the drover's road", "the east road"],
+            "description": "The old drovers' route the players arrived by. Rutted chalk, dry-stone walls on both sides. About half a mile east of the ford it simply vanishes into the Veil — walk into it and you come back out facing west."
           },
           {
             "id": "lieu:ashveil-region/the-pale-court",
             "name": "The Pale Court",
             "type": "fae_realm",
-            "alias": ["the Court", "beyond the Veil"],
+            "alias": ["the Court", "beyond the Veil", "the-pale-court"],
             "description": "Not a place you walk to — a place you are brought. Cold marble pavilions hung with silver lanterns. The Lady of Sighs holds audience on a throne of antlers and promises. Time passes wrong here: an hour inside is a day outside, or vice versa."
           },
           {
             "id": "lieu:ashveil-region/mire-of-sighs",
             "name": "The Mire of Sighs",
             "type": "wetland",
-            "alias": ["the Mire", "the Sighing Fen"],
+            "alias": ["the Mire", "the Sighing Fen", "mire-of-sighs"],
             "description": "A brackish marsh north-east of Ashveil. The air smells of iron and old lavender. Fog-wraiths are first sighted here. At its centre, a standing stone carved with a figure that has no face — an old marker of a fae boundary."
           }
         ]
@@ -274,7 +359,7 @@
             "id": "lieu:thornwick/village-hall",
             "name": "Thornwick Village Hall",
             "type": "civic_building",
-            "alias": ["the Hall", "the Warden Hall"],
+            "alias": ["the Hall", "the Warden Hall", "thornwick-village"],
             "description": "A long stone building that doubles as the Wardens' meeting room and emergency shelter. Elder Mosswick holds what remains of the local authority here. A rack of cold-iron tools hangs on one wall — the Bell is among them."
           },
           {
@@ -288,7 +373,7 @@
             "id": "lieu:thornwick/the-warden-tree",
             "name": "The Warden Tree",
             "type": "fae_anchor",
-            "alias": ["the Tree", "the Old Warden"],
+            "alias": ["the Tree", "the Old Warden", "the-warden-tree"],
             "description": "An enormous ancient oak on the northern edge of Thornwick. Its trunk is wide enough for three people to stand inside. The bark is etched with old bargain-marks. At the new moon, the gateway inside it will open permanently unless the Charter is burned within."
           }
         ]
