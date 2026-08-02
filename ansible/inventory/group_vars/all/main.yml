@@ -80,7 +80,7 @@ hermes_version: "latest"
 mgm_judge_actif: true
 mgm_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM — correlated blind spots possible; alt: google/gemma-4-31b-it
 
-# ─── Feature flags — INSTANCE defaults (six game engine axes) ─────────────────
+# ─── Feature flags — INSTANCE defaults (seven game engine axes) ───────────────
 # Cascade: world.json > meta.features.<axis>  >  MGM_FEATURE_<AXIS> (these vars)  >  True.
 # ALL ON by default, and fail-open: leaving everything ON is safe (an axis with missing
 # data is a simple no-op). These vars are only defined to HARDEN an instance default
@@ -93,6 +93,8 @@ mgm_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM �
 #   mgm_feature_living_npcs_factions: true # factions/proactivite_pnj modules + actors that "think"
 #   mgm_feature_temporality: true         # living world engine (world_tick pre/post, scene brief, propagation)
 #   mgm_feature_images: true              # skill mygamemaster-images
+#   mgm_feature_dialogue: true            # NPC dialogue grading + dry-summary fallback
+# mgm_dialogue_model: <model id>          # grader model; defaults to mgm_judge_model when unset
 
 # ─── Narrative voice (tts axis) ───────────────────────────────────────────────
 # The AXIS is on: `!raconte` (manual, on demand) works. The AUTOMATIC per-turn

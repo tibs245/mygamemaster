@@ -169,13 +169,14 @@ def slug(texte: str) -> str:
 # hooks (separate layers): we copy the contract rather than importing _lib.
 # KEEP IN SYNC with _lib.py if axes or cascade logic evolve.
 #
-# Six main axes, ALL enabled by default. Cascade, from most specific to most general:
+# Seven main axes, ALL enabled by default. Cascade, from most specific to most general:
 #     meta.features.<axe> (world.json)  >  env MGM_FEATURE_<AXE>  >  default True
 # The world (world.json) has the final say; the env sets the instance default.
 # FAIL-OPEN: an ON axis whose data is missing is a simple no-op, not an error;
 # and an absent world.json → "all ON" (features_campagne).
 
-FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts")
+FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts",
+            "dialogue")
 
 
 def as_bool(val, default: bool) -> bool:
@@ -197,7 +198,7 @@ def as_bool(val, default: bool) -> bool:
 
 
 def features(monde) -> dict:
-    """Resolve the 5 feature flags. Cascade: meta.features.<axe> > env MGM_FEATURE_<AXE> > True.
+    """Resolve the 7 feature flags. Cascade: meta.features.<axe> > env MGM_FEATURE_<AXE> > True.
 
     IDENTICAL behavior to hooks/_lib.features (duplicated logic, keep in sync).
     All enabled by default: a world without a meta.features block behaves as
@@ -215,7 +216,7 @@ def features(monde) -> dict:
 
 
 def features_campagne(campagne: str | Path) -> dict:
-    """Load world.json from a campaign and return the dict of 6 feature flags.
+    """Load world.json from a campaign and return the dict of 7 feature flags.
 
     FAIL-OPEN: absent/unreadable world.json → charger_json returns {} → all ON
     (each axis falls back to its env/True default). Used as tick entry point.
@@ -389,12 +390,12 @@ def t_courant(campagne: Path) -> int:
 
     Resolution order (contract §3.3):
       1) max of INTEGER 't' values in evenements_programmes.json (resolved events);
-      2) otherwise, derived from the max 'Day N' in world.json>global_state.timeline +
-         sessions/*.json via jour_heure_vers_t(jour_max, 12, 0)  (noon by default);
+      2) otherwise, derived from `jour_narratif` (world.json>global_state.timeline
+         + sessions/*.json) via jour_heure_vers_t(jour, 12, 0)  (noon by default);
       3) otherwise 0.
 
     NEVER reads events.json as integers (its 't' values are STRINGS 'Day N…').
-    Reuses the 'Day N' heuristic from clock.jour_courant.
+    Step 2 is the scanner clock.py uses, so both modules date the fiction alike.
     """
     campagne = Path(campagne)
 
@@ -410,40 +411,85 @@ def t_courant(campagne: Path) -> int:
     if ts:
         return max(ts)
 
-    # 2) Largest "Day N" from the chronology + sessions → noon of that day.
-    jour_max = _jour_max_narratif(campagne)
-    if jour_max is not None:
-        return jour_heure_vers_t(jour_max, 12, 0)
+    # 2) Day the fiction is at, from the chronology + sessions → its noon.
+    jour = jour_narratif(campagne)
+    if jour is not None:
+        return jour_heure_vers_t(jour, 12, 0)
 
     # 3) Default.
     return 0
 
 
-def _jour_max_narratif(campagne: Path) -> int | None:
-    """Largest "Day N" found in world.json (chronology) + sessions/*.json.
+# clock.py imports these: two modules scanning game days with two different
+# regexes IS the drift they exist to detect (TIME-03).
+_RE_JOUR = re.compile(r"\b(?:[Jj]our|[Dd]ay)\s+(\d+)")
 
-    None if none found. (Heuristic aligned with clock.jour_courant, but WITHOUT units_per_day
-    since this module reasons in pure T.)
+_RE_JOUR_ANCRE = re.compile(
+    r"""(?:^|[\n\r"'\[(*•>|-])\s*"""
+    r"""(?:[Jj]our|[Dd]ay)\s+(\d+)"""
+    r"""(?=[ \t]*(?:[:,–—\-"'\])]|$|\n))"""
+)
+
+
+def jours_narratifs(texte: str) -> tuple[list[int], list[int]]:
+    """(anchored days, all days) written in `texte`. Empty lists if none."""
+    if not isinstance(texte, str) or not texte:
+        return [], []
+    return ([int(m) for m in _RE_JOUR_ANCRE.findall(texte)],
+            [int(m) for m in _RE_JOUR.findall(texte)])
+
+
+def jour_narratif_source(campagne: Path, monde: dict | None = None) -> dict:
+    """The game day the FICTION is at — {'jour': int|None, 'ancre': bool, 'detail': str}.
+
+    Scans `world.json > global_state.timeline` and the raw text of `sessions/*.json`.
+    ANCHORED mentions win (see `_RE_JOUR_ANCRE`): they are the ones that state a
+    present. Only when NOTHING is anchored anywhere does the largest loose
+    mention apply — a campaign that never dates an entry has no better signal,
+    and returning nothing would silently fall back to day 0.
     """
-    jours: set[int] = set()
+    campagne = Path(campagne)
+    if monde is None:
+        monde = charger_json(campagne / "world.json", {}) or {}
 
-    monde = charger_json(campagne / "world.json", {}) or {}
-    chrono = monde.get("global_state", {}).get("timeline", "")
-    if isinstance(chrono, str):
-        for m in re.findall(r"[Dd]ay\s+(\d+)", chrono):
-            jours.add(int(m))
+    ancres: list[int] = []
+    tous: list[int] = []
+
+    chrono = monde.get("global_state", {}).get("timeline", "") \
+        if isinstance(monde, dict) else ""
+    a, t = jours_narratifs(chrono)
+    ancres += a
+    tous += t
 
     sessions_dir = campagne / "sessions"
     if sessions_dir.is_dir():
-        for sp in sessions_dir.glob("*.json"):
+        for sp in sorted(sessions_dir.glob("*.json")):
             try:
                 contenu = sp.read_text(encoding="utf-8")
             except OSError:
                 continue
-            for m in re.findall(r"[Dd]ay\s+(\d+)", contenu):
-                jours.add(int(m))
+            a, t = jours_narratifs(contenu)
+            ancres += a
+            tous += t
 
-    return max(jours) if jours else None
+    if ancres:
+        return {"jour": max(ancres), "ancre": True,
+                "detail": f"latest dated entry = day {max(ancres)}"}
+    if tous:
+        return {"jour": max(tous), "ancre": False,
+                "detail": (f"no dated entry — largest day written = {max(tous)} "
+                           "(may be a future date written in prose)")}
+    return {"jour": None, "ancre": False, "detail": "no day written anywhere"}
+
+
+def jour_narratif(campagne: Path, monde: dict | None = None) -> int | None:
+    """Game day the fiction is at, or None. See `jour_narratif_source`."""
+    return jour_narratif_source(campagne, monde)["jour"]
+
+
+def _jour_max_narratif(campagne: Path) -> int | None:
+    """Backward-compatible alias of `jour_narratif` (kept for callers/tests)."""
+    return jour_narratif(campagne)
 
 
 # ════════════════════════════════════════════════════════════════════════════

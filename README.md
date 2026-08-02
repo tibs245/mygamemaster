@@ -58,9 +58,9 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - **LLM judge** (`llm_judge.py`): an independent model checks each GM response on two axes — Steward compliance (soft) and conduct rules (strict: agency, NPC emotions, hidden mechanics, compartmentalization). Corrections are feed-forward (next turn), never blocking. Gate mode (`mj_checkpoint.py`) lets the GM validate a draft before delivering; after 2 failures it passes anyway (logged as "forced"), so sessions never hang
 - **Persistent pause mode**: prefix a message with `⏸️` (or be listed in `meta.admins`) to bypass the Steward display for debugging — tracing still runs, marked `bypass`
 
-### Feature Flags (6 axes, all ON by default)
+### Feature Flags (7 axes, all ON by default)
 
-Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice
+Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice · Dialogue
 
 All flags fail-open (absent = ON). Toggled live in `world.json > meta.features` — no redeploy needed.
 

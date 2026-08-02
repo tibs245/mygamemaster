@@ -166,7 +166,7 @@ def diagnostic_cfg(monde):
 
 # ─── Unified feature flags (meta.features) ───────────────────────────────────
 #
-# Six main axes, ALL enabled by default. Resolution cascades from most
+# Seven main axes, ALL enabled by default. Resolution cascades from most
 # specific to most general:
 #     meta.features.<axis> (world.json)  >  env MGM_FEATURE_<AXIS>  >  default True
 # The world (world.json) has the final say; env sets the instance/deployment default.
@@ -174,7 +174,8 @@ def diagnostic_cfg(monde):
 # without geo.json) is a simple no-op, never an error.
 # Wiring details: docs/living-world/10-features.md.
 
-FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts")
+FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts",
+            "dialogue")
 
 
 def as_bool(val, default):
@@ -192,7 +193,7 @@ def as_bool(val, default):
 
 
 def features(monde):
-    """Resolves the 5 feature flags. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > True.
+    """Resolves the 7 feature flags. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > True.
 
     All enabled by default. A campaign without a meta.features block behaves as
     "all ON" — safe, because each effect is fail-open when its data is missing."""
@@ -734,6 +735,38 @@ def judge_config(monde):
     }
 
 
+def dialogue_config(monde):
+    """meta.hooks.dialogue — QUALITY grading of NPC dialogue (dialogue_judge.py).
+
+    Unlike `judge`, this one is ON as soon as it CAN run: axis `dialogue` (main switch,
+    default ON) + a model to call. A campaign that already configured a judge inherits
+    its transport and gets grading without a second block to fill in. Flat dialogue was
+    a reported, recurring failure — it does not ship behind an extra opt-in.
+
+    `max_tentatives` counts DRAFTS, not rewrites: 2 = the first draft plus one rewrite,
+    then the gate switches to the dry-summary fallback (references/dialogue-craft.md §5).
+    """
+    j = judge_config(monde)
+    h = meta(monde).get("hooks")
+    h = h if isinstance(h, dict) else {}
+    d = h.get("dialogue")
+    d = d if isinstance(d, dict) else {}
+    axe = features(monde)["dialogue"]
+    modele = d.get("modele") or os.environ.get("MGM_DIALOGUE_MODEL") or j["modele"]
+    return {
+        "actif": bool(axe) and as_bool(d.get("actif"), True) and bool(modele),
+        "axe": bool(axe),
+        "modele": modele,
+        "base_url": d.get("base_url") or j["base_url"],
+        # Grading reads a whole scene, not a rule: a judge timeout is not a fair verdict.
+        "timeout": int(d.get("timeout", max(16, j["timeout"] * 2)) or 16),
+        "seuil": int(d.get("seuil", 12) or 12),
+        "plancher": int(d.get("plancher", 1)),
+        "max_tentatives": int(d.get("max_tentatives", 2) or 2),
+        "min_chars": int(d.get("min_chars", 120) or 120),
+    }
+
+
 # ─── Deferred feedback (feed-forward) ────────────────────────────────────────
 
 
@@ -807,6 +840,43 @@ def scoreboard_update(camp, modele, clean, banquier_n, conduite_n, by_rule, forc
 
 def load_scoreboard(camp):
     return load_json(camp / ".banquier" / "scoreboard.json") or {}
+
+
+DIALOGUE_JOURNAL_MAX = 100
+
+
+def dialogue_record(camp, modele, verdict, outcome):
+    """Journals one dialogue grading → .banquier/dialogue-scores.json (capped, fail-open).
+
+    Kept OUT of the scoreboard on purpose: that file counts one `tours` per call, and the
+    turn is already counted there by the rule judge. What matters here is a different
+    question anyway — how often the fallback fires. A campaign summarising half its
+    conversations does not have a grading problem, it has a briefing problem.
+    """
+    path = _bq_dir(camp) / "dialogue-scores.json"
+
+    def mut(data):
+        d = data if isinstance(data, dict) else {}
+        entries = d.get("entries") if isinstance(d.get("entries"), list) else []
+        entries.append({
+            "ts": now_iso(),
+            "model": modele or "inconnu",
+            "score": verdict.get("score"),
+            "seuil": verdict.get("seuil"),
+            "criteres": verdict.get("criteres") or {},
+            "outcome": outcome,
+        })
+        d["entries"] = entries[-DIALOGUE_JOURNAL_MAX:]
+        totaux = d.get("totaux") if isinstance(d.get("totaux"), dict) else {}
+        totaux[outcome] = int(totaux.get(outcome, 0)) + 1
+        d["totaux"] = totaux
+        return d
+
+    _locked_rw(path, mut)
+
+
+def dialogue_scores(camp):
+    return load_json(camp / ".banquier" / "dialogue-scores.json") or {}
 
 
 # ─── Git auto-commit (systematic versioned persistence) ──────────────────────

@@ -302,6 +302,59 @@ API key: `OPENROUTER_API_KEY` (already required by entrypoint) or `MGM_JUDGE_API
 
 ---
 
+## 11. Dialogue grader — quality, and the dry-summary fallback
+
+`llm_judge.py` guards rules and deliberately refuses to grade quality. Nothing was therefore
+watching the failure the field reported: conversations that break no rule and are still flat.
+`dialogue_judge.py` is the answer — a **separate call**, on **turns that contain dialogue only**
+(deterministic `has_dialogue()` detection, so a narration with no spoken line never pays for it).
+
+**Rubric** (`references/dialogue-craft.md` §4), each 0..5: `INTENTION` (the line pursues the NPC's
+own goal), `SOUS_TEXTE` (a gap between said and wanted), `VOIX` (mouths distinguishable, and
+matching the sheet's `voix` block, which is passed in the prompt), `ENJEU` (something costs, moves
+or is refused). **Verdict**: `{"ok",score,seuil,criteres,faibles}` — fails below `seuil` (12/20)
+**or** on any criterion ≤ `plancher` (1).
+
+**Layer 3 of `mj_checkpoint.py`**, after the agency gate and the rule judge, and only on the paths
+that were about to clear the turn (a FORCED pass is already an escape from a loop — it is not made
+harder). Budget `max_tentatives` (default 2 = first draft + one rewrite):
+
+| Attempt | Outcome |
+|---|---|
+| 1st failure | exit 1 + feedback naming the weak criteria and one concrete fix each |
+| 2nd failure | exit 0 + instruction to deliver the **DRY SUMMARY** instead of the dialogue |
+| pass | exit 0, score appended to the checkpoint line |
+
+The fallback is a **narrative register, not an error message**: reported speech, no quoted line,
+the outcome stated (obtained / refused / at what price / what changed), persisted exactly as if
+played, and the player is never told a scene was rejected.
+
+**Configuration** — `world.json > meta.hooks.dialogue`, gated by the `dialogue` feature axis
+(ON by default). Unlike `judge`, it is active as soon as it CAN run — a recurring, reported defect
+does not ship behind a second opt-in:
+
+```jsonc
+"dialogue": {
+  "actif": true,          // axis `dialogue` is the main switch above this
+  "modele": "",           // else env MGM_DIALOGUE_MODEL, else the judge's model
+  "base_url": "",         // else the judge's
+  "timeout": 16,          // grading reads a whole scene, not a rule
+  "seuil": 12,            // out of 20
+  "plancher": 1,          // any criterion ≤ this fails, whatever the total
+  "max_tentatives": 2,    // drafts, not rewrites
+  "min_chars": 120
+}
+```
+
+- **Fail-open**: unconfigured, unreachable or unparseable grader → the turn clears, with the reason
+  stated on the checkpoint line. A grading outage must never degrade a good scene to a summary.
+- **Journalled**: every grading lands in `.banquier/dialogue-scores.json` (capped 100) with its
+  outcome (`passed` / `rewrite` / `summarised`). A campaign summarising half its conversations does
+  not have a grading problem — it has a briefing problem (`modules/gaming/mygamemaster/scripts/dialogue_brief.py`).
+- **Testable offline**: `MGM_DIALOGUE_MOCK=<verdict JSON>`.
+
+---
+
 ## 8. Security & performance
 
 - `hooks:` is a **privileged config**: only reference scripts from the repo (audited).

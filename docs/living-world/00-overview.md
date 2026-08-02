@@ -145,7 +145,7 @@ data/mygamemaster/campaigns/<slug>/
 | [`05-context-assembler.md`](05-context-assembler.md) | How the GM is **briefed** per scene without drowning (key for small models). |
 | [`06-game-flow.md`](06-game-flow.md) | **The complete flow diagram** of a session, from creation to distant resumption. |
 | [`07-implementation-plan.md`](07-implementation-plan.md) | Implementation order, migration, what changes in existing code, models per task. |
-| [`10-features.md`](10-features.md) | **Unified feature flags** (`meta.features`): 6 axes ON by default, cascade `world > env > True`, fail-open, typical configs. |
+| [`10-features.md`](10-features.md) | **Unified feature flags** (`meta.features`): 7 axes ON by default, cascade `world > env > True`, fail-open, typical configs. |
 
 ## The Red Thread in One Sentence
 
