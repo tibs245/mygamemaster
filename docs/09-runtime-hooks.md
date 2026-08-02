@@ -36,6 +36,11 @@ toggles — read live):
       "modele": "",                            // use a SMALL model (or env MGM_JUDGE_MODEL)
       "echantillon": 1,                        // judge 1 turn in N (reduces cost)
       "gate_max_tentatives": 2                 // anti-loop budget for the gate
+    },
+    "dialogue": {                               // dialogue grader — ON as soon as a model is reachable
+      "modele": "",                            // else MGM_DIALOGUE_MODEL, else the judge's model
+      "seuil": 12,                             // out of 20 (4 criteria scored 0-5)
+      "max_tentatives": 2                      // first draft + one rewrite, then the dry summary
     }
   }
 }
@@ -61,6 +66,29 @@ checks every GM response on two axes:
 
 The judge's feedback is **not shown to players** (technical transparency) — except at DEBUG/TRACE
 verbosity.
+
+## Dialogue grading — and what happens when a scene is flat
+
+Conversations were the one thing the rule checker above deliberately did **not** watch: it judges
+rules, not quality, so a polite, empty, perfectly legal exchange sailed through. A separate grader
+(`dialogue_judge.py`) scores any narration containing spoken lines on four criteria — does each
+line pursue the NPC's own goal, is something withheld, are the mouths distinguishable, does
+anything cost or get refused.
+
+- Below the bar, the scene comes back **once**, with the failing criterion named and one concrete
+  fix. The second failure switches the turn to a **dry summary** — reported speech, no quoted line,
+  the outcome stated — rather than shipping a flat conversation. The player is never told.
+- The grader is **fail-open**: unreachable or unconfigured → the scene ships as written.
+- Turn it off per campaign with `feature_toggle.py <campaign> dialogue off` (the GM then summarises
+  minor exchanges directly).
+- Where the quality actually comes from is the **briefing**, not the grader: run
+  `modules/gaming/mygamemaster/scripts/dialogue_brief.py` before writing a conversation that matters, and give recurring NPCs
+  a `voix` block. Rules: `modules/gaming/mygamemaster/references/dialogue-craft.md`.
+
+```bash
+# how often the fallback fires (a high count = a briefing problem, not a grading one)
+python3 -c "import json;print(json.load(open('.banquier/dialogue-scores.json'))['totaux'])"
+```
 
 ## Per-model metrics (scoreboard)
 

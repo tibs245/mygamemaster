@@ -45,9 +45,9 @@ tier is that same wound, plus the turn protocol the player wrote himself to cont
 
 | ID | Rule | Class | Enforced today | Target | Evidence |
 |---|---|---|---|---|---|
-| **AGENCY-01** | Never write an action, gesture, posture, gaze, breath or movement of the PC — write only what the PC perceives. | BC-AGENCY | `prompt` — `llm_judge.py` rubric AGENTIVITE flags it, but the judge is opt-in (`meta.hooks.judge.actif`), fail-open and never blocks | **`code`** | S16 (cancelled), S23 (replayed), re-broken S26, S30 ×3 |
-| **AGENCY-02** | Never put words in the PC's mouth: when the player gave substance without text, emit `[VERBATIM TO BE SUPPLIED BY THE PLAYER]`. | BC-AGENCY | `prompt` — same judge rubric covers imposed PC dialogue; nothing emits the placeholder | **`code`** | S21, S23 |
-| **AGENCY-03** | Narrate at most one PC action per turn, and only the direct execution of an action the player has just declared — cite the declaration. | BC-AGENCY | `prompt` — nothing counts PC actions per turn | **`code`** | S14 (3 stacked), S16 (8 stacked), S23 (4 chained) |
+| **AGENCY-01** | Never write an action, gesture, posture, gaze, breath or movement of the PC — write only what the PC perceives. | BC-AGENCY | `code` — `agency_gate.py` `analyze` (violation `AGENCY-01`), run by `mj_checkpoint.py` `run_agency_gate`: deterministic, stdlib-only, ON by default, and its verdict never depends on a network call or an attempt budget | `code` | S16 (cancelled), S23 (replayed), re-broken S26, S30 ×3 |
+| **AGENCY-02** | Never put words in the PC's mouth: when the player gave substance without text, emit `[VERBATIM TO BE SUPPLIED BY THE PLAYER]`. | BC-AGENCY | `code` — `agency_gate.py` `analyze` (violation `AGENCY-02`) refuses PC speech and prescribes the placeholder, which it recognises as the correct form | `code` | S21, S23 |
+| **AGENCY-03** | Narrate at most one PC action per turn, and only the direct execution of an action the player has just declared — cite the declaration. | BC-AGENCY | `code` — `agency_gate.py` `analyze` (violation `AGENCY-03`) counts PC actions and allows only the one whose verb appears in the player's declaration | `code` | S14 (3 stacked), S16 (8 stacked), S23 (4 chained) |
 | **AGENCY-04** | An announced intention is not an execution: narrate the moment, never the consequence chain it implies. | BC-AGENCY | `prompt` | `prompt` | S23 (whole bivouac narrated on an intention) |
 | **AGENCY-05** | Anchor the PC's inner state through perception only, log a player's meta-thought as a director's note rather than voicing it, and never draw the moral of a scene. | BC-AGENCY | `prompt` | `prompt` | S24, S24–S27 |
 | **AGENCY-06** | Callbacks and corrections belong to the player: never pre-empt a mirrored gesture or quoted echo, and when the player replays an action you invented, narrate it faithfully without meta-commenting. | BC-AGENCY | `prompt` | `prompt` | S23 |
@@ -116,9 +116,9 @@ flow → STOP · question → one answer → STOP.
 | **WORLD-05** | The world runs without the PC: a missed opportunity is a legitimate outcome, not a bug to repair. | BC-FLAT | `prompt` | `prompt` | S18 (validated by the player) |
 | **WORLD-06** | Give any newly introduced NPC an entry score of at least two actions, and never let an NPC cross a scene without acting, being perceived and leaving a trace. | BC-FLAT | `prompt` | `prompt` | S14, S30, S31 |
 | **WORLD-07** | Before narrating a scene, load in the same turn the place sheet, the sheet of every present NPC including their background actions, the calendar, the open threads and the GM secrets. | BC-FLAT | `prompt` — `scene_brief.py` is read-only and strictly fail-open, and `pre_llm_call.py` skips it entirely when the current location is unknown | **`code`** | S16 (place described from memory), S31 |
-| **WORLD-08** | Structure every ellipse as: sober routine summary, landing on a meaningful event involving at least one active NPC, closing hook, STOP — and never chain two ellipses without player input. | BC-PACING | `prompt` | `prompt` | S33 |
-| **WORLD-09** | Default to one line per NPC per input, extend into a full cascade (each NPC speaks once, closed by a sober gesture and a STOP) when the player asks or the scene requires it, and let no NPC react to the PC without a prior gesture toward them. | BC-FLAT | `prompt` | `prompt` | S31, S33 (player override) |
-| **WORLD-10** | Use a talkative NPC as an indirect channel toward a closed one, and play delegation soberly: the NPC proposes in one sentence, the PC decides. | BC-FLAT | `prompt` | `prompt` | S18, S23 |
+| **WORLD-08** | Structure every ellipse as: spare routine summary, landing on a meaningful event involving at least one active NPC, closing hook, STOP — and never chain two ellipses without player input. | BC-PACING | `prompt` | `prompt` | S33 |
+| **WORLD-09** | Default to one line per NPC per input, extend into a full cascade (each NPC speaks once, closed by a one-line gesture and a STOP) when the player asks or the scene requires it, and let no NPC react to the PC without a prior gesture toward them. | BC-FLAT | `prompt` | `prompt` | S31, S33 (player override) |
+| **WORLD-10** | Use a talkative NPC as an indirect channel toward a closed one, and keep delegation matter-of-fact: the NPC proposes in one sentence, the PC decides. | BC-FLAT | `prompt` | `prompt` | S18, S23 |
 | **WORLD-11** | Play a social verb in three phases — formulation, reception, individual response from each NPC — and never collapse it into a unilateral outcome, nor over-socialise a unilateral verb. | BC-FLAT | `prompt` | `prompt` | S24, S25 |
 | **META-01** | Treat any question addressed by name to an NPC present in the scene as in-character by default, absent an explicit meta signal; a formal register is not a meta signal. | BC-CHANNEL | `prompt` | `prompt` | S27, S28 |
 | **META-02** | "We are not in game" is an immediate hard stop, and "decide" or "do what you want" keeps the meta channel open — neither of them starts narration. | BC-CHANNEL | `prompt` | `prompt` | S26, S28 |
@@ -136,7 +136,7 @@ flow → STOP · question → one answer → STOP.
 | **STYLE-02** | Keep a voice sheet per active NPC (qualities, flaws, signature phrase and gesture, behaviour under solemnity / tension / tenderness / refusal, what he leaves unsaid, what he does alone) and consult it before every line he speaks. | BC-LOOP | `prompt` | `prompt` | S21 |
 | **STYLE-03** | Never place a strongly charged word adjacent to an NPC's name in a status table; every column must read correctly on its own. | BC-CHANNEL | `prompt` | `prompt` | S27 |
 | **STYLE-04** | Play fatigue, pain and physical state during the effort rather than afterwards, and never let a bodily cue drown inside a technical exchange. | BC-LOOP | `prompt` | `prompt` | S11, S14 |
-| **STYLE-05** | Calibrate a payoff to the player's cumulative investment — a proportional payoff carries all three of a tangible object or change, a new piece of knowledge, and a felt answer; sober is not empty. | BC-LOOP | `prompt` | `prompt` | S27, S28 |
+| **STYLE-05** | Calibrate a payoff to the player's cumulative investment — a proportional payoff carries all three of a tangible object or change, a new piece of knowledge, and a felt answer; restraint is not emptiness. | BC-LOOP | `prompt` | `prompt` | S27, S28 |
 | **MECH-01** | Roll before narrating any uncertain outcome, give the result as narration without the raw number, never dress a failure as a success, and resolve conflict with a real roll instead of a pre-decided outcome. | BC-RES | `prompt` — `roll.py` rolls real dice and applies the natural-die rule mechanically, but nothing requires the GM to call it | **`code`** | S12, S13, S25, S28–S34 |
 | **MECH-02** | Offer visible travel rolls for each leg (descent, march, orientation, watchfulness, crossing) against a fixed difficulty ladder, with numbers disclosed only on request. | BC-RES | `prompt` | `prompt` | S25 (strongest positive signal of the corpus) |
 | **MECH-03** | Express every ration stock in person-days and divide by group size, and route every object transfer through a ledger write rather than through prose. | BC-RES | `prompt` — no ledger write path exists for object transfers | **`code`** | S15, S23 |
@@ -195,23 +195,30 @@ These carry the values a rule consumes; the rule itself is above. One line each 
 
 | Tier | Rules | `code` today | `prompt` today | Target `code` | Open debt |
 |---|---|---|---|---|---|
-| 0 — session-destroying | 15 | 0 | 15 | 6 | 6 |
+| 0 — session-destroying | 15 | 3 | 12 | 6 | 3 |
 | 1 — canon integrity | 18 | 0 | 18 | 9 | 9 |
 | 2 — living world & channel | 16 | 2 | 14 | 6 | 4 |
 | 3 — style, mechanics, data | 12 | 1 | 11 | 6 | 5 |
-| **Total** | **61** | **3** | **58** | **27** | **24** |
+| **Total** | **61** | **6** | **55** | **27** | **21** |
 
-The three rules a deterministic check actually refuses today — all three at close, and only once
-`close_session.py` is actually invoked, which `SKILL.md` §4 (data governance) asks the GM to do but
-nothing forces: **WORLD-03** (`check_session.py` `lieu_absent` / `pnj_sans_fiche`, gating `close_session.py`
-P1/P2), **WORLD-04** (`check_session.py` `echeance_depassee`, plus P3/P4 read directly in
-`close_session.py`) and **CLOSE-01** (`close_session.py` exit 1). Every one of them guards *canon at
-rest*; not one guards a narration in flight, and not one runs unless the GM asks for it.
+Three of the six rules a deterministic check refuses today guard *canon at rest*, all three at
+close, and only once `close_session.py` is actually invoked, which `SKILL.md` §4 (data governance)
+asks the GM to do but nothing forces: **WORLD-03** (`check_session.py` `lieu_absent` /
+`pnj_sans_fiche`, gating `close_session.py` P1/P2), **WORLD-04** (`check_session.py`
+`echeance_depassee`, plus P3/P4 read directly in `close_session.py`) and **CLOSE-01**
+(`close_session.py` exit 1). None of the three runs unless the GM asks for it.
 
-The five highest-recidivism rules — agency (8 reported violations), temporal drift (7
-rediscoveries), lexical loops (8 rediscoveries), verification discipline (6), empty meta turns (4)
-— all target `code`, and none of them is enforced by code today. They were written down repeatedly
-and still recurred; text is not an enforcement mechanism, and neither is a check that cannot refuse.
+The other three — **AGENCY-01/02/03**, via `agency_gate.py` called from `mj_checkpoint.py` — are
+the first checks in this repo to guard a *narration in flight*: they sit on the turn's own path,
+run with no model and no network, and are ON unless an operator sets `MGM_AGENCY_GATE=off`. Their
+promotion to `code` is the falsifiability rule being applied, not credit taken for nearby code:
+the gate refuses the offending turn, so the row reads `code`.
+
+The remaining high-recidivism rules — temporal drift (7 rediscoveries), lexical loops (8
+rediscoveries), verification discipline (6), empty meta turns (4) — all target `code`, and none of
+them is enforced by code today. They were written down repeatedly and still recurred; text is not
+an enforcement mechanism, and neither is a check that cannot refuse. Agency was the worst of the
+set (8 reported violations) and is the one that got a check that can say no.
 
 ### Code that exists but does not enforce
 
@@ -223,7 +230,7 @@ own — either because it cannot say no, or because nothing guarantees it is eve
 | `close_session.py` itself, the host of every `code` row above | CLOSE-01, WORLD-03, WORLD-04 | it refuses correctly once it runs, but no hook, no CI step and no automation invokes it — `SKILL.md` §4 asks the GM to run it at close ("Run this script at close"), and a GM who declares the session closed from intention never triggers a single check |
 | `validate_json.py` and `validate_schema.py` at close | DATA-01 | they refuse malformed or schema-deviant canon, not a hand-edit or a blind replace-all that yields valid JSON — `validate_schema.py` is tolerant by design (`additionalProperties: true` everywhere) |
 | `pre-commit.hook`, installed by `install-hooks.sh` | DATA-01 | a template, live only once copied into `.git/hooks/`; checks JSON *syntax* only and honours an `MGM_SKIP_HOOK=1` bypass |
-| `llm_judge.py` (rubric AGENTIVITE, B2) and the `mj_checkpoint.py` gate | AGENCY-01/02, KNOW-01/02 | opt-in (`meta.hooks.judge.actif`, off by default), fail-open on any error, and the gate forces the turn through after `gate_max_tentatives` attempts |
+| `llm_judge.py` (rubric AGENTIVITE, B2) and the `mj_checkpoint.py` gate | KNOW-01/02 (AGENCY-01/02 have since moved to `agency_gate.py`, which does refuse) | opt-in (`meta.hooks.judge.actif`, off by default), fail-open on any error, and the gate forces the turn through after `gate_max_tentatives` attempts |
 | `clock.py` at close, via `close_session.py` point P5 | TIME-01, TIME-03 | run in dry-run, and P5 carries `bloquant=False`: drift is printed, never synchronised, never refused |
 | `world_tick.py post` at close | WORLD-01 | documented non-blocking; gated on `actors.json` and on the `temporality` feature axis |
 | `scene_brief.py`, injected by `pre_llm_call.py` | WORLD-07, SPACE-01 | strictly fail-open (minimal brief, exit 0) and skipped entirely when the current location is unknown — the turn then narrates from memory |

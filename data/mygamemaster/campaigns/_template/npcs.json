@@ -10,7 +10,12 @@
     "(see docs/10-field-report.md and references/locked-lessons.md, rules KNOW-01/KNOW-02).",
     "connaissances_privees = what this NPC knows and the players do not. Seeded by the GM.",
     "motivations_personnelles = what this NPC wants on their own account; it is what lets them",
-    "act between sessions instead of waiting for the players."
+    "act between sessions instead of waiting for the players.",
+    "voix = how this mouth works (register, rhythm, what it never says, how it deforms under",
+    "stress). Optional, but it is what stops two NPCs in a scene from sounding like the same",
+    "person with different name tags. Write it the first time the NPC holds a real",
+    "conversation, then keep it — a voice that drifts between sessions reads as a new character",
+    "(see references/dialogue-craft.md)."
   ],
   "npcs": [
     {
@@ -21,7 +26,15 @@
       "established_facts": [],
       "gm_hypotheses": [],
       "connaissances_privees": [],
-      "motivations_personnelles": []
+      "motivations_personnelles": [],
+      "voix": {
+        "registre": "Level of language, tone, social distance.",
+        "rythme": "Sentence length, pauses, interruptions.",
+        "sous_tension": "How the voice deforms under stress — the most useful field of the block.",
+        "lexique": [],
+        "tics": [],
+        "ne_dit_jamais": []
+      }
     }
   ]
 }
