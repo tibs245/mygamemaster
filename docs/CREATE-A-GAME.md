@@ -151,6 +151,27 @@ interactively.
 For AI help building the world content, paste the prompt from
 [`AI-ONBOARDING-PROMPT.md`](AI-ONBOARDING-PROMPT.md) into Claude or ChatGPT.
 
+### Both paths: capture the player profile
+
+Copy the template into the campaign folder and fill it from the first session:
+
+```bash
+cp modules/gaming/mygamemaster/references/player-profile-template.md \
+   data/mygamemaster/campaigns/<slug>/player-profile.md
+```
+
+It records the player's control signals, agency contract, pacing dials, standing policies and
+feedback protocol — the things a table otherwise rediscovers by trial and error, one rejected
+session at a time. Option B asks for them directly (Block 6 of the questionnaire) and writes the
+file for you. Each line is dated, sourced to a session, and marked `locked` / `observed` /
+`hypothesis`; entries are superseded, never deleted. Update it at every close.
+
+**Taste here, doctrine there.** What is specific to *this* player goes in the campaign's own
+`<slug>/player-profile.md`. The GM conduct rules that apply to every table live in
+[`modules/gaming/mygamemaster/references/locked-lessons.md`](../modules/gaming/mygamemaster/references/locked-lessons.md)
+— 61 rules with stable IDs, loaded by the GM skill at every session. Do not copy rules between the
+two files.
+
 ---
 
 ## Step 6 — Deploy
