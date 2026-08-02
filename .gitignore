@@ -35,6 +35,9 @@ ansible/inventory/host_vars/
 
 # --- Local editor/agent settings (may contain host IPs, paths) ---
 .claude/settings.local.json
+# Agent worktrees: full checkouts of this repo (18 MB and growing) that a
+# `git add -A` would otherwise commit into it.
+.claude/worktrees/
 
 # --- macOS artifacts (AppleDouble) ---
 ._*
