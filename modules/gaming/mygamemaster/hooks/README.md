@@ -17,14 +17,14 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 | `pre_llm_call.py` | `pre_llm_call` | injects authoritative state; records input prompt |
 | `pre_tool_call.py` | `pre_tool_call` | snapshot of counters; blocks broken JSON in strict mode |
 | `post_tool_call.py` | `post_tool_call` | calculates deltas actually persisted → ledger; **auto-commit** git of campaign (valid JSON) |
-| `transform_llm_output.py` | `transform_llm_output` | "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` + **opt-in** `tts_auto`, attached as `MEDIA:`, fail-open, every outcome journalled in `.banquier/tts-status.json`) + snapshot `last_narration` (for `!raconte`) |
+| `transform_llm_output.py` | `transform_llm_output` | **deterministic AGENCY gate on the delivered text** (`enforce_agency`, unconditional, journalled in `.banquier/agency-gate.json`) + "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` + **opt-in** `tts_auto`, attached as `MEDIA:`, fail-open, every outcome journalled in `.banquier/tts-status.json`) + snapshot `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | timestamped snapshot of campaign |
 | `llm_judge.py` | — (lib + CLI) | **LLM judge**: soft steward + strict conduct (`MGM_JUDGE_MOCK` for testing) |
-| `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action |
+| `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action. `analyze()` for the verdict, `redact()` to cut the offending sentence out of a text already produced |
 | `dialogue_judge.py` | — (lib + CLI) | **dialogue grader**: quality of NPC dialogue on a 4-criteria rubric (`MGM_DIALOGUE_MOCK` for testing); fail-open |
-| `mj_checkpoint.py` | — (called by GM) | **gate** per-turn: agency gate, then LLM judge, then dialogue grader — each with a loop-prevention budget |
+| `mj_checkpoint.py` | — (called by GM, OPTIONAL) | **gate** per-turn: agency gate, then LLM judge, then dialogue grader — each with a loop-prevention budget. A chance to fix a draft *before* delivery; not the guarantee (see below) |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 239 cases (including the dialogue rubric, its budget and the summary fallback) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 291 cases (including the dialogue rubric, its budget and the summary fallback, and the unconditional agency path) |
 
 ## Principles
 
@@ -35,6 +35,20 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
   written-only agency rule is violated again. Ambiguity is still never guessed at: an unrecognised
   construction is handed to the judge rather than blocked. Escape hatches: `MGM_AGENCY_GATE=off`
   (default ON) and `MGM_AGENCY_MAX_ATTEMPTS=N` (default 3, then a loud, logged forced pass).
+- **…and it runs whether or not the model cooperates.** `mj_checkpoint.py` is triggered by a bash
+  line printed in `SKILL.md`, i.e. by text the model may skip — and the field report counted 8
+  agency violations in one hour under that arrangement. The enforcing call is therefore in
+  `transform_llm_output.py` (`enforce_agency`), the one hook the runtime invokes on every turn.
+  Downstream of inference nothing can be re-generated, so the remedy there is a **cut**
+  (`agency_gate.redact`), fed forward to the next turn like the judge's corrections.
+  - a **detected violation** is always cut — it never depends on config, network or budget;
+  - an **infrastructure failure** (analyser crash) ships the turn unchanged and journals it
+    `blind`: our own bug is not a proportionate reason to break every session.
+  - anti-loop is structural — one pass per turn, no re-inference requested, redact/re-check rounds
+    bounded by `MGM_AGENCY_MAX_ATTEMPTS`, and **no** shared counter with the other gates.
+  - every verdict (`clean` / `enforced` / `skipped` / `blind`) is journalled in
+    `.banquier/agency-gate.json`: a cut the player can see must leave a trace an auditor can read.
+    Added cost measured at ~0.6 ms/turn (analysis + journal).
 - **Deterministic only**: apart from the agency gate we only block on JSON integrity; game logic
   ("nonexistent object") remains advisory as long as inventory is free-text (see spec §7).
 - Working state under `<campaign>/.banquier/` (ledger, snapshots, sample counter).
