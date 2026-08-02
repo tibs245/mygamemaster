@@ -73,6 +73,13 @@ _EN = {
     "etat.pc": "PC {name}",
     "etat.has": "  has: ",
     "etat.existing_npcs": "Existing NPCs: ",
+    # ── world_docs.py — SEASON block extracted from saisons.json ──
+    "season.header": "🍂 SEASON J{day} — {name} ({phase})",
+    "season.light": "  light: ",
+    "season.ground": "  ground/water: ",
+    "season.vegetation": "  vegetation: ",
+    "season.next": "  → tips into {phase} at J{day} (in {days} d).",
+    "season.tipping": "  ⚠️ transition imminent — ",
 }
 
 # French locale — first additional locale. Only UI strings (no data values).
@@ -110,6 +117,12 @@ _FR = {
     "etat.pc": "PJ {name}",
     "etat.has": "  possède : ",
     "etat.existing_npcs": "PNJ existants : ",
+    "season.header": "🍂 SAISON J{day} — {name} ({phase})",
+    "season.light": "  lumière : ",
+    "season.ground": "  sol/eau : ",
+    "season.vegetation": "  végétation : ",
+    "season.next": "  → bascule vers {phase} à J{day} (dans {days} j).",
+    "season.tipping": "  ⚠️ transition imminente — ",
 }
 
 TABLES = {

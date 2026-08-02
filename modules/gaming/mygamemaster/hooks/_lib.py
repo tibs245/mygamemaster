@@ -263,6 +263,7 @@ def hooks_cfg(monde):
         # Core, always available (not governed by any axis):
         "injection_etat": h.get("injection_etat", True),
         "garde_json_strict": h.get("garde_json_strict", False),
+        "fiche_memoire": h.get("fiche_memoire", True),
         # Axis "verbosity" → Steward "Persisted" block:
         "banquier_persiste": gated("banquier_persiste", True, feat["verbosity"]),
         # Axis "traceability" → session snapshots + git auto-commit:
@@ -270,6 +271,7 @@ def hooks_cfg(monde):
         "auto_commit": gated("auto_commit", True, feat["traceability"]),
         # Axis "temporality" → living world engine (default ON; no-op if geo/actors missing):
         "brief_scene": gated("brief_scene", True, feat["temporality"]),
+        "docs_monde": gated("docs_monde", True, feat["temporality"]),
         "tick_pre": gated("tick_pre", True, feat["temporality"]),
         "tick_post": gated("tick_post", True, feat["temporality"]),
         # Axis "living_npcs_factions" → exposed for the tick (actors that "think"):
@@ -279,6 +281,75 @@ def hooks_cfg(monde):
         # The 6 raw axes, for direct consumers:
         "features": feat,
     }
+
+
+# ─── Agent memory stores (MEMORY.md / USER.md) ───────────────────────────────
+
+MEMORY_ENTRY_DELIMITER = "\n§\n"  # Hermes tools/memory_tool.py ENTRY_DELIMITER
+MEMORY_STORES = (("memory", "MEMORY.md", 6000), ("user", "USER.md", 4000))
+MEMORY_ENTRY_MAX = 250
+MEMORY_CARD_SEUIL = 0.70
+
+
+def memory_cfg(monde):
+    """meta.hooks.memoire — ceilings + card threshold.
+
+    Defaults track ansible/templates/config.yaml.j2. They are a MIRROR, not the
+    source of truth: Hermes owns the real ceiling and never tells the hook what it
+    is, so a campaign that departs from the template must say so here too or the
+    reported percentage is wrong.
+    """
+    h = meta(monde).get("hooks")
+    h = h if isinstance(h, dict) else {}
+    m = h.get("memoire")
+    m = m if isinstance(m, dict) else {}
+
+    def entier(cle, defaut):
+        try:
+            v = int(m.get(cle, defaut))
+        except (TypeError, ValueError):
+            return defaut
+        return v if v > 0 else defaut
+
+    try:
+        seuil = float(m.get("seuil", MEMORY_CARD_SEUIL))
+    except (TypeError, ValueError):
+        seuil = MEMORY_CARD_SEUIL
+    if not 0.0 < seuil <= 1.0:
+        seuil = MEMORY_CARD_SEUIL
+    return {
+        "memory_char_limit": entier("memory_char_limit", MEMORY_STORES[0][2]),
+        "user_char_limit": entier("user_char_limit", MEMORY_STORES[1][2]),
+        "entry_max": entier("entry_max", MEMORY_ENTRY_MAX),
+        "seuil": seuil,
+    }
+
+
+def memory_dir():
+    """Directory holding MEMORY.md / USER.md (Hermes get_memory_dir())."""
+    home = (os.environ.get("HERMES_HOME") or "").strip()
+    base = Path(home) if home else Path.home() / ".hermes"
+    return base / "memories"
+
+
+def memory_entries(path):
+    """Entries of one store, or None if the file cannot be read.
+
+    None means "we do not know" and must stay distinguishable from [] ("the store
+    is empty"): the first is a read fault to degrade over, the second is a fact.
+    """
+    try:
+        raw = Path(path).read_text(encoding="utf-8")
+    except Exception:
+        return None
+    return [e.strip() for e in raw.split(MEMORY_ENTRY_DELIMITER) if e.strip()]
+
+
+def memory_used(entries):
+    """Chars an entry list occupies, counted the way memory_tool.py counts it."""
+    if not entries:
+        return 0
+    return len(MEMORY_ENTRY_DELIMITER.join(entries))
 
 
 # ─── Admin bypass / pause ────────────────────────────────────────────────────
@@ -544,6 +615,46 @@ def agency_record(camp, payload, outcome, reason, **fields):
       'blind'    — the gate could not run (analyser crash): the turn shipped UNGUARDED.
     'blind' is kept apart from 'skipped' on purpose: one is a decision, the other a defect.
     """
+    return _gate_record(camp, payload, AGENCY_STATUS_FILE, outcome, reason,
+                        ("enforced", "blind"), **fields)
+
+
+def agency_status(camp):
+    """Reads the agency-gate journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / AGENCY_STATUS_FILE) or {}
+
+
+# ─── Pacing gate (TURN-01/02/06) outcome journal ─────────────────────────────
+
+TURN_STATUS_FILE = "turn-gate.json"
+TURN_PINNED = ("blocked", "forced", "blind")
+
+
+def turn_record(camp, payload, outcome, reason, **fields):
+    """Persists ONE pacing verdict in .banquier/turn-gate.json. NOT fail-open.
+
+    Raises if the journal cannot be written, for the reason spelled out in `tts_record`.
+    `outcome` is one of:
+      'clean'   — the turn crossed no unauthorised moment;
+      'blocked' — a write was REFUSED and the model was sent back to rework the turn;
+      'forced'  — the anti-loop budget ran out: the write went through, violation logged;
+      'flagged' — the delivered narration broke a pacing rule; correction fed forward;
+      'allowed' — a configured or granted pass (⏩, pause, gate off);
+      'blind'   — the gate could not run: the turn shipped UNGUARDED.
+    """
+    return _gate_record(camp, payload, TURN_STATUS_FILE, outcome, reason,
+                        TURN_PINNED, **fields)
+
+
+def turn_status(camp):
+    """Reads the pacing-gate journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / TURN_STATUS_FILE) or {}
+
+
+def _gate_record(camp, payload, filename, outcome, reason, pinned, **fields):
+    """Shared shape of the deterministic gates' journals: last / last_<outcome> /
+    counts / recent. `pinned` outcomes keep their own `last_*` so a later clean turn
+    never erases the only evidence of a defect."""
     event = {"ts": now_iso(), "outcome": outcome, "reason": reason,
              "session": active_session_number(camp), "sid": _sid(payload)}
     event.update({k: v for k, v in fields.items() if v is not None})
@@ -551,7 +662,7 @@ def agency_record(camp, payload, outcome, reason, **fields):
     def mut(data):
         d = data if isinstance(data, dict) else {}
         d["last"] = event
-        if outcome in ("enforced", "blind"):
+        if outcome in pinned:
             d["last_" + outcome] = event
         counts = d.get("counts") if isinstance(d.get("counts"), dict) else {}
         key = "%s:%s" % (outcome, reason)
@@ -563,13 +674,45 @@ def agency_record(camp, payload, outcome, reason, **fields):
             d["recent"] = recent[-AGENCY_EVENTS_KEPT:]
         return d
 
-    _locked_rw(_bq_dir(camp) / AGENCY_STATUS_FILE, mut, strict=True)
+    _locked_rw(_bq_dir(camp) / filename, mut, strict=True)
     return event
 
 
-def agency_status(camp):
-    """Reads the agency-gate journal ({} if the hook never recorded anything)."""
-    return load_json(Path(camp) / ".banquier" / AGENCY_STATUS_FILE) or {}
+# ─── SKILL.md section-usage instrumentation (see INSTRUMENTATION.md) ────────
+
+SECTION_USAGE_FILE = "section-usage.json"
+SECTION_USAGE_RECENT_KEPT = 40
+
+
+def section_usage_record(camp, payload, triggers):
+    """Persists ONE turn's trigger snapshot in .banquier/section-usage.json.
+    FAIL-OPEN, unlike tts_record/agency_record: a lost line costs a data point,
+    never a session. `turns` always increments, so "0/N fired" stays meaningful."""
+    try:
+        fired = sorted(k for k, v in (triggers or {}).items() if v)
+        event = {"ts": now_iso(), "session": active_session_number(camp),
+                  "sid": _sid(payload), "fired": fired}
+
+        def mut(data):
+            d = data if isinstance(data, dict) else {}
+            d["turns"] = int(d.get("turns", 0)) + 1
+            counts = d.get("counts") if isinstance(d.get("counts"), dict) else {}
+            for k in fired:
+                counts[k] = int(counts.get(k, 0)) + 1
+            d["counts"] = counts
+            recent = d.get("recent") if isinstance(d.get("recent"), list) else []
+            recent.append(event)
+            d["recent"] = recent[-SECTION_USAGE_RECENT_KEPT:]
+            return d
+
+        _locked_rw(_bq_dir(camp) / SECTION_USAGE_FILE, mut)
+    except Exception:
+        pass  # instrumentation must never cost a turn
+
+
+def section_usage(camp):
+    """Reads the section-usage journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / SECTION_USAGE_FILE) or {}
 
 
 def snap_get(camp, payload, key):

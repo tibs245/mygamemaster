@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _lib as L  # noqa: E402
 import agency_gate as A  # noqa: E402
 import llm_judge as J  # noqa: E402
+import turn_state as T  # noqa: E402
 
 # Player channel: strip what the model (M3) sometimes regurgitates — code blocks
 # it executes and tracebacks. Game templates (dice rolls, sheets) use box-drawing
@@ -136,6 +137,60 @@ def enforce_agency(camp, payload, original, paused, lg):
     return text, violations
 
 
+def _turn_trace(camp, payload, outcome, reason, info=None):
+    info = dict(info or {})
+    try:
+        L.turn_record(camp, payload, outcome, reason, **info)
+    except Exception as exc:
+        sys.stderr.write(
+            "[mj-turn] JOURNAL WRITE FAILED (%s: %s): the pacing verdict could not be "
+            "recorded in .banquier/turn-gate.json.\n" % (type(exc).__name__, exc))
+    if outcome != "clean":
+        detail = " ".join("%s=%s" % (k, info[k]) for k in sorted(info))
+        sys.stderr.write("[mj-turn] %s: %s %s\n" % (outcome, reason, detail))
+
+
+def enforce_turn(camp, payload, original, paused, monde):
+    """TURN-01/02/06 on the text about to be DELIVERED. Returns the violations found.
+
+    LAST-RESORT NET, and explicitly not the enforcing mechanism: the enforcing one is the
+    refusal `pre_tool_call` returns when the turn tries to persist its ellipse, because
+    that one makes the model rework. Here nothing can be reworked and, unlike the agency
+    gate on this same hook, nothing is CUT either — deleting "Trois heures plus tard"
+    leaves the sentences after it stranded in a moment that no longer exists, and a turn
+    the player cannot follow is worse than a turn that broke the pacing rule.
+
+    So the remedy is the correction fed forward, plus a durable trace. It merges into the
+    caller's existing `violations` list, inheriting `set_pending`, the scoreboard and the
+    CSV line without a second, divergent pipeline.
+
+    Violation vs infrastructure, kept apart as in `enforce_agency`: a detected violation is
+    always fed forward and journalled; a crash of ours ships the turn and is journalled
+    `blind`. Never raises.
+    """
+    if original is None:
+        return []
+    if paused:
+        _turn_trace(camp, payload, "allowed", "paused")
+        return []
+    try:
+        v = T.check_delivered(camp, payload, original, monde)
+    except Exception as exc:
+        _turn_trace(camp, payload, "blind", "gate_error",
+                    {"error": "%s: %s" % (type(exc).__name__, exc)})
+        return []
+    if "_skipped" in v:
+        _turn_trace(camp, payload, "allowed", v["_skipped"])
+        return []
+    if not v["violations"]:
+        _turn_trace(camp, payload, "clean", "ok", {"granted": v["granted"]})
+        return []
+    _turn_trace(camp, payload, "flagged", "delivered",
+                {"rules": ",".join(sorted({x["regle"] for x in v["violations"]})),
+                 "granted": v["granted"], "moments": len(v["moments"])})
+    return v["violations"]
+
+
 def handle(payload):
     camp = L.campaign_dir(payload)
     monde = L.load_monde(camp)
@@ -163,6 +218,7 @@ def handle(payload):
     guarded, agency_viols = enforce_agency(camp, payload, original, paused, lg)
     if guarded != original:
         original, forced_rewrite = guarded, True
+    turn_viols = enforce_turn(camp, payload, original, paused, monde)
 
     model = input_entry.get("model") or L.model_name(payload)
 
@@ -180,7 +236,7 @@ def handle(payload):
 
     # Merged so the agency verdict inherits the whole existing pipeline — feed-forward,
     # scoreboard, CSV — instead of a second, divergent one.
-    violations = agency_viols + violations
+    violations = agency_viols + turn_viols + violations
 
     banquier_viols = [v for v in violations if v.get("domaine") == "banquier"]
     conduite_viols = [v for v in violations if v.get("domaine") == "conduite"]
@@ -193,7 +249,7 @@ def handle(payload):
         L.set_pending(camp, payload, J.format_feedback(violations))
 
     # Scoreboard per model (only if the judge actually ran, or for integrity).
-    if judged or errors or agency_viols:
+    if judged or errors or agency_viols or turn_viols:
         L.scoreboard_update(camp, model, clean and judged, banquier_n, conduite_n,
                             [v.get("regle", "?") for v in violations])
 

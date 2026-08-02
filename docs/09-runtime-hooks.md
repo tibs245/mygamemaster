@@ -31,6 +31,14 @@ toggles — read live):
     "banquier_persiste": true,
     "garde_json_strict": false,                // true = refuse to write a broken JSON
     "snapshot_fin_session": true,
+    "docs_monde": true,                        // SEASON block from saisons.json (axis temporalite)
+    "fiche_memoire": true,                     // memory entry-format card, injected only at the threshold
+    "memoire": {                                // MIRROR of config.yaml.j2 — Hermes owns the real ceiling
+      "memory_char_limit": 6000,               // set these only if the table departs from the template
+      "user_char_limit": 4000,
+      "entry_max": 250,                        // above this an entry is reported as off-format
+      "seuil": 0.70                            // occupancy above which the card is injected
+    },
     "judge": {                                  // LLM rule checker — INACTIVE by default
       "actif": false,
       "modele": "",                            // use a SMALL model (or env MGM_JUDGE_MODEL)
@@ -78,6 +86,43 @@ empty message and never an error.
 `mj_checkpoint.py` still exists and still checks the same rules, one step earlier: a GM that submits
 its draft gets to *rewrite* rather than be *cut*, which is strictly better. It is now an
 optimisation, not the guarantee.
+
+## Pacing — the rule the player wrote, and the one place a rework can be forced
+
+TURN-01/02/06 (one player message = one moment = one STOP; time or space advances only on an
+explicit `⏩`) is the pacing protocol the player wrote himself, and the most repeated failure of the
+34-session corpus. `turn_state.py` owns it, and it is wired to three hooks rather than to a line of
+prompt.
+
+**The signal is read by the runtime, not by the model.** `pre_llm_call` classifies the player's
+verbatim message and arms or clears the grant. Before that, the only way to arm one was a
+`--declared "⏩"` string the model typed itself — which it could forget, and could forge. It cannot
+now grant itself an ellipse, and it cannot lose a real one.
+
+**A forbidden ellipse cannot be persisted.** `transform_llm_output` is rewrite-only and cannot ask
+for a new narration; `pre_tool_call` *can* refuse, and the runtime hands the refusal back to the
+model, which must adapt. So the block sits on the ellipse's one persistent, unambiguous effect: a
+write that pushes `world.json > rules.time.tracking.current_day` forward with no signal is
+**refused**, naming the rule and asking for a rework of the narration *and* of the write. That is
+the only mechanism in this runtime that forces a rework.
+
+Scope is deliberately narrow, because a wrong refusal is worse than the defect: `world.json` only,
+full JSON writes only (a patch carries no clock to compare), the **integer** day only
+(`current_hour` is free text — "morning", "matin" — and is never blocked on), forward moves only.
+
+- **It never cuts.** Unlike the agency gate, removing "Trois heures plus tard" would strand the
+  sentences after it in a moment that no longer exists. The delivered text is *flagged* and the
+  correction fed forward; a rework always beats a cut.
+- **It never loops.** After `turn_gate_max_tentatives` refusals (default 2) the write goes through,
+  the violation is logged to the scoreboard and re-injected next turn.
+- **An outage of ours is not a verdict.** If `pre_llm_call` did not run there is no turn record —
+  and therefore no `⏩` could ever have been seen, so the write is **allowed** and journalled
+  `blind`. Blocking on our own absence would refuse every legitimate ellipse of every campaign.
+- **⏸️ is the player's bypass, and the only exception.** An explicit pause suspends every layer.
+  An admin bypass does not, like the judge and the agency gate.
+- **Journal:** `<campaign>/.banquier/turn-gate.json` (`allowed` / `blocked` / `forced` / `flagged` /
+  `blind`, with counts). Measured cost: ~0.8 ms per turn.
+- **Escape hatch:** `MGM_TURN_GATE=0`, or `meta.hooks.turn_gate: false` in `world.json`.
 
 ## LLM rule checker (judge) — flexible Banker + strict conduct
 

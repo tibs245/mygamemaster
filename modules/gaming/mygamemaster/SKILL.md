@@ -386,7 +386,8 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 | Action logs, encounters, places | `sessions/NNN.json` and `events.json` | Agent memory |
 | Event chronology | `events.json` or `world.json` → `global_state.timeline` | Agent memory |
 | GM secrets | `world.json` → `global_state.gm_secrets` | Agent memory |
-| **User preferences** (tone, style, conduct reminders) | **Agent memory** | Campaign files |
+| **User meta-preferences** (tone, style, pacing) | **Agent memory** | Campaign files |
+| GM conduct rules (agency, pacing, show-don't-tell) | `references/locked-lessons.md`, stable thematic ID | Agent memory ; `#N` numbering |
 
 **Why :** Agent memory is volatile, unversioned, capacity-limited. Campaign files are persistent, versioned (git), and shareable.
 
@@ -395,7 +396,7 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 **⚠️ Pitfall — Session declared "wrapped up" but spatial data absent :** the GM announces "Session N wrapped up and committed" on the strength of the narrative summary (teaser, etat_fin, logs) while the places discovered are not in `universe.regions[].locations` and the distances are not in `movements` — a table of contents without the chapters. *(`WORLD-03` — promote every recurrence into canon before close.)*
 **Protocol :** after the last narrative message, before the commit, verify that EVERY location listed in `sessions/NNN.json > visited_locations` exists in `universe.regions[].locations`, each with a type (Clearing, Dwelling, Camp, Standing Stone…) and a concise description ; add the distances from known departure points AND between the new locations ; do the same for `npcs_met` — every name must have a sheet in `npcs.json`, even a partial one. Do not close without these two checks : the player will notice.
 
-**⚠️ Pitfall — Storing game rules in memory :** A rule such as "a short rest recovers 1d4 HP" has no place in agent memory. It goes in `world.json → rules`. Memory is for meta-preferences (the player likes being deceived, uses the ⏸️ emoji, etc.) and operational state (current session, session number).
+**⚠️ Memory holds two things, and only those :** the player's meta-preferences (likes being deceived, uses ⏸️) and operational state (current session number). Everything else has a row above.
 
 ### IMMEDIATE PERSISTENCE — ALL RP DATA JOINS FILES IN SAME RESPONSE
 

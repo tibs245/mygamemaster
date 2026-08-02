@@ -15,16 +15,18 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 |---|---|---|
 | `_lib.py` | — | common library (stdlib only): payload, state, verbosity, bypass, ledger, CSV |
 | `pre_llm_call.py` | `pre_llm_call` | injects authoritative state; records input prompt |
-| `pre_tool_call.py` | `pre_tool_call` | snapshot of counters; blocks broken JSON in strict mode |
+| `pre_tool_call.py` | `pre_tool_call` | snapshot of counters; **blocks a write advancing the game clock without a `⏩`** (`enforce_pacing`, journalled in `.banquier/turn-gate.json`); blocks broken JSON in strict mode |
 | `post_tool_call.py` | `post_tool_call` | calculates deltas actually persisted → ledger; **auto-commit** git of campaign (valid JSON) |
 | `transform_llm_output.py` | `transform_llm_output` | **deterministic AGENCY gate on the delivered text** (`enforce_agency`, unconditional, journalled in `.banquier/agency-gate.json`) + "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` + **opt-in** `tts_auto`, attached as `MEDIA:`, fail-open, every outcome journalled in `.banquier/tts-status.json`) + snapshot `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | timestamped snapshot of campaign |
 | `llm_judge.py` | — (lib + CLI) | **LLM judge**: soft steward + strict conduct (`MGM_JUDGE_MOCK` for testing) |
+| `turn_state.py` | — (lib + CLI) | **deterministic pacing gate TURN-01/02/06**: local, stdlib, no model; classifies the player's message (`open_turn`), refuses an unauthorised clock advance (`clock_verdict`), flags an unauthorised ellipse in the delivered text (`check_delivered`) |
 | `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action. `analyze()` for the verdict, `redact()` to cut the offending sentence out of a text already produced |
 | `dialogue_judge.py` | — (lib + CLI) | **dialogue grader**: quality of NPC dialogue on a 4-criteria rubric (`MGM_DIALOGUE_MOCK` for testing); fail-open |
-| `mj_checkpoint.py` | — (called by GM, OPTIONAL) | **gate** per-turn: agency gate, then LLM judge, then dialogue grader — each with a loop-prevention budget. A chance to fix a draft *before* delivery; not the guarantee (see below) |
+| `mj_checkpoint.py` | — (called by GM, OPTIONAL) | **gate** per-turn: agency gate, then pacing gate, then LLM judge, then dialogue grader — each with a loop-prevention budget. A chance to fix a draft *before* delivery; not the guarantee (see below) |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 291 cases (including the dialogue rubric, its budget and the summary fallback, and the unconditional agency path) |
+| `section_usage_report.py` | — (reader) | SKILL.md split instrumentation: `section -> turns solicited -> observed trigger` (`python3 section_usage_report.py [campaign ...]`) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 324 cases (including the dialogue rubric, its budget and the summary fallback, the unconditional agency path and the pacing gate) |
 
 ## Principles
 
@@ -49,9 +51,24 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
   - every verdict (`clean` / `enforced` / `skipped` / `blind`) is journalled in
     `.banquier/agency-gate.json`: a cut the player can see must leave a trace an auditor can read.
     Added cost measured at ~0.6 ms/turn (analysis + journal).
-- **Deterministic only**: apart from the agency gate we only block on JSON integrity; game logic
+- **TURN-01/02/06 is the same story with the opposite remedy.** `turn_state.py` is wired to
+  `pre_llm_call` (the grant is armed from the player's verbatim message — unforgeable and
+  un-skippable), to `pre_tool_call` (a write advancing `current_day` without a `⏩` is **refused**,
+  and the runtime makes the model rework the turn: this is the only forced rework the runtime can
+  do) and to `transform_llm_output` (the delivered text is **flagged, never cut** — removing an
+  ellipse marker strands the sentences after it). Same fail-open boundary as above: a missing turn
+  record means `pre_llm_call` did not run, so no `⏩` could have been seen — the write is allowed and
+  journalled `blind` rather than refused. Budget `turn_gate_max_tentatives` (default 2), escape
+  hatch `MGM_TURN_GATE=0` / `meta.hooks.turn_gate:false`, journal `.banquier/turn-gate.json`,
+  ~0.8 ms/turn.
+- **Deterministic only**: apart from the agency and pacing gates we only block on JSON integrity; game logic
   ("nonexistent object") remains advisory as long as inventory is free-text (see spec §7).
 - Working state under `<campaign>/.banquier/` (ledger, snapshots, sample counter).
+- `pre_llm_call.py` also journals, per turn, which of a fixed set of observable
+  triggers fired (`.banquier/section-usage.json`, ~0.17 ms/turn measured) — the
+  data behind `section_usage_report.py`. It proves a trigger CONDITION was true
+  for the turn, never that SKILL.md was actually read — see the instrumentation
+  note (job 8e5baaf2) for the method and its limits.
 
 ## Settings
 

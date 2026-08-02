@@ -86,8 +86,8 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
 | File (`modules/gaming/mygamemaster/hooks/`) | Event | Role |
 |---|---|---|
 | `_lib.py` | — | common library (payload, state, verbosity, bypass, ledger, CSV) |
-| `pre_llm_call.py` | `pre_llm_call` | injects the **authoritative state** (time/day, PCs present + inventories, NPCs present); memorizes input prompt for traceability |
-| `pre_tool_call.py` | `pre_tool_call` | **snapshot** of counters in the targeted file; **blocks** a `write_file` write whose JSON content is broken/nonconforming (strict mode) |
+| `pre_llm_call.py` | `pre_llm_call` | injects the **authoritative state** (time/day, PCs present + inventories, NPCs present); memorizes input prompt for traceability; **opens the turn** (`turn_state.open_turn` — arms/clears the fast-forward grant from the player's verbatim message, §10.0b) |
+| `pre_tool_call.py` | `pre_tool_call` | **snapshot** of counters in the targeted file; **blocks** a write that advances the game clock without a fast-forward signal (§10.0b); **blocks** a `write_file` write whose JSON content is broken/nonconforming (strict mode) |
 | `post_tool_call.py` | `post_tool_call` | reloads written file, calculates **deltas** (actions +N, inventory X→Y, time), stacks them in the **ledger**; reports broken JSON (advisory); **auto-commit** git of the campaign (if JSON valid) |
 | `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts` + opt-in `tts_auto`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open, outcome journalled in `.banquier/tts-status.json`) + memorizes `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | **timestamped snapshot** of campaign JSON (safety net) |
@@ -286,6 +286,53 @@ cut/re-check rounds are bounded by `MGM_AGENCY_MAX_ATTEMPTS` (default 3). It rea
 another gate's budget disarms it silently (cf. `turn_state.py`).
 
 Measured added cost: ~0.5 ms of analysis + ~0.1 ms of journal per turn.
+
+### 10.0b Layer 0b — deterministic pacing (TURN-01/02/06), and the only forced rework
+
+Same problem as §10.0, opposite remedy. `turn_state.py` owns the pacing rules the player
+wrote himself; it was in exactly the state the agency gate was in — reachable only through a
+line of `SKILL.md`. It is now wired to three hooks, and **a cut is not one of the options**:
+deleting "Trois heures plus tard" leaves the sentences after it stranded in a moment that no
+longer exists. The house rule is that **a rework beats a cut**.
+
+| Hook | What it does | Why there |
+|---|---|---|
+| `pre_llm_call` | `open_turn()` — arms or clears the fast-forward grant from the player's **verbatim** message, and publishes the classification campaign-wide (`.banquier/turn-signal.json`) | The grant becomes **unforgeable** (the model can no longer type its own `--declared "⏩"`) and **un-skippable** (no flag to forget) |
+| `pre_tool_call` | `clock_verdict()` — **BLOCKS** a write that pushes `world.json > rules.time.tracking.current_day` forward with no signal | The only hook that can force a rework at all (§1). An ellipse's one **persistent and deterministic** effect is that integer |
+| `transform_llm_output` | `check_delivered()` — flags the delivered narration, feeds the correction forward, journals | Last-resort net. It cannot re-run the model and it must not cut, so this is all that is left |
+| `mj_checkpoint.py` | `check_narration()` as layer 2 | The only path where a fault buys a **rewrite before delivery** — strictly better than the two above. The `pre_tool_call` refusal is what makes the model come to it |
+
+**Why the clock, and nothing wider.** A block that is too broad is worse than the defect it
+guards (§2). So: `world.json` only, full parseable JSON content only (a patch carries no
+clock to compare), the **integer** `current_day` only — `current_hour` is free text in the
+real corpus ("morning", "matin") and §2 forbids blocking on ambiguous data — and only when
+the day moves **forward**. Everything else is untouched.
+
+| Situation | Behaviour | Journal (`.banquier/turn-gate.json`) |
+|---|---|---|
+| clock unmoved, or not a `world.json` full write | untouched | — |
+| day advanced, `⏩` armed this turn | allowed | `allowed:granted` |
+| **day advanced, no signal** | **write REFUSED**, model reworks narration + write | `blocked:no_signal` |
+| budget spent (`turn_gate_max_tentatives`, default 2) | write allowed, violation fed forward + scoreboard `forces` | `forced:forced` |
+| delivered narration breaks TURN-01/02/06 | **not cut** — correction fed forward, counted | `flagged:delivered` |
+| explicit ⏸️ pause, or `MGM_TURN_GATE=0` / `meta.hooks.turn_gate:false` | allowed, announced | `allowed:paused` / `allowed:gate_off` |
+| **no runtime turn record** (`pre_llm_call` did not run) | **allowed** — our outage, not a verdict | `blind:blind_no_turn_record` |
+| gate crash | allowed | `blind:*_error` |
+
+The last two rows are the fail-open boundary, read the same way as §10.0: a **detected**
+violation is never let through silently, an **outage of ours** never costs a campaign its
+turn. Blocking on a missing record would refuse *every* legitimate ellipse, since without
+`pre_llm_call` no `⏩` can ever be seen.
+
+**Budgets are separate.** The `pre_tool_call` gate counts in `turn_clock_attempts`, the
+checkpoint's pacing layer in `turn_gate_attempts`; neither touches `checkpoint_attempts`,
+`agency_attempts` or `dialogue_attempts`. The delivery net has no budget: one pass per turn,
+no re-inference, and `take_pending` clears the feedback after a single injection.
+
+**⏸️ is the only exception**, and it is the player's. A pause suspends every layer above,
+including the block. An admin bypass does **not** — same posture as the judge and the agency
+gate. Measured added cost: ~0.4 ms in `pre_llm_call`, ~0.3 ms in `transform_llm_output`,
+~0.1 ms of journal.
 
 ### 10.1 Two correction mechanisms (neither loops)
 
