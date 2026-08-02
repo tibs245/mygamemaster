@@ -191,15 +191,15 @@ The 4 commands (`!image`, `!portrait`, `!carte`, `!illustration session`) share 
 |----------|----------|-----------|---------------|------------------------------|
 | `!image <description>` | `template_scene.json` | `16:9` | `images/scenes/{slug}.png` (slug = description lowercase, hyphens) | the description provided |
 | `!portrait <character_name>` | `template_portrait.json` | `3:4` | `images/portraits/{character_name}.png` | character sheet (see below) |
-| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `carte_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `world.json > lieux > {location}` |
+| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `carte_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `world.json > locations > {location}` |
 | `!illustration session` | `template_scene.json` | `16:9` | `images/scenes/session_{N}_recap.png` | `resume` from `sessions/<derniere>.json` (3-5 sentences) ; prompt suffixed *« Key moment from a fantasy RPG session: {resume}. Cinematic composition, dramatic lighting, emotional impact. »* |
 
 ### Details by Command
 
 **`!portrait` — character sheet lookup and enrichment:**
-- Traverse `characters/*.json`, search for `meta.nom_perso` (fuzzy match). If not found → *« Character "{name}" not found in this campaign. Check the spelling. »*
-- Inject `meta.race` → `{race}`, `meta.classe` → `{classe}`, `meta.apparence` → `{apparence}`, and a `{contexte}` (e.g. current location).
-- If `apparence` missing, build it: `"{race} {classe}. Notable equipment: {equipement[0]}, {equipement[1]}. Key stats: {stats dominantes}."`
+- Traverse `characters/*.json`, search for `meta.character_name` (fuzzy match). If not found → *« Character "{name}" not found in this campaign. Check the spelling. »*
+- Inject `meta.race` → `{race}`, `meta.class_` → `{classe}`, `meta.apparence` → `{apparence}`, and a `{contexte}` (e.g. current location).
+- If `apparence` missing, build it: `"{race} {classe}. Notable equipment: {equipment[0]}, {equipment[1]}. Key stats: {stats dominantes}."`
 - If portrait already exists → offer existing file + *« To regenerate: `!portrait {name} --force` »*. `--force` overwrites existing and passes current portrait as `--ref-image` (see below).
 
 **`!carte` — a map has a DIEGETIC SOURCE, which determines its precision, style AND reliability.**
@@ -253,7 +253,7 @@ python3 "$GEN" --prompt-file "$CARTES/_schema_<location>.<h>.prompt.txt" \
 - It's **known to the GM only** (trace intent in `GM-INTENTION-LOG.md`, never visible to player).
 - If player cries bug: **NEVER confirm a bug** or the intent. Stay in fiction — *« the map you found may not have been drawn by a sure hand… »*. The map isn't broken: it's *unreliable*, and that's diegetic.
 
-**Fallback (degraded mode).** If `temporalite` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `world.json > lieux > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `world.json` (or run `geo_query.py build` then `carte_schema.py` for a faithful map) ! »*
+**Fallback (degraded mode).** If `temporality` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `world.json > locations > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `world.json` (or run `geo_query.py build` then `carte_schema.py` for a faithful map) ! »*
 
 **(D) Town/Village Map — micro detail (coming soon).** A regional map shouldn't try to show buildings of a village (unreadable). Dense detail (the tavern doesn't move, player orientates) will be **a separate map**, backed by a **`geo.json` specialized « town »** (micro scale: streets, buildings = containment sub-locations), generated as needed and **persisted** like regional maps. Same temporal consistency principle. *Not implemented — dedicated feature.*
 
@@ -277,7 +277,7 @@ To guarantee that **a character's face remains identical** across images (portra
 
 **`!image <description>` — scene with named characters**
 - If the description mentions one or more characters whose portrait already exists in `images/portraits/`, pass these portraits as `--ref-image` (max 3).
-- Detection: search in the description for `meta.nom_perso` values from `characters/*.json` sheets (fuzzy match, case-insensitive).
+- Detection: search in the description for `meta.character_name` values from `characters/*.json` sheets (fuzzy match, case-insensitive).
 - If a mentioned character has no portrait yet → generate the scene without reference for that character; note *« ⚠️ No reference portrait for **{name}**. Run `!portrait {name}` first to freeze their appearance. »*
 
 **`!illustration session`** — apply same logic: detect characters in session summary and pass their portraits as `--ref-image`.
@@ -513,7 +513,7 @@ After generation :
 | ComfyUI not running | `curl http://127.0.0.1:8188/system_stats` fails | Run `comfy launch --background` |
 | Model missing | `check_deps.py` reports missing checkpoint | `comfy model download --url ...` |
 | Prompt too long | Tokenization error | Truncate `description_complete` to 300 tokens max, keep essentials |
-| Character not found | No sheet with matching `meta.nom_perso` | List available characters |
+| Character not found | No sheet with matching `meta.character_name` | List available characters |
 | No active campaign | `world.json` not found | *« No active campaign. Run `!init` or `!campaign active <name>`. »* |
 | Visual style missing | `world.json` without `meta.style_visuel` | *« ⚠️ Visual style not defined. Use `!style visual ...` to configure it. »* |
 

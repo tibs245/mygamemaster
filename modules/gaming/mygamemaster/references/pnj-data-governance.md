@@ -8,7 +8,7 @@ A recurring NPC (2+ sessions or ally/companion) must have a structured record in
 
 ```json
 {
-  "nom": "First name",
+  "name": "First name",
   "titre": "Role / Function",
   "premiere_rencontre": "Session X — Location",
   "description": "1-2 descriptive sentences (physical appearance, general demeanor). Contain ONLY what was seen/played.",
@@ -20,7 +20,7 @@ A recurring NPC (2+ sessions or ally/companion) must have a structured record in
     "Example: 'Identified tracks: 2 people, at night, heading north (played S2)'",
     "Example: 'Knows that [world element] (stated S1)'"
   ],
-  "hypotheses_mj": [
+  "gm_hypotheses": [
     "My deductions/assumptions — I CANNOT use them in narration without validating them in play",
     "Example: 'Perhaps knows [a world secret] better than shown — needs testing'"
   ],
@@ -54,7 +54,7 @@ A recurring NPC (2+ sessions or ally/companion) must have a structured record in
 ## Absolute Rules
 
 1. **established_facts** contains ONLY what was played or stated verbatim. Format: `"action/revelation (played S{N})"`. Each fact must be traceable to a session.
-2. **hypotheses_mj** contains my speculations. Marked as such. I CANNOT use them in narration as facts. To validate: test them in play.
+2. **gm_hypotheses** contains my speculations. Marked as such. I CANNOT use them in narration as facts. To validate: test them in play.
 3. **Stats** defined consistent with the presented character. If the NPC has not shown a skill, stat = 10 without proficiency.
 4. **Observed skills**: only those shown in play. An unshown skill = not proficient.
 5. **When to add a recurring NPC**: from their 2nd session or if they become an ally/companion.
@@ -64,11 +64,11 @@ A recurring NPC (2+ sessions or ally/companion) must have a structured record in
 ❌ `"notes_mj": ["Knows the secret history of the place"]` — presented as fact, this is a deduction
 
 ✅ `"established_facts": ["Said that [observable detail] (played S2)"]`
-✅ `"hypotheses_mj": ["Perhaps knows the secret history of the place better than shown — needs testing in play"]`
+✅ `"gm_hypotheses": ["Perhaps knows the secret history of the place better than shown — needs testing in play"]`
 
 ## Quick Test
 
 Before using NPC information in narration:
 - Is the fact in `established_facts`? -> ✅ usable
-- In `hypotheses_mj`? -> ❌ do not use, test first in play
+- In `gm_hypotheses`? -> ❌ do not use, test first in play
 - Nowhere? -> ❌ do not use, this is pure invention

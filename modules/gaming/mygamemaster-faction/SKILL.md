@@ -22,8 +22,8 @@ Design ref: `archive_hermes/audit/06-niveau2-factions.md` (archived; collective 
 ## Your input (on each request)
 
 1. **Your faction brief** (deterministic, produced by `build_brief.py` on the GM side, slice extracted by `faction_slice.py`): your `global_state.factions[X]` sheet —
-   - `nom`, `importance`, `attitude_actuelle` (toward PCs),
-   - `objectif_court_terme` and `objectif_long_terme` (your drivers, **independent of PCs**),
+   - `name`, `importance`, `attitude_actuelle` (toward PCs),
+   - `short_term_goals` and `long_term_goals` (your drivers, **independent of PCs**),
    - **known** `relations_inter_factions` (alliances, truces, rivalries, suspicions),
    - `indices_observes` (what your members/spies have noticed), `derniere_interaction`,
    - your **`faction_actions_horloge`**: your ongoing actions, their triggers, **deadlines**, consequences and modifying factors,

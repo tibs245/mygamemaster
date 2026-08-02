@@ -4,14 +4,14 @@
 
 > **This file has been moved.** The convention is now split by verbosity level.
 
-👉 **[See `references/verbosity/README.md`](verbosity/README.md)** — index + common emoji table.
+👉 **[See `references/verbosite/README.md`](verbosite/README.md)** — index + common emoji table.
 
 ## Files by level
 
 | Level | File |
 |--------|---------|
-| TRACE | [`verbosity/trace.md`](verbosity/trace.md) |
-| DEBUG | [`verbosity/debug.md`](verbosity/debug.md) |
-| INFO | [`verbosity/info.md`](verbosity/info.md) |
-| WARN | [`verbosity/warn.md`](verbosity/warn.md) |
-| ERROR | [`verbosity/error.md`](verbosity/error.md) |
+| TRACE | [`verbosite/trace.md`](verbosite/trace.md) |
+| DEBUG | [`verbosite/debug.md`](verbosite/debug.md) |
+| INFO | [`verbosite/info.md`](verbosite/info.md) |
+| WARN | [`verbosite/warn.md`](verbosite/warn.md) |
+| ERROR | [`verbosite/error.md`](verbosite/error.md) |

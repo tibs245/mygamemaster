@@ -38,15 +38,16 @@ GM: "The Douce flows before you, the traps are further down on the left bank.
 
 ## Derived Rules
 
-- **One scene per response** — the landscape + the doors (perceptions + options)
+- **One scene per response** — the landscape and what stands in it (the perceptible state of the world)
 - **Zero unvalidated action verbs** — the test "did the player tell me to do that?"
 - **No unvalidated time skips** — "You move next to the snares" assumes the player finishes at the traps and continues. They may decide to stop after the traps.
-- **Describe what IS, not what HAPPENS** — "the traps are in the river" vs "you pull the traps". The first is an open option. The second is an assigned action.
-- **NPCs can propose options** — "Rousset suggests going to cut wood" ✅. "Rousset leaves to cut wood" ❌ (assumes the group agrees, or cuts Rubis off from acting without their decision).
+- **Describe what IS, not what HAPPENS** — "the traps are in the river" vs "you pull the traps". The first is a state of the world. The second is an assigned action.
+- **Never a menu of actions** — describe the state, then stop. ✅ "🛑 Rousset looks at you. He waits." ❌ "You can: a) go to the traps b) help Berthe c) wait". The GM never lists the player's possible actions and never says "the options are visible".
+- **An NPC offer is dialogue, not a menu** — "Rousset suggests going to cut wood" ✅ (a character speaks, inside the fiction). "Rousset leaves to cut wood" ❌ (assumes the group agrees, or cuts Rubis off from acting without their decision).
 
 ## No invented objects
 
 If an NPC needs to carry something but doesn't have the object in their sheet:
 - ✅ The NPC uses what they have: their blanket spread on the ground serves as a gathering mat
 - ❌ The NPC pulls out an "empty canvas sack" that doesn't exist in their inventory
-- ✅ Check in `npcs.json > inventaire` and `inventaire_<lieu>.contenu` before each interaction
+- ✅ Check in `npcs.json > inventory` and `inventory_<lieu>.contenu` before each interaction

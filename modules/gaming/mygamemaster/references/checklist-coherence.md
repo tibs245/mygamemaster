@@ -11,6 +11,7 @@ Detailed reference for the checklist in section 7 of SKILL.md.
 - A sentence that starts with `You wonder / you think / you feel that` → ✅ internal state, does not force an action
 - **No "and" magic:** ❌ `You inspect and find and slip your hand` → 3 unvalidated actions
 - ✅ `You inspect. What do you do?` → 1 action requested, control returned to player
+- **No options menu:** ❌ `You can: a) talk to him b) search c) leave` and ❌ `the options are visible` → the GM describes the perceptible state of the world, then stops. An NPC offer spoken **inside the fiction** ("I can take you there, if you want") is dialogue, not a menu — it stays allowed.
 
 **Strict exceptions (traceable):** Critical failure, Fear 9-10, mental manipulation, activated trauma.
 
@@ -55,8 +56,8 @@ Detailed reference for the checklist in section 7 of SKILL.md.
 - Do NOT confuse "the file is coherent" with "the narration followed the consequences"
 
 ### Locations, Distances, Travel
-- Every location from sessions in universe.regions[].lieux
-- Travel durations in regles.temps.deplacements
+- Every location from sessions in universe.regions[].locations
+- Travel durations in rules.time.movements
 - Pace chosen? Fatigue applied? Encounter roll made?
 - At least one micro-choice during travel
 

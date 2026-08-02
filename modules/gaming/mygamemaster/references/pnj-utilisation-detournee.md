@@ -2,7 +2,7 @@
 
 ## Principle
 
-An NPC has only what is listed in their character sheet (`npcs.json > inventaire` or `inventaire_<lieu>.contenu`). **Never** invent specific items (bags, ropes, lamps, containers) that are not documented.
+An NPC has only what is listed in their character sheet (`npcs.json > inventory` or `inventory_<lieu>.contenu`). **Never** invent specific items (bags, ropes, lamps, containers) that are not documented.
 
 However, an NPC can **repurpose** what they have for unintended uses:
 

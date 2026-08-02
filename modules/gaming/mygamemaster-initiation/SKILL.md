@@ -255,7 +255,7 @@ Create the files:
 6. Initialize `sessions/001.json` with the preamble
 7. Initialize git: `git init && git add . && git commit -m "🎲 Campaign initialized"`
 8. **Campaign isolation** — No action needed: memory/config isolation is ensured by the **one-container-per-campaign** model (see README). No `hermes profile create` to run.
-   > _(History: `references/profiles-multi-campaign.md` described the old Hermes profile mechanism. It's replaced by container-level isolation.)_
+   > _(History: `references/profiles-multi-campagne.md` described the old Hermes profile mechanism. It's replaced by container-level isolation.)_
 
 9. **If independent campaign:** separate git and separate folder (memory isolation is already ensured by the container)
 
