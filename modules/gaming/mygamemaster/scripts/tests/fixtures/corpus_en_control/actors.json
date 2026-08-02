@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "campagne": "CORPUS_EN",
+    "version": 1,
+    "t_reference": 2592
+  },
+  "actors": [
+    {
+      "id": "acteur:npc_ally",
+      "name": "NPC_ALLY",
+      "lod": "froid",
+      "localisation_id": "loc:village",
+      "trajectory": []
+    },
+    {
+      "id": "faction:faction_a",
+      "name": "FACTION_A",
+      "lod": "froid"
+    }
+  ]
+}

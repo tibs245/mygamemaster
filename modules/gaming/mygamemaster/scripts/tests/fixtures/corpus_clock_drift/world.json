@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "campagne": "CORPUS_CLOCK",
+    "version": 1,
+    "time": {
+      "regime": "Narratif"
+    },
+    "pj_ids": [
+      "PC_01"
+    ]
+  },
+  "modules": {
+    "travel": {
+      "actif": false,
+      "params": {}
+    },
+    "factions": {
+      "actif": false,
+      "params": {}
+    },
+    "weather": {
+      "actif": false,
+      "params": {}
+    },
+    "worldbuilding_lieux": {
+      "actif": false,
+      "params": {}
+    },
+    "proactivite_pnj": {
+      "actif": false,
+      "params": {}
+    },
+    "artefacts": {
+      "actif": false,
+      "params": {}
+    },
+    "politique": {
+      "actif": false,
+      "params": {}
+    },
+    "construction_royaume": {
+      "actif": false,
+      "params": {}
+    }
+  },
+  "universe": {
+    "regions": [
+      {
+        "id": "reg:R1",
+        "name": "REGION_01",
+        "locations": [
+          {
+            "id": "loc:village",
+            "name": "LOC_VILLAGE"
+          }
+        ]
+      }
+    ]
+  },
+  "global_state": {
+    "current_hour": "J62 soir",
+    "calendrier_in_game": {
+      "aujourd_hui": "J62"
+    },
+    "timeline": "Jour 62 EVENT_C.",
+    "factions": [
+      {
+        "name": "FACTION_A",
+        "short_term_goals": "GOAL_ST_01",
+        "long_term_goals": "GOAL_LT_01"
+      }
+    ],
+    "faction_actions_horloge": {
+      "actions": [
+        {
+          "faction": "FACTION_A",
+          "actions_en_cours": [
+            {
+              "action": "ACTION_PLAN_01",
+              "echeance": {
+                "texte": "jour 26",
+                "unite": "jour",
+                "min": 10,
+                "max": 21,
+                "ancre": 5,
+                "statut": "en_cours"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "rules": {
+    "time": {
+      "tracking": {
+        "current_day": 81,
+        "current_hour": "J81 aube"
+      }
+    }
+  },
+  "system": {
+    "des": "d20"
+  }
+}

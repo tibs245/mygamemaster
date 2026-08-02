@@ -1,0 +1,29 @@
+{
+  "date": "2026-01-01",
+  "participants": [
+    "PC_01"
+  ],
+  "start_hour": "Jour 5 aube",
+  "end_hour": "Jour 5 soir",
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ],
+  "visited_locations": [
+    {
+      "name": "LOC_VILLAGE"
+    }
+  ],
+  "resume": "SUMMARY_01",
+  "session": 3,
+  "npcs_met": [
+    {
+      "npc_id": "npc:absent",
+      "moment": "MOMENT_01",
+      "lieu": "LOC_VILLAGE",
+      "interaction": "INTERACTION_01"
+    }
+  ]
+}

@@ -3,6 +3,8 @@
 transform_llm_output — after the tool loop, before delivery to the player.
 
 1. Reads (and CLEARS) the turn ledger → factual Steward report "Persisted".
+1b. DETERMINISTIC AGENCY GATE (AGENCY-01/02/03) on the text about to be delivered —
+   unconditional, local, no model, and the only place these rules are actually enforced.
 2. Launches the LLM JUDGE (opt-in): steward domain (lenient) + conduct (strict).
    → stores a corrective feedback re-injected on the next turn (feed-forward);
    → updates the scoreboard per model;
@@ -22,6 +24,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _lib as L  # noqa: E402
+import agency_gate as A  # noqa: E402
 import llm_judge as J  # noqa: E402
 
 # Player channel: strip what the model (M3) sometimes regurgitates — code blocks
@@ -50,6 +53,89 @@ def _player_asked_internals(payload):
     return bool(_SHOW_RE.search(L.incoming_message(payload)))
 
 
+def _agency_trace(camp, payload, outcome, reason, info=None):
+    """Durable record first, stderr second — stderr is the channel proven useless.
+
+    A failed journal write is announced and swallowed, never propagated: losing a log line
+    must not cost the player his turn (same trade-off, same reasoning as `_tts_trace`)."""
+    info = dict(info or {})
+    try:
+        L.agency_record(camp, payload, outcome, reason, **info)
+    except Exception as exc:
+        sys.stderr.write(
+            "[mj-agency] JOURNAL WRITE FAILED (%s: %s): the agency verdict could not be recorded "
+            "in .banquier/agency-gate.json — a cut made here leaves no trace.\n"
+            % (type(exc).__name__, exc))
+    if outcome != "clean":
+        detail = " ".join("%s=%s" % (k, info[k]) for k in sorted(info))
+        sys.stderr.write("[mj-agency] %s: %s %s\n" % (outcome, reason, detail))
+
+
+def enforce_agency(camp, payload, original, paused, lg):
+    """AGENCY-01/02/03 on the text about to be DELIVERED. Returns (text, violations).
+
+    THIS is the unconditional path. `mj_checkpoint.py` owns the same verdict but only runs
+    when the model decides to run it, and the field report counted eight agency violations
+    in one hour under exactly that arrangement — an instruction in a prompt does not execute.
+    Here nothing is asked of the model.
+
+    Downstream of inference there is no "rewrite and come back", so the remedy is a CUT
+    (`agency_gate.redact`). Anti-loop is structural rather than budgeted: one hook pass per
+    turn, no re-inference requested, and the redact/re-check rounds are bounded by
+    `A.max_attempts()`. It deliberately does NOT touch `agency_attempts` or
+    `checkpoint_attempts` — those are the checkpoint's and the judge's own budgets, and
+    consuming another gate's budget is how a gate silently disarms its neighbour.
+
+    Detected violation vs infrastructure failure, never confused:
+      * a VIOLATION is always cut — that outcome does not depend on config or network;
+      * a CRASH of the analyser is a defect of ours, not a verdict on the turn: the text
+        ships unchanged and the turn is journalled `blind`, because breaking every session
+        of every campaign is not a proportionate answer to our own bug.
+
+    Never raises: the caller is on the delivery path of every turn of every game.
+    """
+    if original is None:
+        return original, []
+    if paused:
+        _agency_trace(camp, payload, "skipped", "paused")
+        return original, []
+    if not A.enabled():
+        _agency_trace(camp, payload, "skipped", "gate_off")
+        return original, []
+
+    names = L.pc_names(camp)
+    declared = L.incoming_message(payload)
+    text, violations, rounds = original, [], 0
+    try:
+        report = A.analyze(text, declared, names)
+        while not report["ok"] and rounds < A.max_attempts():
+            violations = violations or report["violations"]
+            text, _cut = A.redact(text, report)
+            rounds += 1
+            if not text.strip():
+                break
+            report = A.analyze(text, declared, names)
+        if not report["ok"] or not text.strip():
+            # Budget spent and still refused: the offending text is never the one delivered.
+            text = ""
+    except Exception as exc:
+        _agency_trace(camp, payload, "blind", "gate_error",
+                      {"error": "%s: %s" % (type(exc).__name__, exc), "chars": len(original)})
+        return original, []
+
+    if not violations:
+        _agency_trace(camp, payload, "clean", "ok")
+        return original, []
+
+    reason = "redacted"
+    if not text.strip():
+        text, reason = L.t("agency.emptied", lg), "emptied"
+    _agency_trace(camp, payload, "enforced", reason,
+                  {"rules": ",".join(sorted({v["regle"] for v in violations})),
+                   "rounds": rounds, "chars_before": len(original), "chars_after": len(text)})
+    return text, violations
+
+
 def handle(payload):
     camp = L.campaign_dir(payload)
     monde = L.load_monde(camp)
@@ -71,6 +157,13 @@ def handle(payload):
         original, forced_rewrite = _scrub_player_channel(original)
         if forced_rewrite and not original:
             original = "*(The narrative resumes in a moment.)*"
+
+    # Runs BEFORE the judge, the CSV, the !raconte snapshot and the auto-voice, so that none
+    # of them records or speaks a sentence the player will not receive.
+    guarded, agency_viols = enforce_agency(camp, payload, original, paused, lg)
+    if guarded != original:
+        original, forced_rewrite = guarded, True
+
     model = input_entry.get("model") or L.model_name(payload)
 
     # ── LLM Judge (opt-in, suspended only by an explicit pause ⏸️/▶️ — NOT by
@@ -85,6 +178,10 @@ def handle(payload):
         violations = verdict.get("violations", [])
         judged = "_skipped" not in verdict
 
+    # Merged so the agency verdict inherits the whole existing pipeline — feed-forward,
+    # scoreboard, CSV — instead of a second, divergent one.
+    violations = agency_viols + violations
+
     banquier_viols = [v for v in violations if v.get("domaine") == "banquier"]
     conduite_viols = [v for v in violations if v.get("domaine") == "conduite"]
     banquier_n = len(banquier_viols) + len(errors)   # judge + JSON integrity
@@ -96,7 +193,7 @@ def handle(payload):
         L.set_pending(camp, payload, J.format_feedback(violations))
 
     # Scoreboard per model (only if the judge actually ran, or for integrity).
-    if judged or errors:
+    if judged or errors or agency_viols:
         L.scoreboard_update(camp, model, clean and judged, banquier_n, conduite_n,
                             [v.get("regle", "?") for v in violations])
 

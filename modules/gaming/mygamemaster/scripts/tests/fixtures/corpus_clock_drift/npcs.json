@@ -1,0 +1,13 @@
+[
+  {
+    "name": "NPC_ALLY",
+    "id": "npc:ally",
+    "description": "DESC_01",
+    "established_facts": [
+      "FACT_01"
+    ],
+    "gm_hypotheses": [
+      "HYP_01"
+    ]
+  }
+]
