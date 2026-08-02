@@ -9,12 +9,8 @@
     "langue": "",
     "inspirations": [],
     "time": {
-      "_note": "regime = type of time tracking. 'Narrative' (GM estimates durations) OR 'UT' (strict Time Units, e.g. 1 UT = 10 min, 144 UT/day). 'tracking' holds the start point (day/hour) — see also rules.time.tracking.",
-      "regime": "Narrative",
-      "tracking": {
-        "day": 1,
-        "hour": "morning"
-      }
+      "_note": "regime = type of time tracking. 'Narrative' (GM estimates durations) OR 'UT' (strict Time Units, e.g. 1 UT = 10 min, 144 UT/day). The in-game clock lives in rules.time.tracking (current_day/current_hour) — that is the SINGLE source of truth read by clock.py and the hooks. Do NOT add a second 'tracking' block here: a duplicate silently diverges and the engine would keep reading the other one.",
+      "regime": "Narrative"
     },
     "verbosity": "INFO",
     "cloture_auto": true,
@@ -49,12 +45,13 @@
       }
     },
     "features": {
-      "_schema": "Five main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/monde-vivant/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill.",
+      "_schema": "Six main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/monde-vivant/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill. tts: automatic narrative voice (mygamemaster-tts skill) — see meta.audio for voice selection.",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,
       "temporality": true,
-      "images": true
+      "images": true,
+      "tts": true
     },
     "_pj_ids": "actor ids of PCs, e.g. [\"acteur:name\"] ; the engine links 'towards-player' relationships to these ids. Keep [] until PCs are created.",
     "pj_ids": [],
@@ -125,6 +122,16 @@
         "current_hour": "morning",
         "jalons_temporels": []
       }
+    },
+    "weather": {
+      "_note": "Required as soon as modules.weather.actif is true (load_campaign.py checks rules.weather). Replace the example conditions with your own; keep the block even if minimal.",
+      "principe": "The GM picks or rolls a condition when the party travels or when an outdoor scene opens.",
+      "conditions": [
+        {"label": "Clear", "effet": "No mechanical effect"},
+        {"label": "Rain", "effet": "-2 to sight-based checks at range"},
+        {"label": "Storm", "effet": "Travel times ×1.5; outdoor fires impossible"}
+      ],
+      "saison": ""
     }
   },
   "global_state": {
