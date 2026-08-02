@@ -31,7 +31,7 @@ We **explicitly separate**:
   days later").
 
 The player never sees `T`. The engine sees only `T`. The conversion `T ↔ day/hour` is already
-done by [`outils/gestion_temps.py`](../../data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/outils/gestion_temps.py)
+done by `outils/gestion_temps.py` (per-campaign tool, not shipped in this repo)
 and remains the only bridge between the two.
 
 > **Why quantify.** Trajectory intersections and causal delays require
@@ -47,7 +47,7 @@ and remains the only bridge between the two.
 | Intra-session | 1 UT (10 min) | scenes, short movements, encounters |
 | Inter-session | hour / day | actor plans, travel, faction deadlines |
 | Long jump (season, year) | day / week | long-term goals, weather, harvests |
-| Very long jump (decade, century) | year + milestones | dynasties, foundations, ruins → **lazy** generation (see [`03`](03-moteur-de-tick.md)) |
+| Very long jump (decade, century) | year + milestones | dynasties, foundations, ruins → **lazy** generation (see [`03`](03-tick-engine.md)) |
 
 ## 2. The Spatial Graph: Three Layers
 
@@ -140,7 +140,7 @@ space **4D** and solves the migration example.
 
 > **Where to store it.** Either a `universe.graphe` section in `world.json`, or a dedicated
 > `geo.json` file per campaign (recommended: isolates the graph, simplifies validation and
-> concurrent writes). To decide in [`07`](07-plan-de-mise-en-oeuvre.md).
+> concurrent writes). To decide in [`07`](07-implementation-plan.md).
 
 ### A Mobile Entity (NPC, City, Marching Column…)
 
@@ -210,7 +210,7 @@ refuses** if anything breaks a conservation.
   presbytery (E), crypt (contained), + present actors: exact.
 - **"Does the player cross the migrants?"** → `croisement` between their trajectory and the
   borough's: the engine knows **where** and **when**, and preprocessing sets up the scene
-  ([`03`](03-moteur-de-tick.md)).
+  ([`03`](03-tick-engine.md)).
 
-→ Next: [`02-acteurs-et-agents.md`](02-acteurs-et-agents.md) — who *moves* on this graph, and
+→ Next: [`02-actors-and-agents.md`](02-actors-and-agents.md) — who *moves* on this graph, and
 why.

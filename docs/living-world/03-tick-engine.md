@@ -161,7 +161,7 @@ without breaking anything: the engine is the same, only the **trigger** and **se
 
 When `T_to − T_from` is large, the tick **does not traverse** each UT:
 
-1. **Jump to milestones**: plan deadlines, scheduled events ([`04`](04-propagation-causale.md)),
+1. **Jump to milestones**: plan deadlines, scheduled events ([`04`](04-causal-propagation.md)),
    season/harvest changes.
 2. **Aggregate** by increasing scale (day → week → year → decade): the farther, the coarser.
 3. **Generate lazily** detail only for the zone where the player reappears.
@@ -176,9 +176,9 @@ The more we simulate autonomously, the greater the risk of cumulative incoherenc
 1. **Extended Steward** — no conservation (resources/space/time) is violated.
 2. **Coherence Judge** ([`llm_judge.py`](../../modules/gaming/mygamemaster/hooks/llm_judge.py))
    on events **generated** by the tick (plausibility, scale, rhythm).
-3. **Bounding** of propagation ([`04`](04-propagation-causale.md)): depth, significance threshold,
+3. **Bounding** of propagation ([`04`](04-causal-propagation.md)): depth, significance threshold,
    attenuation.
 4. **Deterministic dominates** — the LLM proposes at seams; it never controls the state.
 
-→ Next: [`04-propagation-causale.md`](04-propagation-causale.md) — how an event **causes**
+→ Next: [`04-causal-propagation.md`](04-causal-propagation.md) — how an event **causes**
 others, elsewhere and later.

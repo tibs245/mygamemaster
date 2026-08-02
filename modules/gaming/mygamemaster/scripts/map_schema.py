@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-carte_schema.py — DETERMINISTIC cartographic schema from geo.json (MJ Tonnerre).
+map_schema.py — DETERMINISTIC cartographic schema from geo.json (MJ Tonnerre).
 
 Goal: produce a CONDITIONING IMAGE (a flat-colour schema) from the actual spatial
 graph, then passed as `--ref-image` to the illustration pipeline
@@ -40,7 +40,7 @@ Fidelity modes (the "who drew the map" is carried by the caller):
     Deterministic via --seed. NOTHING on the image marks it as false.
 
 Usage:
-  python3 carte_schema.py <campaign_folder> [--lieu <id>] [--out path.svg]
+  python3 map_schema.py <campaign_folder> [--lieu <id>] [--out path.svg]
       [--no-png] [--width 1024] [--labels numbered|inline|none]
       [--unreliable] [--seed N]
 

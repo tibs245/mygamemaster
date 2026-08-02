@@ -188,8 +188,8 @@ everything is green, your bot is live in Discord.
 
 ## What's next?
 
-- Daily operations and command cheatsheet → [`05-cycle-de-vie.md`](05-cycle-de-vie.md)
-- Backups and rollbacks → [`03-backup-et-restauration.md`](03-backup-et-restauration.md)
-- Improving the GM's skills → [`04-ameliorer-les-modules.md`](04-ameliorer-les-modules.md)
-- Runtime hooks (LLM judge, verbosity) → [`09-hooks-runtime.md`](09-hooks-runtime.md)
-- Test instances (try changes without risking the live game) → [`08-instances-de-test.md`](08-instances-de-test.md)
+- Daily operations and command cheatsheet → [`05-lifecycle.md`](05-lifecycle.md)
+- Backups and rollbacks → [`03-backup-and-restore.md`](03-backup-and-restore.md)
+- Improving the GM's skills → [`04-improve-the-modules.md`](04-improve-the-modules.md)
+- Runtime hooks (LLM judge, verbosity) → [`09-runtime-hooks.md`](09-runtime-hooks.md)
+- Test instances (try changes without risking the live game) → [`08-test-instances.md`](08-test-instances.md)

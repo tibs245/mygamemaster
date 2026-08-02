@@ -105,7 +105,7 @@ Is the result logical? **And is the narration produced coherent with the data it
 >
 > **Rule:** if the narration lies while the file is correct, it is a **GM BUG**. Before any verdict "NOT A BUG", ALWAYS compare the produced narration to source data. If the player insists after "NOT A BUG" → you missed that comparison: start over by tracing the narration, not the files.
 >
-> Related narrative traps (narrative solitude, temporal distortion, forgotten shared past): see `references/contamination-cognitive.md` and `narrative-recurring-errors.md`.
+> Related narrative traps (narrative solitude, temporal distortion, forgotten shared past): see `references/cognitive-contamination.md` and `narrative-recurring-errors.md`.
 
 ---
 

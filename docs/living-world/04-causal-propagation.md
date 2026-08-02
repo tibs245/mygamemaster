@@ -6,9 +6,9 @@
 
 ## 1. A second graph: typed relations
 
-The **spatial** graph ([`01`](01-horloge-et-espace.md)) says who is *next to* whom. The
+The **spatial** graph ([`01`](01-clock-and-space.md)) says who is *next to* whom. The
 **causal** graph says who *depends on* whom. These are different edges, on the **actors**
-([`02`](02-acteurs-et-agents.md)).
+([`02`](02-actors-and-agents.md)).
 
 ```json
 {
@@ -65,7 +65,7 @@ function propagate(evt, depth = 0):
   A small model doesn't need to remember it: code cannot "forget" a chain.
 - **LLM (deferred)**: *how* the target reacts (riot? rationing? call for aid?) — the
   **narrative qualification**, done **only at resolution**, and **only if** it
-  becomes observable by the player (lazy generation, [`03`](03-moteur-de-tick.md)).
+  becomes observable by the player (lazy generation, [`03`](03-tick-engine.md)).
 
 ### Safeguards, explained
 
@@ -80,7 +80,7 @@ function propagate(evt, depth = 0):
 ## 3. Scheduled events: cold-zone coherence, free
 
 The cascade doesn't wait for the player: it **writes future dated events** (`status:
-"scheduled"`) in [`events.json`](../../data/mygamemaster/campaigns/la-naissance-dun-roi/events.json).
+"scheduled"`) in `events.json`.
 The tick engine **resolves** them when `T` reaches them:
 
 - if the target is **cold** → the event stays a **macro fact** ("Tonnerre experienced a
@@ -120,17 +120,17 @@ T = 9600   significance of following relays < THRESHOLD → wave dissipates.
 
 > **Loop closed.** The same cascade starting from a fire produces, three relays down, the
 > **migrant column** that preprocessing stages and the player can encounter. Space
-> ([`01`](01-horloge-et-espace.md)), actors ([`02`](02-acteurs-et-agents.md)), tick
-> ([`03`](03-moteur-de-tick.md)) and causality lock together on **a single timeline `T`**.
+> ([`01`](01-clock-and-space.md)), actors ([`02`](02-actors-and-agents.md)), tick
+> ([`03`](03-tick-engine.md)) and causality lock together on **a single timeline `T`**.
 
 ## 5. When propagation triggers
 
-- **Post-session** ([`03`](03-moteur-de-tick.md)): each player action with "consequences"
+- **Post-session** ([`03`](03-tick-engine.md)): each player action with "consequences"
   is a **cause** → we propagate (player burns a bridge → roads cut → trade diverted).
 - **During a tick**: any accomplished actor **intention** whose `consequence_expected`
   is significant.
 - **Never in open loop**: propagation schedules **future** events, it doesn't
   recalculate the past.
 
-→ Next: [`05-assembleur-de-contexte.md`](05-assembleur-de-contexte.md) — how all this
+→ Next: [`05-context-assembler.md`](05-context-assembler.md) — how all this
 reaches the GM **without drowning them**.

@@ -143,7 +143,7 @@ pre-commit run --all-files
 - **Stdlib only in hooks.** Runtime hooks (`hooks/*.py`) must use only the Python standard
   library — no third-party imports, as hooks run inside the container without a full venv.
 - **No secrets in code.** Never hard-code API keys, tokens, or passwords. All secrets go
-  through Ansible vault (see `specs/secrets-et-vault.md`).
+  through Ansible vault (see `specs/secrets-and-vault.md`).
 - **Document your module.** Every new skill module must have an entry in `modules/MODULES.md`.
 
 ---

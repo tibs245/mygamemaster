@@ -4,9 +4,9 @@ Phase 2 — N1 Call (Agent "Brief")
 Gateway version: generates the prompt and passes it to the Hermes gateway for execution.
 
 Usage:
-  python3 call_pnj.py <campagne> <pnj_nom> "<contexte>"  # generate + gateway
-  python3 call_pnj.py <campagne> <pnj_nom> --dry-run "<contexte>"  # show the prompt without calling
-  python3 call_pnj.py <campagne> <pnj_nom> --stdin      # context from stdin
+  python3 call_npc.py <campagne> <pnj_nom> "<contexte>"  # generate + gateway
+  python3 call_npc.py <campagne> <pnj_nom> --dry-run "<contexte>"  # show the prompt without calling
+  python3 call_npc.py <campagne> <pnj_nom> --stdin      # context from stdin
 """
 
 import json, sys, os, subprocess, tempfile, textwrap
@@ -55,9 +55,9 @@ def token_count(text):
 def main():
     if len(sys.argv) < 3:
         print("Usage:")
-        print("  python3 call_pnj.py <campagne> <pnj_nom> \"<contexte>\"")
-        print("  python3 call_pnj.py <campagne> <pnj_nom> --dry-run \"<contexte>\"")
-        print("  python3 call_pnj.py <campagne> <pnj_nom> --stdin")
+        print("  python3 call_npc.py <campagne> <pnj_nom> \"<contexte>\"")
+        print("  python3 call_npc.py <campagne> <pnj_nom> --dry-run \"<contexte>\"")
+        print("  python3 call_npc.py <campagne> <pnj_nom> --stdin")
         sys.exit(1)
 
     campagne = sys.argv[1]

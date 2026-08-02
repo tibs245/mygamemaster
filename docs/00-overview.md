@@ -19,7 +19,7 @@ ansible/   →  DEPLOYMENT : deploy/backup/restore inside Podman
 
 - **modules/** — see [`../modules/MODULES.md`](../modules/MODULES.md).
 - **data/** — one campaign per folder under `data/mygamemaster/campaigns/<slug>/`. Full structure in
-  [`../specs/modele-de-donnees-campagne.md`](../specs/modele-de-donnees-campagne.md).
+  [`../specs/campaign-data-model.md`](../specs/campaign-data-model.md).
 - **ansible/** — the playbook suite. Technical details in
   [`../specs/ansible-suite.md`](../specs/ansible-suite.md).
 
@@ -27,7 +27,7 @@ ansible/   →  DEPLOYMENT : deploy/backup/restore inside Podman
 
 Each campaign runs in its **own Podman container**, with its own config, persona (`SOUL.md`),
 **isolated memory**, and data volume. This replaces the old "profiles" feature (which was
-unreliable). See [`06-concept-isolation.md`](06-concept-isolation.md).
+unreliable). See [`06-isolation-model.md`](06-isolation-model.md).
 
 ## Declaring games: the single table (`games.yml`)
 
@@ -38,7 +38,7 @@ table and exposes each entry as an Ansible host in the `campaigns` group.
 **Adding a game = adding one entry in `games.yml` + adding its Discord token to the vault. Nothing
 else to touch.**
 
-See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the step-by-step procedure.
+See [`02-deploy-a-campaign.md`](02-deploy-a-campaign.md) for the step-by-step procedure.
 
 ## Vocabulary
 
@@ -54,9 +54,9 @@ See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the step-by
 
 ## Where to start?
 
-1. [`01-prerequis-et-installation.md`](01-prerequis-et-installation.md) — install tools, set up the vault.
-2. [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) — launch a game.
-3. [`05-cycle-de-vie.md`](05-cycle-de-vie.md) — the full daily loop.
+1. [`01-prerequisites-and-installation.md`](01-prerequisites-and-installation.md) — install tools, set up the vault.
+2. [`02-deploy-a-campaign.md`](02-deploy-a-campaign.md) — launch a game.
+3. [`05-lifecycle.md`](05-lifecycle.md) — the full daily loop.
 
 Or jump straight to the guided walkthrough: [`CREATE-A-GAME.md`](CREATE-A-GAME.md).
 
@@ -66,7 +66,7 @@ Or jump straight to the guided walkthrough: [`CREATE-A-GAME.md`](CREATE-A-GAME.m
 
 ## Design: the living world (space-time & simulation)
 
-The [`monde-vivant/`](monde-vivant/00-vue-densemble.md) series documents the system that keeps the
+The [`living-world/`](living-world/00-overview.md) series documents the system that keeps the
 world **consistent in space and time** and **alive between sessions** (factions, key NPCs, and
 cities that evolve when nobody is playing; reliable 4D geographic consistency even with cheap
-models). Start with [`monde-vivant/00-vue-densemble.md`](monde-vivant/00-vue-densemble.md).
+models). Start with [`living-world/00-overview.md`](living-world/00-overview.md).

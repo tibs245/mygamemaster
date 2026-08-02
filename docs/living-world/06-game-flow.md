@@ -148,4 +148,4 @@
 - **We only pay for detail where a gaze lands**—which makes both tonight's
   session and the return three centuries later sustainable.
 
-→ Next: [`07-plan-de-mise-en-oeuvre.md`](07-plan-de-mise-en-oeuvre.md) — where to start.
+→ Next: [`07-implementation-plan.md`](07-implementation-plan.md) — where to start.

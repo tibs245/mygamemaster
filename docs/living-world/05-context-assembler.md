@@ -39,11 +39,11 @@ Before the scene, `scene_brief.py` queries the three sources and **filters**:
 - **Spatial** — *where* and *around what*: the current location, its neighbors (directions, distances),
   its contained locations, and **who is present** at `T` (`geo_query.py who_is_at`).
 - **Temporal** — *what is recent and imminent*: events from recent days in the area, and
-  especially the **scheduled events** ([`04`](04-propagation-causale.md)) that will "ring"
+  especially the **scheduled events** ([`04`](04-causal-propagation.md)) that will "ring"
   during the session (the clocks).
 - **Relational** — *who has a stake here*: actors whose relation points to this location or to
   the player, and **moving actors** whose trajectory **crosses** the player
-  ([`03`](03-moteur-de-tick.md)).
+  ([`03`](03-tick-engine.md)).
 
 ## 3. The structure of the scene brief
 
@@ -94,10 +94,10 @@ pre_llm_call.py
       then injects the SCENE BRIEF into `context`
 ```
 
-- **Session opening** first calls `world_tick.py pre` ([`03`](03-moteur-de-tick.md)),
+- **Session opening** first calls `world_tick.py pre` ([`03`](03-tick-engine.md)),
   which **feeds** what the assembler will find (hot-promoted actors, materialized scenes).
 - Nothing else changes in the loop: `post_tool_call.py` and `transform_llm_output.py`
   continue their work (ledger, Steward, judge).
 
-→ Next: [`06-flux-dune-partie.md`](06-flux-dune-partie.md) — everything assembles in the
+→ Next: [`06-game-flow.md`](06-game-flow.md) — everything assembles in the
 complete flow of a session.

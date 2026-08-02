@@ -338,4 +338,4 @@ To find an item, try in order:
 - Files: `~/.hermes/mygamemaster/campaigns/<name>/characters/<discord_id>.json`
 - Files: `~/.hermes/mygamemaster/base_items.yaml`
 - Tools: native JSON read/write (no external scripts needed)
-- **Emoji convention:** `references/verbosite/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard items, ⚔️ for weapons/combat equipment in all inventory change notifications.
+- **Emoji convention:** `references/verbosity/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard items, ⚔️ for weapons/combat equipment in all inventory change notifications.

@@ -416,7 +416,7 @@ Exit != 0 = wrap-up refused: fix listed points then re-run.
 
 **Available audit scripts (see also `mygamemaster-analyste` for 3 layers) :**
 - `build_brief.py <campaign> <npc> --cache` : extract NPC brief (MD5 cache)
-- `call_pnj.py <campaign> <npc> <context> --dry-run` : simulate RP response
+- `call_npc.py <campaign> <npc> <context> --dry-run` : simulate RP response
 
 Pipeline report goes to GM, never to players.
 
@@ -725,7 +725,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | User Signal | Action |
 |---|---|
-| "Create a Problem/Solution/Consequence file" | Use `references/template-probleme-solution-consequence.md` |
+| "Create a Problem/Solution/Consequence file" | Use `references/template-problem-solution-consequence.md` |
 | "Did you note our previous points?" + list | Apply checklist below on each listed point |
 | "Fixes to prioritize before resumption" | Treat as post-session checklist, commit before replying |
 
@@ -827,7 +827,7 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 ## References
 
 - `references/audit-persistance-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
-- `references/template-probleme-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
+- `references/template-problem-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
 
 ## Dependencies
 
@@ -842,7 +842,7 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 - **Required skills** : `mygamemaster-personnage` (sheet reading), `mygamemaster-outils` (action formatting), `mygamemaster-intendant` (Steward — CSV collection)
 - **Files** : `collecte.csv` — diagnostic data (player evaluation written at wrap-up, Phase 1 step 5)
 - **Files** : `world.json > meta.diagnostic` — enable/disable player collection at wrap-up
-- **References** : `references/template-probleme-solution-consequence.md` (post-session fix template)
+- **References** : `references/template-problem-solution-consequence.md` (post-session fix template)
 - **No external tools** needed — everything via JSON files
 
 ---

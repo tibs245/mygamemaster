@@ -265,7 +265,7 @@ Your role:
 2. If all 3 pass → write the **7 operations** (§3) to the files (inventory, knowledge, time, positions, log).
 3. Narrate the response. The hook reports the real diff after your narration.
 
-The *Persisted* block format is documented in `references/verbosite/info.md` — **produced by the hook, not by you.**
+The *Persisted* block format is documented in `references/verbosity/info.md` — **produced by the hook, not by you.**
 
 ### Level 2 — Assisted checklist
 The GM uses a written checklist (or a `checklist-steward.md` file):
@@ -316,7 +316,7 @@ becomes hard after migration to **structured** inventory (`{name, qty, type}`) �
 | **Time clock (world.json > rules.time.tracking)** | Source of Check 2 (time available). Target of operation 4 |
 | **Sessions (sessions/NNN.json)** | Target of operation 7 (logging). Check 3 (verify previous actions) |
 | **Positions (npcs.json > localisation_actuelle)** | Source of Check 1 (presence). Target of operation 6 |
-| **Wrap-up module (mygamemaster-session)** | Post-session verification pipeline. Ensures all transactions were properly logged during session — protocol: `references/audit-cloture.md` |
+| **Wrap-up module (mygamemaster-session)** | Post-session verification pipeline. Ensures all transactions were properly logged during session — protocol: `references/closing-audit.md` |
 
 ---
 
@@ -366,7 +366,7 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 
 **Current level: Manual (Level 1).** The GM applies the 3 checks (§2) and writes the 7 operations (§3) to files. The *Persisted* block is emitted by the `transform_llm_output` hook on real diff (cf. `specs/hooks-runtime.md §3`) — not written by hand.
 
-**Session wrap-up:** post-session verification (were all transactions logged?) follows the protocol in `references/audit-cloture.md`.
+**Session wrap-up:** post-session verification (were all transactions logged?) follows the protocol in `references/closing-audit.md`.
 
 ---
 
@@ -382,7 +382,7 @@ The transactional Steward replaces old sections "audit sub-agent", "narrative va
 | **WARN** | Only when a Check detects a problem (REFUSAL, incoherence) |
 | **ERROR** | Blocking only |
 
-> Detail of renders by level: `references/verbosite/README.md` and dedicated files (`trace.md`, `debug.md`, `info.md`, `warn.md`, `error.md`).
+> Detail of renders by level: `references/verbosity/README.md` and dedicated files (`trace.md`, `debug.md`, `info.md`, `warn.md`, `error.md`).
 
 **Escalation rule:** a REFUSAL (Check failed) is **always** reported, regardless of level — even in ERROR.
 
@@ -417,5 +417,5 @@ Columns: `timestamp, session, verbosity, origin_type, origin_detail, action_type
 - `characters/<discord_id>.json` — PC sheets (inventory, stats, state)
 - `sessions/NNN.json` — session action log
 - `collect.csv` — diagnostic file per campaign (format, columns), see §12
-- `references/verbosite/README.md` — emoji convention, data type mapping, formats by level, scenario templates — **unique reference**
-- `references/architecture-3-niveaux-agents.md` — N0/N1/N2: the 3 levels of NPC autonomy (costs, scripts, when to use what)
+- `references/verbosity/README.md` — emoji convention, data type mapping, formats by level, scenario templates — **unique reference**
+- `references/architecture-3-agent-levels.md` — N0/N1/N2: the 3 levels of NPC autonomy (costs, scripts, when to use what)

@@ -2,7 +2,7 @@
 
 > **Conditional loading.** This module only applies if the campaign declares `world.json > modules.factions.actif === true`.
 >
-> This module is **the single source of truth** for faction and clock golden rules. The references `faction-tracking.md` (complete JSON templates), `pj-objectifs-obstacles.md` (difficulty/danger/notoriety grids) and `cross-check-horloge-vs-session.md` **expand on** these golden rules without duplicating them.
+> This module is **the single source of truth** for faction and clock golden rules. The references `faction-tracking.md` (complete JSON templates), `pc-goals-obstacles.md` (difficulty/danger/notoriety grids) and `cross-check-clock-vs-session.md` **expand on** these golden rules without duplicating them.
 
 ## 1. Faction tracking
 
@@ -93,7 +93,7 @@ Clock rules:
 
 **Error-prevention test:** Before saying "all is consistent", ask yourself: *"Did an event scheduled in my notes occur in play without me playing it?"* If yes → correct before proceeding.
 
-→ See `references/cross-check-horloge-vs-session.md` for the complete example, quick checklist, and detailed pitfalls.
+→ See `references/cross-check-clock-vs-session.md` for the complete example, quick checklist, and detailed pitfalls.
 
 ## 4. PC objectives — Difficulty, danger, and obstacles
 
@@ -118,4 +118,4 @@ Clock rules:
 4. The GM creates clock entries, encounters, dilemmas
 5. Obstacles reveal themselves progressively through PC actions
 
-See complete grids (tiers, danger, notoriety, combinations, examples, pitfalls) in `references/pj-objectifs-obstacles.md`.
+See complete grids (tiers, danger, notoriety, combinations, examples, pitfalls) in `references/pc-goals-obstacles.md`.

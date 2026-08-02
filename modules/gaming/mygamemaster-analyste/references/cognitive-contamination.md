@@ -2,7 +2,7 @@
 
 This document catalogs error patterns where the GM "invents" a narrative reality that contradicts source data, even when that data is correct.
 
-> For the master catalog of recurring narrative traps (and their fixes), see `narrative-erreurs-recurrentes.md` — this document is the "cognitive contamination" iteration. Do not duplicate: reference instead.
+> For the master catalog of recurring narrative traps (and their fixes), see `narrative-recurring-errors.md` — this document is the "cognitive contamination" iteration. Do not duplicate: reference instead.
 
 ## 1. The Narrative Solitude Trap
 **Symptom:** The GM describes a character as being alone or with a limited group, while `npc.json` or `world.json` files indicate the presence of companions.

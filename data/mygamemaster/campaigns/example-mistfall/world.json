@@ -49,7 +49,7 @@
       }
     },
     "features": {
-      "_schema": "Six main ON/OFF axes, ALL true by default. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > true. See docs/monde-vivant/10-features.md.",
+      "_schema": "Six main ON/OFF axes, ALL true by default. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > true. See docs/living-world/10-features.md.",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,

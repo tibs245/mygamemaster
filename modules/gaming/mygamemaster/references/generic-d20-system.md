@@ -1,6 +1,6 @@
 # d20 System — Generic Framework
 
-> **Single source of values: `world.json > system`.** This sheet describes the **generic framework** of a d20 system (resolution, difficulty tiers, skills, natural die). The **stats, skills, HP and campaign-specific rules** live in `world.json > system` (and each character's numerical skills in `characters/<id>.json`). Never hardcode the values of a specific campaign here — a starter template for creating a campaign lives in `/opt/modules/gaming/mygamemaster-initiation/references/systemes/`.
+> **Single source of values: `world.json > system`.** This sheet describes the **generic framework** of a d20 system (resolution, difficulty tiers, skills, natural die). The **stats, skills, HP and campaign-specific rules** live in `world.json > system` (and each character's numerical skills in `characters/<id>.json`). Never hardcode the values of a specific campaign here — a starter template for creating a campaign lives in `/opt/modules/gaming/mygamemaster-initiation/references/systems/`.
 
 ## Generic Resolution
 

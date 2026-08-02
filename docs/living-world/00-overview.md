@@ -55,13 +55,13 @@ what is its next intention? »* and narration — while geometry, deadlines, and
 Four design choices structure the rest (see details in corresponding files):
 
 1. **Clock.** An integer `T` that starts at **0 at campaign creation** and grows monotonically,
-   backed by `events.json`. → [`01`](01-horloge-et-espace.md)
+   backed by `events.json`. → [`01`](01-clock-and-space.md)
 2. **Session Boundary First.** The simulation runs **at session boundaries** (pre-processing before,
    post-processing after). Evolution toward **selective** background ticks (by *impact score*)
-   will come later. → [`03`](03-moteur-de-tick.md)
+   will come later. → [`03`](03-tick-engine.md)
 3. **Stable IDs + Separate Agents.** Locations and actors receive **stable identifiers**;
-   each major actor is carried by an **isolated agent** (level 2). → [`02`](02-acteurs-et-agents.md)
-4. **Multi-level Causal Propagation** from the start, with **bounds**. → [`04`](04-propagation-causale.md)
+   each major actor is carried by an **isolated agent** (level 2). → [`02`](02-actors-and-agents.md)
+4. **Multi-level Causal Propagation** from the start, with **bounds**. → [`04`](04-causal-propagation.md)
 
 ## Glossary
 
@@ -76,7 +76,7 @@ Four design choices structure the rest (see details in corresponding files):
 | **Actor** | Entity with a goal and a plan: key NPC, faction, city/community. |
 | **Plan** | Sequence of **dated intentions** of an actor (location, action, deadline, expected consequence). |
 | **LOD** | *Level of detail*: simulation granularity based on space-time distance to the player. |
-| **Hot / Warm / Cold Zone** | The player is here / might encounter / far away. → [`03`](03-moteur-de-tick.md) |
+| **Hot / Warm / Cold Zone** | The player is here / might encounter / far away. → [`03`](03-tick-engine.md) |
 | **Tick** | One beat of the engine: advances plans, applies consequences, emits events. |
 | **Projection (pre)** | Before session: tick + calculation of **intersections** with the player → briefing. |
 | **Reconciliation (post)** | After session: compares plans to what the player *actually* did. |
@@ -96,15 +96,15 @@ already exists vs what is missing** ». Here it is.
 | Narrative Clock | ✅ partial | `events.json` (`t`), `suivi.jour_courant` ; to **unify** into `T` integer |
 | Distances between Locations | ✅ | `world.json > regles.temps.deplacements` (duration matrix) |
 | Spatial Validation | ✅ | `scripts/validator-distances.py` (4 governance rules) |
-| **Explicit Spatial Graph** | 🔨 | containment + adjacency + anchor; **stable ids** → [`01`](01-horloge-et-espace.md) |
+| **Explicit Spatial Graph** | 🔨 | containment + adjacency + anchor; **stable ids** → [`01`](01-clock-and-space.md) |
 | **Position = Function of Time** | 🔨 | trajectories; today `localisation_actuelle` is plain text |
 | Actor Goals / Motivations | ✅ partial | `npcs.json`, `global_state.factions`, `faction_actions_horloge` |
-| **Generalized Dated Plans** | 🔨 | extend faction clock to NPCs and cities → [`02`](02-acteurs-et-agents.md) |
+| **Generalized Dated Plans** | 🔨 | extend faction clock to NPCs and cities → [`02`](02-actors-and-agents.md) |
 | Clock Advancement | ✅ partial | `scripts/clock.py` (`approche`/`echue`) ; to integrate into **tick engine** |
-| **LOD Tick Engine (pre/post)** | 🔨 | heart of « living world » → [`03`](03-moteur-de-tick.md) |
-| **Causal Propagation** | 🔨 | relationship graph + dated cascade → [`04`](04-propagation-causale.md) |
-| State Injection to GM | ✅ partial | `hooks/pre_llm_call.py` ; to **spatialize** → [`05`](05-assembleur-de-contexte.md) |
-| Isolated Actor Agents | ✅ started | `build_brief.py`, `call_pnj.py`, `faction_slice.py`, skills `-pnj` / `-faction` |
+| **LOD Tick Engine (pre/post)** | 🔨 | heart of « living world » → [`03`](03-tick-engine.md) |
+| **Causal Propagation** | 🔨 | relationship graph + dated cascade → [`04`](04-causal-propagation.md) |
+| State Injection to GM | ✅ partial | `hooks/pre_llm_call.py` ; to **spatialize** → [`05`](05-context-assembler.md) |
+| Isolated Actor Agents | ✅ started | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-pnj` / `-faction` |
 | Coherence Judge | ✅ | `hooks/llm_judge.py` (reused as anti-drift safeguard) |
 | Snapshot/Timeline | ✅ | `outils/gestion_temps.py` (snapshot of world at instant T) |
 
@@ -122,7 +122,7 @@ modules/gaming/mygamemaster/
 │   ├── validator-distances.py   # spatial validation → extended as graph validator (01)
 │   ├── close_session.py         # wrap-up pipeline → triggers post-processing (03)
 │   ├── build_brief.py           # limited brief of an actor → input to agents (02)
-│   ├── call_pnj.py              # invokes isolated NPC agent (02)
+│   ├── call_npc.py              # invokes isolated NPC agent (02)
 │   ├── faction_slice.py         # race-free slice write (02)
 │   └── schemas/*.schema.json    # JSON schemas → to extend (geo, trajectory, plan)
 └── references/modules/          # thematics modules activable (factions, travel, …)
@@ -138,13 +138,13 @@ data/mygamemaster/campaigns/<slug>/
 
 | File | Answers |
 |---|---|
-| [`01-horloge-et-espace.md`](01-horloge-et-espace.md) | The 4D model: clock `T`, spatial graph, trajectories, query tools, invariants. |
-| [`02-acteurs-et-agents.md`](02-acteurs-et-agents.md) | What an actor is, its plan, and how **separate agents** carry it. |
-| [`03-moteur-de-tick.md`](03-moteur-de-tick.md) | LOD, tick, **pre-processing** (projection) and **post-processing** (reconciliation). |
-| [`04-propagation-causale.md`](04-propagation-causale.md) | How an event causes others, at distance and in time (wheat → famine). |
-| [`05-assembleur-de-contexte.md`](05-assembleur-de-contexte.md) | How the GM is **briefed** per scene without drowning (key for small models). |
-| [`06-flux-dune-partie.md`](06-flux-dune-partie.md) | **The complete flow diagram** of a session, from creation to distant resumption. |
-| [`07-plan-de-mise-en-oeuvre.md`](07-plan-de-mise-en-oeuvre.md) | Implementation order, migration, what changes in existing code, models per task. |
+| [`01-clock-and-space.md`](01-clock-and-space.md) | The 4D model: clock `T`, spatial graph, trajectories, query tools, invariants. |
+| [`02-actors-and-agents.md`](02-actors-and-agents.md) | What an actor is, its plan, and how **separate agents** carry it. |
+| [`03-tick-engine.md`](03-tick-engine.md) | LOD, tick, **pre-processing** (projection) and **post-processing** (reconciliation). |
+| [`04-causal-propagation.md`](04-causal-propagation.md) | How an event causes others, at distance and in time (wheat → famine). |
+| [`05-context-assembler.md`](05-context-assembler.md) | How the GM is **briefed** per scene without drowning (key for small models). |
+| [`06-game-flow.md`](06-game-flow.md) | **The complete flow diagram** of a session, from creation to distant resumption. |
+| [`07-implementation-plan.md`](07-implementation-plan.md) | Implementation order, migration, what changes in existing code, models per task. |
 | [`10-features.md`](10-features.md) | **Unified feature flags** (`meta.features`): 6 axes ON by default, cascade `world > env > True`, fail-open, typical configs. |
 
 ## The Red Thread in One Sentence

@@ -63,7 +63,7 @@ The choice of level depends on the importance of the NPC and the need for autono
 - If `npcs.json` modified (new established fact) → MISS, regeneration
 - If unchanged → HIT, cache use = zero re-read tokens
 
-**Scripts:** `scripts/build_brief.py`, `scripts/call_pnj.py`
+**Scripts:** `scripts/build_brief.py`, `scripts/call_npc.py`
 
 ---
 
@@ -140,7 +140,7 @@ profiles/pnj-firmin/
 | **Cost per response** | $0 | ~$0.005 | ~$0.008 |
 | **GM load** | High | Low | Very low |
 | **NPC coherence** | ✅ Steward | ✅✅ Brief + Steward | ✅✅✅ Memory + Steward |
-| **Infrastructure** | None | `build_brief.py` + `call_pnj.py` | Hermes profile + skills link |
+| **Infrastructure** | None | `build_brief.py` + `call_npc.py` | Hermes profile + skills link |
 | **Cache possible** | N/A | Brief snapshot (MD5 checksum) | Persistent session + snapshot |
 | **For which NPCs** | Extras, short responses | Firmin, Berthe, Rousset | Esterlin, Corneille, Count |
 | **Risk of invention** | Medium (GM may forget) | Moderate (LLM may invent) | Moderate (LLM may invent) |
@@ -152,7 +152,7 @@ profiles/pnj-firmin/
 
 - **Transactional Steward** : `mygamemaster-intendant` — validation of 3 checks (source, transfer, coherence)
 - **Brief cache** : `scripts/build_brief.py` — MD5-cached extraction from npcs.json
-- **N1 call** : `scripts/call_pnj.py` — prompt construction + LLM call (dry-run/live)
+- **N1 call** : `scripts/call_npc.py` — prompt construction + LLM call (dry-run/live)
 - **N2 profile** : `profiles/pnj-<slug>/` — minimal structure with linked skills (not copied)
 
 ## Anti-patterns

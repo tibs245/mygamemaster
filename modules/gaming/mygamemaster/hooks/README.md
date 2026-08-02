@@ -3,7 +3,7 @@
 Scripts executed by the Hermes gateway at each exchange (CLI + Discord). They make
 **systematic** the Steward report, verbosity, and CSV traceability — without depending on the
 model. Architecture and contracts: [`../../../../specs/hooks-runtime.md`](../../../../specs/hooks-runtime.md).
-Guide: [`../../../../docs/09-hooks-runtime.md`](../../../../docs/09-hooks-runtime.md).
+Guide: [`../../../../docs/09-runtime-hooks.md`](../../../../docs/09-runtime-hooks.md).
 Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks>.
 
 > ⚠️ Do not confuse with `../scripts/install-hooks.sh` + `pre-commit.hook`, which are

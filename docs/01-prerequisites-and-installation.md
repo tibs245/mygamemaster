@@ -34,7 +34,7 @@ ansible-vault encrypt vault.yml          # prompts for a password
 ansible-vault edit vault.yml             # enter your real keys
 ```
 
-Keys expected (see [`../specs/secrets-et-vault.md`](../specs/secrets-et-vault.md) and
+Keys expected (see [`../specs/secrets-and-vault.md`](../specs/secrets-and-vault.md) and
 `vault.example.yml` for the full format):
 
 ```yaml
@@ -65,7 +65,7 @@ cp games.example.yml games.yml
 
 Edit `games.yml`: fill in the `connection:` block (SSH host, user, key) and add your game(s)
 under the `games:` list. Each entry becomes an Ansible host automatically — no other file to
-touch. See [`02-deployer-une-campagne.md`](02-deployer-une-campagne.md) for the entry format and
+touch. See [`02-deploy-a-campaign.md`](02-deploy-a-campaign.md) for the entry format and
 the full deployment procedure.
 
 ## Verify everything is ready

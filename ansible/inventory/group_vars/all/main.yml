@@ -52,7 +52,7 @@ container_cpu_quota: ""          # e.g. "150%" (1.5 cores) — leave empty if cp
 
 # ─── Backup / restore ────────────────────────────────────────────────────────
 # Hybrid engine: `hermes backup` (hot-consistent zip) for HERMES_HOME + data volume
-# export (tar.gz) for game data. See docs/03-backup-et-restauration.md.
+# export (tar.gz) for game data. See docs/03-backup-and-restore.md.
 backup_keep: 14                  # number of backup sets retained per campaign (rotation)
 backup_freeze: false             # true = stop the container during export (100% frozen snapshot,
                                  # ~10s offline). Unnecessary in hybrid mode: hermes backup is
@@ -76,7 +76,7 @@ hermes_version: "latest"
 # world.json > meta.hooks.judge takes precedence over these values (per-campaign live override).
 # ⚠️ Choose a DIFFERENT model from the GM (avoids correlated blind spots) and
 #    VERIFY the exact ID on your OpenRouter dashboard before enabling.
-# See docs/09-hooks-runtime.md and specs/hooks-runtime.md §10.
+# See docs/09-runtime-hooks.md and specs/hooks-runtime.md §10.
 mgm_judge_actif: true
 mgm_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM — correlated blind spots possible; alt: google/gemma-4-31b-it
 
@@ -87,7 +87,7 @@ mgm_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM �
 # (e.g. disable images everywhere); a campaign can always re-enable an axis via world.json
 # (the world has the final say).
 # NOT DEFINED below → no Environment= injected → runtime defaults to True.
-# See docs/monde-vivant/10-features.md.
+# See docs/living-world/10-features.md.
 #   mgm_feature_traceability: true         # CSV journal + auto git-commit + session snapshots
 #   mgm_feature_verbosity: true           # Steward "Persisted" block + meta.verbosite level
 #   mgm_feature_living_npcs_factions: true # factions/proactivite_pnj modules + actors that "think"

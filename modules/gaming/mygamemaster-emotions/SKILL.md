@@ -35,7 +35,7 @@ Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `char
 
 - **6 core emotions, intensities 0..1** — `joy`, `trust`, `fear`, `anger`, `sadness`, `surprise`. Plutchik-inspired: `trust` is in the palette because trust drives ally/wary/hostile dynamics at the table; `surprise` captures shocks but is transient (it decays much faster).
 - **`temperament`** — the baseline: who the character is when nothing is happening (a fae lady stays near-flat; an innkeeper who lost her father to the mist has a high `fear` baseline). The current state always drifts back toward it.
-- **`history`** — capped journal (last 20 shifts) with event, effective deltas, in-fiction reason and session number. **Every change is explainable**; an emotional state with no journal trail is suspect, like a `established_facts` with no session reference (cf. `references/pnj-data-governance.md`).
+- **`history`** — capped journal (last 20 shifts) with event, effective deltas, in-fiction reason and session number. **Every change is explainable**; an emotional state with no journal trail is suspect, like a `established_facts` with no session reference (cf. `references/npc-data-governance.md`).
 
 ## Evolution rules (deterministic — never arbitrary)
 
@@ -86,6 +86,6 @@ NEVER state feelings or numbers to players:
 ## Dependencies
 
 - **Parent skill**: `mygamemaster` (umbrella — state injection precedence, show-don't-tell).
-- **Data governance**: `mygamemaster/references/pnj-data-governance.md` (traceable facts ↔ traceable emotional shifts).
+- **Data governance**: `mygamemaster/references/npc-data-governance.md` (traceable facts ↔ traceable emotional shifts).
 - **Siblings**: `mygamemaster-pnj` (an NPC agent's brief gains consistent affect), `mygamemaster-session` (decay at wrap-up), `mygamemaster-intendant` (the Steward can check a declared NPC reaction against its persisted state).
 - **Tools**: `mygamemaster/scripts/emotions.py` (stdlib only, tested in `scripts/tests/test_emotions.py`).

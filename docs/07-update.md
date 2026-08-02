@@ -72,7 +72,7 @@ ansible-playbook ansible/playbooks/update-config.yml -e game=mistfall
 
 ## Updating modules
 
-See also [`04-ameliorer-les-modules.md`](04-ameliorer-les-modules.md). Short form:
+See also [`04-improve-the-modules.md`](04-improve-the-modules.md). Short form:
 
 ```bash
 # Edit modules/… then:

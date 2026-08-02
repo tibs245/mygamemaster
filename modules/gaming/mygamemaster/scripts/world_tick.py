@@ -43,7 +43,7 @@ CLI:
   world_tick.py lod   <campaign> [--t T] [--json]
   world_tick.py actor <campaign> promote|demote <actor_id> [--apply]
 
-See contract `docs/monde-vivant/08-contrat-implementation.md` §6, §7, §13, §14.
+See contract `docs/living-world/08-implementation-contract.md` §6, §7, §13, §14.
 """
 
 from __future__ import annotations

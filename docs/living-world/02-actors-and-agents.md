@@ -9,8 +9,8 @@
 
 A key NPC, a faction, and a city are the **same thing** viewed at different scales: an
 entity with a **goal**, possessing **resources**, following a **plan** of dated intentions,
-moving along a **trajectory** ([`01`](01-horloge-et-espace.md)) and maintaining
-**relationships** ([`04`](04-propagation-causale.md)).
+moving along a **trajectory** ([`01`](01-clock-and-space.md)) and maintaining
+**relationships** ([`04`](04-causal-propagation.md)).
 
 ```json
 {
@@ -49,7 +49,7 @@ moving along a **trajectory** ([`01`](01-horloge-et-espace.md)) and maintaining
 
 An **intention** is the atomic unit of the living world. It states *what*, *where*, *when at the latest*
 (`deadline` in `T`), *under which conditions*, and *with what expected consequence*.
-This is what the tick engine **consumes** ([`03`](03-moteur-de-tick.md)) and what
+This is what the tick engine **consumes** ([`03`](03-tick-engine.md)) and what
 preprocessing **projects** onto the player.
 
 Rule inherited from factions, preserved: a goal must be **independent of the player**
@@ -122,14 +122,14 @@ OUTPUT (imposed schema):   { action, location, deadline, preconditions, expected
 ```
 
 The output is **validated against a schema** (as the Steward already enforces formats), then
-against invariants ([`01`](01-horloge-et-espace.md) §5) before entering the plan. If it
+against invariants ([`01`](01-clock-and-space.md) §5) before entering the plan. If it
 violates a conservation law (teleportation, resource created), it is **rejected** and the actor
 "rethinks" with the rejection reason — feed-forward, exactly like `llm_judge.py` today.
 
 > **Cost.** A **cold** actor triggers **no** LLM calls (its clock advances by calculation).
 > A warm/hot actor, **at most one** call per tick, on a tiny context → ideal for
 > `deepseek-flash` (narration) or `gemma` (structured decision). See the model table in
-> [`07`](07-plan-de-mise-en-oeuvre.md).
+> [`07`](07-implementation-plan.md).
 
 ## 4. Safe Writing and Anti-Divergence
 
@@ -142,4 +142,4 @@ violates a conservation law (teleportation, resource created), it is **rejected*
   **plausibility** of generated intentions (a pauper does not raise an army in one night).
 - **Deterministic dominates**: the LLM only proposes at *seams*; everything else is code.
 
-→ Next: [`03-moteur-de-tick.md`](03-moteur-de-tick.md) — when and how these plans advance.
+→ Next: [`03-tick-engine.md`](03-tick-engine.md) — when and how these plans advance.

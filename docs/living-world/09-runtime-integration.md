@@ -8,7 +8,7 @@
 > implementation agents (cf. `08`§9.3 and invariant `08`§14.3 — non-destructive).
 >
 > Targets: Python **3.11**, **pure stdlib**, **fail-open** strict in the game loop.
-> In case of divergence with `08-contrat-implementation.md`, **the contract takes precedence**; this file
+> In case of divergence with `08-implementation-contract.md`, **the contract takes precedence**; this file
 > merely **wires up** what the contract has frozen.
 >
 > **Golden rule of wiring:** *a failing branch must NEVER break a turn or a wrap-up.* Each hook point is (a) **behind a toggle** `world.json > meta.hooks`,
@@ -57,7 +57,7 @@
          "garde_json_strict": h.get("garde_json_strict", False),
          "snapshot_fin_session": h.get("snapshot_fin_session", True),
          "auto_commit": h.get("auto_commit", True),
-+        # ── Living world (explicit opt-in, default False; cf. docs/monde-vivant/09) ──
++        # ── Living world (explicit opt-in, default False; cf. docs/living-world/09) ──
 +        # B1 : injection of SCENE BRIEF via pre_llm_call (scene_brief.py).
 +        "brief_scene": h.get("brief_scene", False),
 +        # B2 : world_tick.py post --apply at wrap-up (close_session.py).

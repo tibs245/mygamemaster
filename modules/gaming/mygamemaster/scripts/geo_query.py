@@ -43,7 +43,7 @@ Cross-cutting conventions (contract §0):
 
 Targets: Python 3.11, PURE STDLIB (no external dependencies). Imports `worldlib`
 (never the reverse); imports NO other script from the contract (parallel
-development). See contract `docs/monde-vivant/08-contrat-implementation.md` §4, §5,
+development). See contract `docs/living-world/08-implementation-contract.md` §4, §5,
 §13, §14.
 """
 
@@ -172,7 +172,7 @@ _TYPES_GEO_VALIDES = {
     "region", "habitation", "campement", "site-ancien", "menhir", "ruine",
     "foret", "clairiere", "grotte", "colline", "riviere", "sentier", "crypte",
     "edifice", "zone-naturelle", "lieu",
-    # Additional types (rendered by carte_schema; extensible per campaign).
+    # Additional types (rendered by map_schema; extensible per campaign).
     "montagne", "gouffre", "desert", "lieu-interet",
 }
 

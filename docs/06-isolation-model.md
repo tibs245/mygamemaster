@@ -23,7 +23,7 @@ delivering what profiles promised.
 | Campaign data pointed at | `terminal.cwd` → `/opt/data/mygamemaster/campaigns/<slug>` |
 | Independent lifecycle | start / stop / backup / restore per container |
 
-Full technical detail: [`../specs/profiles-vers-conteneurs.md`](../specs/profiles-vers-conteneurs.md).
+Full technical detail: [`../specs/profiles-to-containers.md`](../specs/profiles-to-containers.md).
 
 ## What we gain
 
@@ -37,7 +37,7 @@ Full technical detail: [`../specs/profiles-vers-conteneurs.md`](../specs/profile
 
 The old `admin-mj` profile handled cross-cutting rule and module maintenance. That maintenance is
 no longer a production agent: **it happens in this repository** (edit `modules/` → `redeploy`,
-see [`04-ameliorer-les-modules.md`](04-ameliorer-les-modules.md)). If a maintenance-assistant
+see [`04-improve-the-modules.md`](04-improve-the-modules.md)). If a maintenance-assistant
 agent is ever needed, it is simply another game entry.
 
 ## What about NPC / faction "agents"?

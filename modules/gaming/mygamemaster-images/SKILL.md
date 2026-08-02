@@ -152,7 +152,7 @@ The `description_complete` must include precise technical tags for quality gener
 }
 ```
 
-> This fantasy template serves only for **evocative sketch** (default) and **fallback** without `geo.json`. For a precise map, don't fill in `{elements}` manually: generate a **deterministic schema** from `geo.json` (`carte_schema.py`) and pass it as `--ref-image` to the model, which only needs to embellish it. See the detailed `!carte` section below (levels A/B/C).
+> This fantasy template serves only for **evocative sketch** (default) and **fallback** without `geo.json`. For a precise map, don't fill in `{elements}` manually: generate a **deterministic schema** from `geo.json` (`map_schema.py`) and pass it as `--ref-image` to the model, which only needs to embellish it. See the detailed `!carte` section below (levels A/B/C).
 
 ### Template Generation at Onboarding
 
@@ -175,7 +175,7 @@ The 4 commands (`!image`, `!portrait`, `!carte`, `!illustration session`) share 
 
 ### Generic Workflow (all commands)
 
-0. **🚦 Feature flag guard — images.** If `world.json > meta.features.images` == `false` (or env `MGM_FEATURE_IMAGES=0`), briefly respond that illustrations are **disabled for this world** and **DO NOT generate an image** (stop here, do not execute subsequent steps). *Reminder: everything is ON by default — only act if the axis is explicitly `false`; if the info is not readable, consider the axis ON and generate normally (fail-open).* Wiring detail: `docs/monde-vivant/10-features.md`.
+0. **🚦 Feature flag guard — images.** If `world.json > meta.features.images` == `false` (or env `MGM_FEATURE_IMAGES=0`), briefly respond that illustrations are **disabled for this world** and **DO NOT generate an image** (stop here, do not execute subsequent steps). *Reminder: everything is ON by default — only act if the axis is explicitly `false`; if the info is not readable, consider the axis ON and generate normally (fail-open).* Wiring detail: `docs/living-world/10-features.md`.
 1. **Determine active campaign** (check `world.json`). If absent → *« No active campaign. Run `!init` or `!campaign active <name>`. »*
 2. **Load** `world.json` → `meta.style_visuel.description_complete`, then the **template** for the command (see table).
 3. **Gather context** specific to the command (see « Context » column of table).
@@ -191,7 +191,7 @@ The 4 commands (`!image`, `!portrait`, `!carte`, `!illustration session`) share 
 |----------|----------|-----------|---------------|------------------------------|
 | `!image <description>` | `template_scene.json` | `16:9` | `images/scenes/{slug}.png` (slug = description lowercase, hyphens) | the description provided |
 | `!portrait <character_name>` | `template_portrait.json` | `3:4` | `images/portraits/{character_name}.png` | character sheet (see below) |
-| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `carte_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `world.json > locations > {location}` |
+| `!carte <location> [--precise]` | `template_carte.json` | `1:1` | `images/cartes/{location}.png` | **fidelity by source** (see `!carte` detail) : default = evocative sketch fed by `geo.json` ; `--precise`/cartographer = schema→embellishment pipeline (positions+routes guaranteed by `map_schema.py`) ; `--unreliable` = faked map (failure/trap). Fallback if no `geo.json` : regions/POI from `world.json > locations > {location}` |
 | `!illustration session` | `template_scene.json` | `16:9` | `images/scenes/session_{N}_recap.png` | `resume` from `sessions/<derniere>.json` (3-5 sentences) ; prompt suffixed *« Key moment from a fantasy RPG session: {resume}. Cinematic composition, dramatic lighting, emotional impact. »* |
 
 ### Details by Command
@@ -213,7 +213,7 @@ A map is never « objective truth » : it's a fictional object *drawn by someone
 **(B) Cartographer's Map — precise, on demand or by fiction.** When the map is supposed to be the work of a cartographer (PC/NPC skilled), or on explicit demand (`!carte <location> --precise`) : **schema → embellishment pipeline**, where **code draws the layout, not the model** (validated: Gemini respects the layer). The schema is passed as a **layer** (`--ref-mode layer`) and creativity is constrained (`--temperature 0.2`).
 
 ```bash
-SCHEMA=/opt/modules/gaming/mygamemaster/scripts/carte_schema.py
+SCHEMA=/opt/modules/gaming/mygamemaster/scripts/map_schema.py
 GEN=/opt/modules/gaming/mygamemaster-images/scripts/generate_reviewed.py
 CARTES=<campaign>/images/cartes
 # 1) Deterministic schema + versioned + reproducible prompt, in one command.
@@ -239,7 +239,7 @@ python3 "$GEN" --prompt-file "$CARTES/_schema_<location>.<h>.prompt.txt" \
 
 **Temporal Consistency (central requirement).** Rendering is **deterministic** : same world state → **same layer, always**. A forest only grows/disappears **if the world changes** : its extent reads the `etendue` attribute of the location in `geo.json` (else type default) — deforestation/drought is an *event* that modifies `etendue`, never random. The **version hash** (`--version`) timestamps each state : regenerate only when it changes, **persist** layers + final images, and keep history.
 
-**Extensible Semantics by Campaign (all universes).** The type→render table lives in `carte_schema.py` (fantasy defaults), overridable by campaign via `<campaign>/carte_semantique.json` : `{"types": {"<type>": {color, shape (circle|square|triangle|diamond|star), family (city|biome|water|landmark|other), obstacle, etendue, visible, visual}}}`. **`visible: false` ⇒ type never appears** (abstract/secret location) — the indicator « what must / must not appear ». Generate a commented template: `python3 "$SCHEMA" <campaign> --dump-semantique`. An SF/post-apo game thus defines its own types without touching code.
+**Extensible Semantics by Campaign (all universes).** The type→render table lives in `map_schema.py` (fantasy defaults), overridable by campaign via `<campaign>/carte_semantique.json` : `{"types": {"<type>": {color, shape (circle|square|triangle|diamond|star), family (city|biome|water|landmark|other), obstacle, etendue, visible, visual}}}`. **`visible: false` ⇒ type never appears** (abstract/secret location) — the indicator « what must / must not appear ». Generate a commented template: `python3 "$SCHEMA" <campaign> --dump-semantique`. An SF/post-apo game thus defines its own types without touching code.
 
 > The **SVG** is the canonical layer (carries all info, inspectable). Data *exact* (locations, neighborhoods, routes, types) vs *synthesized* for conditioning (extent, town size, sinuosity) — all deterministic and grounded in `geo.json` + semantic table.
 
@@ -253,7 +253,7 @@ python3 "$GEN" --prompt-file "$CARTES/_schema_<location>.<h>.prompt.txt" \
 - It's **known to the GM only** (trace intent in `GM-INTENTION-LOG.md`, never visible to player).
 - If player cries bug: **NEVER confirm a bug** or the intent. Stay in fiction — *« the map you found may not have been drawn by a sure hand… »*. The map isn't broken: it's *unreliable*, and that's diegetic.
 
-**Fallback (degraded mode).** If `temporality` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `world.json > locations > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `world.json` (or run `geo_query.py build` then `carte_schema.py` for a faithful map) ! »*
+**Fallback (degraded mode).** If `temporality` is explicitly `false`, or no readable `geo.json` : simple decorative map (fantasy template, `{elements}` provided else regions/POI from `world.json > locations > {location}`). And if location undocumented: *« 📝 **{location}** is not yet documented. I'm generating a general map. Think about enriching `world.json` (or run `geo_query.py build` then `map_schema.py` for a faithful map) ! »*
 
 **(D) Town/Village Map — micro detail (coming soon).** A regional map shouldn't try to show buildings of a village (unreadable). Dense detail (the tavern doesn't move, player orientates) will be **a separate map**, backed by a **`geo.json` specialized « town »** (micro scale: streets, buildings = containment sub-locations), generated as needed and **persisted** like regional maps. Same temporal consistency principle. *Not implemented — dedicated feature.*
 

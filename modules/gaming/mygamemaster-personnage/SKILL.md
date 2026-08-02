@@ -356,9 +356,9 @@ Examples:
 
 ## References
 
-- `references/relation-niveaux.md` — definition and usage of relation levels (Unknown → Enemy), with evolution examples and asymmetry principle
-- `references/pnj-loyaute-limites.md` (in the `mygamemaster` skill) — loyalty system, individual limits, evolution factors for allied NPCs
-- `references/verbosite/README.md` (in the `mygamemaster` skill) — emoji convention for change notifications (❤️ HP, 📚 skills, 🔋 states). Use for any sheet modification reported during play.
+- `references/relation-levels.md` — definition and usage of relation levels (Unknown → Enemy), with evolution examples and asymmetry principle
+- `references/npc-loyalty-limits.md` (in the `mygamemaster` skill) — loyalty system, individual limits, evolution factors for allied NPCs
+- `references/verbosity/README.md` (in the `mygamemaster` skill) — emoji convention for change notifications (❤️ HP, 📚 skills, 🔋 states). Use for any sheet modification reported during play.
 
 ---
 

@@ -53,10 +53,10 @@ The complete daily loop: **back up → deploy → test → improve → redeploy*
 
 > **Instances**: `-e instance=<name>` deploys an **isolated copy** of a game
 > (`deploy_id = <slug>-<instance>`). All playbooks accept it — details in
-> [`08-instances-de-test.md`](08-instances-de-test.md).
+> [`08-test-instances.md`](08-test-instances.md).
 
 > **Targeted updates**: credentials / config / modules can be updated independently, without
-> touching data or memory — details in [`07-mettre-a-jour.md`](07-mettre-a-jour.md).
+> touching data or memory — details in [`07-update.md`](07-update.md).
 
 ## Common scenarios
 

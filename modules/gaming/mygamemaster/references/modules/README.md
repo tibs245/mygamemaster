@@ -42,7 +42,7 @@ A module **absent** from the block or with `actif: false` is considered **inacti
 | `artefacts` | `artefacts.md` | Tracking important objects | `global_state.artefacts_connus` |
 | `politique` | `politique.md` | World layers, sovereignty, political entities | `universe.entites_politiques`, `souverainete` |
 | `meteo` | `meteo.md` | Weather and biodiversity | `regles.meteo`, `universe.regions[].biodiversite` |
-| `worldbuilding_lieux` | `worldbuilding-lieux.md` | Framework 10 points of place creation | `universe.regions[].lieux` |
+| `worldbuilding_lieux` | `worldbuilding-locations.md` | Framework 10 points of place creation | `universe.regions[].lieux` |
 | `construction_royaume` | `construction-royaume.md` | Domain/kingdom construction | `systeme.construction_royaume`, `regles.construction`, `global_state.royaume` |
 
 ## LOSSLESS migration

@@ -1,4 +1,4 @@
-> ⚠️ **OBSOLETE — the Hermes "profiles" feature does not work.** It has been replaced by the **one container per campaign** model (see `README.md` and `docs/06-concept-isolation.md`). This document is kept as a historical design reference; do NOT run `hermes profile create`. For autonomous NPC/Faction agents (level 2, approved), the target is one additional container per agent (cf. `specs/profiles-vers-conteneurs.md`).
+> ⚠️ **OBSOLETE — the Hermes "profiles" feature does not work.** It has been replaced by the **one container per campaign** model (see `README.md` and `docs/06-isolation-model.md`). This document is kept as a historical design reference; do NOT run `hermes profile create`. For autonomous NPC/Faction agents (level 2, approved), the target is one additional container per agent (cf. `specs/profiles-to-containers.md`).
 
 # 🧩 Hermes Profiles — Architecture for MJ Tonnerre
 

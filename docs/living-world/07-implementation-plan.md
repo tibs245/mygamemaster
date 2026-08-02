@@ -11,7 +11,7 @@
 | Clock | `events.json` (`t`), `gestion_temps.py` | Unified `T` integer from 0; centralized `T↔day/hour` conversion |
 | Space | `regles.temps.deplacements`, `validator-distances.py` | `geo.json` (graph), `geo_query.py`, MDS anchoring, extended validator |
 | Actors | `npcs.json`, `global_state.factions`, `faction_actions_horloge` | Unified **plan** schema, `lod`, trajectories, promotion/demotion |
-| Agents | `build_brief.py`, `call_pnj.py`, `faction_slice.py`, skills `-pnj`/`-faction` | Tick orchestration loop, **intention output** schema |
+| Agents | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-pnj`/`-faction` | Tick orchestration loop, **intention output** schema |
 | Tick | `clock.py` | `world_tick.py` (PRE/POST), LOD, lazy generation |
 | Causality | — | Typed `relations`, `causal_propagate.py`, scheduled events |
 | GM Context | `pre_llm_call.py` | `scene_brief.py` (spatial/temporal/relational filtering) |
@@ -31,7 +31,7 @@ previous one is green.
 ### Phase 1 — Spatial graph + queries
 - Generate `geo.json`: containment (`parent`) + adjacency (from `deplacements`) + anchoring (MDS
   on duration matrix) + cardinal direction (extracted from descriptions, completed manually).
-- Write `geo_query.py` (sub-commands from table [`01`](01-horloge-et-espace.md) §6).
+- Write `geo_query.py` (sub-commands from table [`01`](01-clock-and-space.md) §6).
 - Extend `validator-distances.py` → graph validator (the 5 invariants).
 - **Done when**: "who is where / around / path / crossroads" answer correctly on
   `naissance-dun-roi`.
@@ -51,7 +51,7 @@ previous one is green.
 ### Phase 4 — Causal propagation (multi-level, bounded)
 - Typed `relations` on actors; `causal_propagate.py` (depth, threshold, attenuation);
   `scheduled` events in `events.json`.
-- **Done when**: the fire→shortage→migration scenario ([`04`](04-propagation-causale.md))
+- **Done when**: the fire→shortage→migration scenario ([`04`](04-causal-propagation.md))
   unfolds and stays bounded.
 
 ### Phase 5 — Context assembler

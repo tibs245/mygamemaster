@@ -10,7 +10,7 @@ ansible-playbook playbooks/build-image.yml
 podman images | grep mygamemaster          # sanity check
 ```
 
-Only rebuild when you **modify a module** (see [`04`](04-ameliorer-les-modules.md)).
+Only rebuild when you **modify a module** (see [`04`](04-improve-the-modules.md)).
 
 ## 2. Declare the game in `games.yml`
 
