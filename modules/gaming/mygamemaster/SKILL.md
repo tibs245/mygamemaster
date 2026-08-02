@@ -722,8 +722,9 @@ Stopping IS the hand-back — prefer ending on the world's condition. A bare "Wh
 **Exception — When player explicitly asks for continuity :**
 If player says "I do this, then that, then that" in their own message — then those actions are validated. GM does not invent them.
 
-**⏩ Pacing gate — TURN-01/02/06 (`references/locked-lessons.md`) :** time or space advances only on an explicit fast-forward signal (`⏩`, "avance rapide", "fast forward") — never on a question, a discussion or an intention. The grant is persisted and consumed by ONE turn ; check a draft :
-`echo "<draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/turn_state.py check --declared "<player input>"` (0 = deliver, 1 = rewrite).
+**⏩ Pacing gate — TURN-01/02/06 (`references/locked-lessons.md`) :** time or space advances only on an explicit fast-forward signal (`⏩`, or "avance rapide" / "fast forward" OPENING the message) — never on a question, an intention, or an ordinary action ("j'avance vers la porte" is a two-metre walk, not a permission). The grant is persisted and consumed by ONE turn. Run this **in the same breath as the checkpoint, before it**, on every turn :
+`echo "<draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/turn_state.py check --declared "<player message, VERBATIM>"` (0 = deliver, 1 = rewrite then re-run).
+`--declared` must carry the player's message word for word: it is the only thing that can arm a grant, so omitting it refuses every ellipse. After 2 refused attempts the gate forces the narration through rather than loop.
 
 *Concrete examples from this session: see `references/narrative-pacing-concrete.md`.*
 

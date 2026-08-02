@@ -19,11 +19,12 @@ Cases are drawn from the corpus documented in `docs/10-field-report.md` and
   * S34 — a fast-forward that lands on a focal event and then keeps going (TURN-06);
   * S14 — stacked actions, here only as a NON-case: that is the agency gate's job.
 
-Covers: signal recognition (FR/EN, canonical `⏩`, commands), the negative rule (a
-question / a discussion / an intention is never a grant), ellipse detection around the
-one-hour bar, dialogue masking, the four states and their transitions, grant
-consumption (once, and never on a refusal), persistence in `.banquier/snap-<sid>.json`,
-the operator escape hatch, and the CLI contract.
+Covers: signal recognition (FR/EN, canonical `⏩`, commands), the negative rules — a
+question / an intention / an ORDINARY ACTION is never a grant — ellipse detection around
+the one-hour bar and its position in the sentence (lore and distance are not ellipses),
+dialogue masking, the four states and their transitions, grant consumption (once, and
+never on a refusal), persistence in `.banquier/snap-<sid>.json`, the anti-loop budget and
+its forced release, the operator escape hatch, and the CLI contract.
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 HOOKS_DIR = SCRIPTS_DIR.parent / "hooks"
 sys.path.insert(0, str(HOOKS_DIR))
 
+import _lib as L  # noqa: E402
 import turn_state as T  # noqa: E402
 
 
@@ -74,14 +76,44 @@ class TestSignalRecognition(unittest.TestCase):
 
     def test_commands_and_plain_language_fr(self):
         for msg in ("!ff", "!avance", "avance rapide jusqu'au soir",
-                    "on avance", "passe à la suite", "saute jusqu'au matin",
-                    "fais une ellipse"):
+                    "passe à la suite", "saute jusqu'au matin", "ellipse jusqu'au soir",
+                    "fais une ellipse", "ok, avance rapide"):
             self.assertEqual(T.classify_input(msg)[0], "fast_forward", msg)
 
     def test_plain_language_en(self):
         for msg in ("fast forward", "fast-forward to the morning", "skip ahead",
                     "jump to the next scene", "time skip"):
             self.assertEqual(T.classify_input(msg)[0], "fast_forward", msg)
+
+    def test_an_ordinary_action_is_never_a_signal(self):
+        """The fail-open this module exists to remove: a verb is not a permission.
+
+        Every line below is a plain declaration of what the PC does. Matching the
+        fast-forward vocabulary as a substring would hand a three-hour ellipse to a
+        two-metre walk — the most common French action declaration in the corpus.
+        """
+        for msg in ("J'avance vers la porte de la forge.",
+                    "On avance prudemment dans le couloir.",
+                    "on avance", "Je saute la barrière.",
+                    "je saute au-dessus du ravin",
+                    "Je m'avance vers le forgeron.",
+                    "Avance vers la porte.",
+                    "Je passe la main sur la pierre.",
+                    "I move on to the next room", "I skip the meal",
+                    "Je prends la hache."):
+            self.assertEqual(T.classify_input(msg)[0], "action", msg)
+
+    def test_an_ordinary_action_arms_no_grant_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            camp = make_campaign(Path(tmp))
+            v = T.check_narration(
+                camp, PAYLOAD,
+                "Trois heures plus tard, vous arrivez au moulin et le meunier vous salue.",
+                "J'avance vers la porte de la forge.")
+            self.assertEqual(v["input"], "action")
+            self.assertFalse(v["granted"])
+            self.assertFalse(v["ok"])
+            self.assertIn("TURN-02", [x["regle"] for x in v["violations"]])
 
     def test_a_question_is_never_a_signal(self):
         for msg in ("on avance ?", "on saute jusqu'au matin ?",
@@ -140,10 +172,38 @@ class TestMomentDetection(unittest.TestCase):
         self.assertEqual(self.kinds('"We leave the next morning," he says.'), [])
         self.assertEqual(self.kinds("— Trois jours plus tard, peut-être."), [])
 
+    def test_dialogue_still_closes_the_sentence_before_an_ellipse(self):
+        """Masking must not swallow the boundary the ellipse anchor relies on."""
+        self.assertEqual(
+            self.kinds("Il dit : « Reviens demain. » Trois heures plus tard, "
+                       "la forge est froide."), ["ellipse"])
+
+    def test_compound_and_abbreviated_durations(self):
+        for draft in ("Une heure et demie plus tard, la pluie cesse.",
+                      "Deux jours et demi plus tard, il revient.",
+                      "2h plus tard, le feu est mort."):
+            self.assertIn("ellipse", self.kinds(draft), draft)
+
+    def test_lore_and_distance_are_not_ellipses(self):
+        """A duration mid-sentence is backstory or a distance — it moves no clock."""
+        for draft in ("Cinq ans après la chute de l'empire, la ville reste en ruines. "
+                      "Le forgeron lève les yeux.",
+                      "Le village a brûlé deux ans après la guerre.",
+                      "À quelques jours de marche d'ici, après le col, se dresse la tour."):
+            self.assertEqual(self.kinds(draft), [], draft)
+
     def test_travel_markers(self):
         self.assertEqual(self.kinds("Vous arrivez au moulin."), ["travel"])
         self.assertEqual(self.kinds("You reach the mill."), ["travel"])
         self.assertEqual(self.kinds("De retour au camp, le feu est mort."), ["travel"])
+        self.assertEqual(self.kinds("Vous arrivez à la clairière."), ["travel"])
+
+    def test_arriver_a_plus_infinitif_is_not_travel(self):
+        """« vous arrivez à ouvrir » = you manage to — the PC has not moved."""
+        draft = ("Vous arrivez à ouvrir la porte. À l'intérieur, vous arrivez à "
+                 "distinguer une silhouette.")
+        self.assertEqual(self.kinds(draft), [])
+        self.assertEqual(T.evaluate(T.detect_moments(draft), False), [])
 
     def test_unquantified_later_is_a_documented_miss(self):
         """No quantity, no bar to compare it to: let through on purpose, not a bug."""
@@ -191,6 +251,20 @@ class TestEvaluate(unittest.TestCase):
         self.assertIn("TURN-01", fb)
         self.assertIn("travel", fb)
         self.assertIn("ellipse", fb)
+
+    def test_one_fault_is_reported_once(self):
+        """An ellipse plus the travel it carries is ONE fault, not two numbered items."""
+        self.assertEqual(
+            self.rules("Trois heures plus tard, vous arrivez au moulin.", False),
+            ["TURN-02"])
+
+    def test_turn_01_excerpt_carries_both_moments(self):
+        """Both excerpts must survive the 160-char cap, not just the first."""
+        v = [x for x in T.evaluate(T.detect_moments(DRAFT_S23_BIVOUAC), False)
+             if x["regle"] == "TURN-01"][0]
+        self.assertIn("1)", v["extrait"])
+        self.assertIn("2)", v["extrait"])
+        self.assertLessEqual(len(v["extrait"]), 160)
 
 
 class TestGateAndGrant(unittest.TestCase):
@@ -279,6 +353,58 @@ class TestGateAndGrant(unittest.TestCase):
         """S14 (eat / get up / lie down) is AGENCY-03 — do not claim to catch it here."""
         draft = "Vous mangez le saucisson, vous vous levez, vous vous recouchez."
         self.assertTrue(self.check(draft, "Je mange.")["ok"])
+
+
+class TestNeverLoops(unittest.TestCase):
+    """The house contract: a gate that cannot release is a gate that kills a campaign."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.camp = make_campaign(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_the_budget_forces_the_narration_through(self):
+        first = T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE, "Je taille le bois.")
+        self.assertFalse(first["ok"])
+        self.assertEqual(first["attempts"], 1)
+        self.assertNotIn("forced", first)
+
+        forced = T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertTrue(forced["ok"], "the gate must never refuse forever")
+        self.assertEqual(forced["forced"], first["max_attempts"])
+        self.assertTrue(forced["violations"], "the violations are kept, not erased")
+
+    def test_the_forced_feedback_is_re_injected_next_turn(self):
+        for _ in range(3):
+            T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertIn("TURN-02", L.take_pending(self.camp, PAYLOAD))
+
+    def test_refusals_reach_the_scoreboard(self):
+        T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE, "Je taille le bois.")
+        row = L.load_scoreboard(self.camp)[T.SCOREBOARD_KEY]
+        self.assertEqual(row["par_regle"]["TURN-02"], 1)
+        self.assertEqual(row["infractions_conduite"], 1)
+
+    def test_an_accepted_narration_clears_the_budget(self):
+        T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE, "Je taille le bois.")
+        T.check_narration(self.camp, PAYLOAD, DRAFT_STILL)
+        self.assertEqual(T.attempts_get(self.camp, PAYLOAD), 0)
+        self.assertFalse(T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)["ok"])
+
+    def test_the_budget_is_not_the_checkpoint_s(self):
+        """Sharing `checkpoint_attempts` would let one gate reset the other's budget."""
+        L.attempts_inc(self.camp, PAYLOAD)
+        T.check_narration(self.camp, PAYLOAD, DRAFT_STILL)
+        self.assertEqual(L.attempts_get(self.camp, PAYLOAD), 1)
+
+    def test_the_budget_is_configurable(self):
+        camp = make_campaign(Path(self.tmp.name) / "wide",
+                             hooks_cfg={"turn_gate_max_tentatives": 4})
+        for i in range(3):
+            self.assertFalse(T.check_narration(camp, PAYLOAD, DRAFT_ONE_ELLIPSE)["ok"], i)
+        self.assertTrue(T.check_narration(camp, PAYLOAD, DRAFT_ONE_ELLIPSE)["ok"])
 
 
 class TestEscapeHatch(unittest.TestCase):
