@@ -93,7 +93,7 @@ import worldlib as W
 _TABLE_VERSION = 2
 
 # Defaults (fantasy universe). Do NOT hardcode all game systems here: each campaign
-# can extend/override via `carte_semantique.json` (see charger_semantique) —
+# can extend/override via `map_semantics.json` (see charger_semantique) —
 # new types, colours, visibility. The geo.json types remain the data;
 # this table only says HOW to draw them.
 #   visible : False → the type does NOT appear on the map (abstract/secret location).
@@ -124,7 +124,7 @@ _SEM_DEFAUT = {"color": "#8a8a8a", "shape": "rond", "family": "autre",
                "obstacle": False, "etendue": 0, "visible": True,
                "visuel": "a landmark"}
 
-# Campaign override (populated by main from carte_semantique.json).
+# Campaign override (populated by main from map_semantics.json).
 _OVERRIDE: dict = {}
 
 _RE_VOIE_EAU = re.compile(
@@ -156,14 +156,16 @@ def _sem(typ: str) -> dict:
 
 
 def charger_semantique(camp: Path) -> dict:
-    """Load the campaign semantic override (`carte_semantique.json`), so that
+    """Load the campaign semantic override (`map_semantics.json`), so that
     EVERY game (even non-existent ones: sci-fi, post-apoc…) can define ITS types
     and what should / should not appear. Format: {"types": {"<type>": {<fields>}}}.
     Fields (all optional): color, shape (rond|carre|triangle|losange|etoile),
     family (ville|biome|eau|repere|autre), obstacle (bool), etendue (float),
     visible (bool — False ⇒ never drawn), visuel (phrase for the prompt).
     Returns (types_override, carte_cfg)."""
-    data = W.charger_json(camp / "carte_semantique.json", {})
+    data = W.charger_json(camp / "map_semantics.json", {})
+    if not data:  # pre-rename campaigns keep the French filename
+        data = W.charger_json(camp / "carte_semantique.json", {})
     if not isinstance(data, dict):
         return {}, dict(_CARTE_DEFAUT)
     cfg = dict(_CARTE_DEFAUT)
@@ -677,7 +679,7 @@ def main() -> int:
                    help="Version by geo hash: suffixes outputs with the world fingerprint "
                         "(keeps history instead of overwriting).")
     p.add_argument("--dump-semantique", action="store_true",
-                   help="Write an annotated carte_semantique.json template (effective table) then exit.")
+                   help="Write an annotated map_semantics.json template (effective table) then exit.")
     args = p.parse_args()
 
     camp = W.chemin_campagne(args.campagne)
@@ -706,7 +708,7 @@ def main() -> int:
                       "diamond|star; family: city|biome|water|landmark|other."),
                   "carte": _CARTE_CFG,
                   "types": eff}
-        out = camp / "carte_semantique.example.json"
+        out = camp / "map_semantics.example.json"
         out.write_text(json.dumps(modele, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"📝 Semantic template written: {out}")
         return 0

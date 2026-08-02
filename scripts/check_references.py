@@ -41,6 +41,8 @@ RE_MD = re.compile(r"\[[^\]]*\]\(([^)\s#]+)")
 # Backticked or bare paths carrying a tracked extension.
 RE_PATH = re.compile(
     r"[`'\"( ]([A-Za-z0-9_./-]+(?:" + "|".join(re.escape(e) for e in SUIVIES) + r"))")
+# Backticked bare filename, no directory: `travel.md`
+RE_NU = re.compile(r"`([A-Za-z0-9_-]+\.md)`")
 
 # References that are legitimately not repo files.
 IGNORE = re.compile(
@@ -51,6 +53,13 @@ IGNORE = re.compile(
     r"|/all/vault\.yml$"               # secrets, intentionally absent
     r"|inventory/games\.yml$"          # the real game table, git-ignored by design
 )
+
+# Files that live in a CAMPAIGN directory, never in this repo. Docs name them
+# constantly; they are not repo references and must not be judged as such.
+ARTEFACTS_CAMPAGNE = {
+    "MJ-INTENTION-LOG.md", "GM-INTENTION-LOG.md", "analyse-bug-rapport.md",
+    "checklist-steward.md",
+}
 
 
 def fichiers_suivis() -> list[str]:
@@ -103,7 +112,13 @@ def scanner(verbeux: bool = False) -> list[tuple[str, int, str]]:
             liens = {(r, True) for r in RE_MD.findall(ligne)}
             cites = {(r, False) for r in RE_PATH.findall(ligne)
                      if r.startswith(RACINES)}
+            # A bare `name.md` in a doc names a repo file too: that is how an
+            # index kept pointing at voyage.md long after it became travel.md.
+            if nom.endswith(".md"):
+                cites |= {(r, False) for r in RE_NU.findall(ligne)}
             for ref, est_lien in liens | cites:
+                if ref in ARTEFACTS_CAMPAGNE:
+                    continue
                 if IGNORE.search(ref) or not ref.endswith(SUIVIES):
                     continue
                 if est_lien and "/" not in ref and not ref.endswith((".md", ".py")):

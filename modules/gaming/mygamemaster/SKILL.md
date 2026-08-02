@@ -1145,6 +1145,8 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 **RECAP TABLE OF 8 MODULES** — single source of truth for mapping. Each row: `world.json` key → module file → when to activate. Corresponding inline reference is in sections §3-§4, checklist box in §7.
 
 > ⚠️ **Key→file mapping (underscore↔dash trap) :** `world.json` key uses **underscore**, file uses **dash**. Rule : `file = key.replace('_','-') + '.md'`. Affects `proactivite_pnj` → `proactivite-pnj.md`, `worldbuilding_lieux` → `worldbuilding-locations.md`, `construction_royaume` → `construction-royaume.md`.
+>
+> ⚠️ **Two exceptions where the rule does NOT hold** — the file was translated while the key was not, because the key is campaign data and renaming it would break existing campaigns : key `voyage` → `travel.md`, key `meteo` → `weather.md`. Always resolve these two through this table, never through the rule.
 
 | `world.json > modules.<x>` key | Module file to read | Module | When to activate |
 |---|---|---|---|

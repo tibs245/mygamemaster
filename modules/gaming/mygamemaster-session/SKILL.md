@@ -553,7 +553,7 @@ Before initializing new session, verify **persistence structures** are in place.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> 📄 **Complete procedure** (minimal structure `rules.time.tracking`, gentle migration of sheets, parent git handling, documented gaps) : `references/audit-persistance-dry-run.md`.
+> 📄 **Complete procedure** (minimal structure `rules.time.tracking`, gentle migration of sheets, parent git handling, documented gaps) : `references/persistence-audit-dry-run.md`.
 
 **Process :** DON'T block resumption for these gaps. FIX them before sending opening narration (between step 5.7 and 6.5).
 
@@ -571,7 +571,7 @@ Before writing any opening narrative phrase (the reminder with summary, the scen
    **c) Words put in NPC mouth** — make NPC say a summary the PC didn't express that way.
    **d) Object/relation characterization minimized** — reduce emotional weight of object played as important.
 
-   (Real cases documented : `references/audit-persistance-dry-run.md`.)
+   (Real cases documented : `references/persistence-audit-dry-run.md`.)
 
    → **Cure :** before writing opening narration, read `sessions/NNN.json → actions[]` + `etat_fin` entirely + `characters/<id>.json` + faction clock. For each factual detail (time, object, location, NPC words), verify trace in logs. No trace = probably invented. Don't start narrative sentence before checking these 4 points.
 
@@ -713,7 +713,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | **Invent time jumps or unplayed days in events.json** | **Only add what was ACTUALLY played. If session continues same instant, t doesn't change. Only events traceable to played action are canon.** |
 | **Narrate `!reprendre` opening without checking logs first** | **Before any narrative sentence, check 4 points from step 6.5 (`actions[]`, `visited_locations[]`, `npcs_met[]`, `etat_fin`, `end_hour`).** |
 
-> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/audit-persistance-dry-run.md`.
+> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/persistence-audit-dry-run.md`.
 
 ---
 
@@ -826,7 +826,7 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 
 ## References
 
-- `references/audit-persistance-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
+- `references/persistence-audit-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
 - `references/template-problem-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
 
 ## Dependencies
