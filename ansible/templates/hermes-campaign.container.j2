@@ -66,9 +66,23 @@ Environment=MGM_FEATURE_IMAGES={{ '1' if (mgm_feature_images | bool) else '0' }}
 {% if mgm_feature_tts is defined %}
 Environment=MGM_FEATURE_TTS={{ '1' if (mgm_feature_tts | bool) else '0' }}
 {% endif %}
+{% if mgm_feature_dialogue is defined %}
+Environment=MGM_FEATURE_DIALOGUE={{ '1' if (mgm_feature_dialogue | bool) else '0' }}
+{% endif %}
+{% if mgm_dialogue_model is defined %}
+# Dialogue grading: model used to score NPC dialogue quality. Falls back to the
+# judge model when unset. See references/dialogue-craft.md §4.
+Environment=MGM_DIALOGUE_MODEL={{ mgm_dialogue_model }}
+{% endif %}
 {% if mgm_tts_min_chars is defined %}
 # TTS setting: minimum length (characters) of a narration to trigger auto-voice.
 Environment=MGM_TTS_MIN_CHARS={{ mgm_tts_min_chars | int }}
+{% endif %}
+{% if mgm_tts_auto is defined %}
+# AUTOMATIC narrative voice: instance-level opt-in (OFF by default, cf.
+# hooks/_lib.py tts_auto_default). `!raconte` does not depend on this — it follows
+# the `tts` axis above. world.json meta.hooks.tts_auto still overrides this.
+Environment=MGM_TTS_AUTO={{ '1' if (mgm_tts_auto | bool) else '0' }}
 {% endif %}
 
 # Game data (persistent + backed up).

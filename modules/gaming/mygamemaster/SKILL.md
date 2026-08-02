@@ -60,6 +60,8 @@ Everything below is the operational detail of these five. A rule ID in the text 
 - ❌ Player: "I tell them: 'Come with us, we'll build something.'" → No GM rewrite, already played
 - Ask: "Want me to write it?" or wait for the player to ask explicitly
 
+**🗣️ NPC dialogue :** a conversation that matters → `dialogue_brief.py <campaign> "<NPC>" --stake "<what the PC wants>"`, then **apply `references/dialogue-craft.md`** : the four rules, the `voix` block to write and persist, and the **dry summary** the checkpoint imposes when a scene is graded flat twice.
+
 **⚠️ Immersion rule — Never expose mechanics in narration :**
 Fatigue levels, encounter rolls, difficulty tiers, danger thresholds, DCs and modifiers stay IN MY NOTES. Never in text sent to the player.
 - ❌ "Stage 1 — Fatigue: 0. Zone: 🟡 Neutral. Encounter: 0 of 6. Nothing." → player sees the machinery
@@ -252,6 +254,7 @@ The `/opt/modules/gaming/mygamemaster/scripts/` folder provides machine guards (
 | `clock.py` | Faction clock: `approche`/`echue` per pinned deadline format (`--dry-run` default, `--apply` writes status) |
 | `close_session.py` | Close pipeline (~10 points) — **refuses if blocking step missing**, proposes commit message |
 | `validate_schema.py` | Structural validation against `scripts/schemas/` |
+| `dialogue_brief.py` | Conversation slice (GM side): `voix`, what the NPC wants/hides/refuses, mood, facts filtered on `--stake "…"`. Cf. `references/dialogue-craft.md`. |
 | `build_brief.py` | Extracts NPC brief from npcs.json (MD5 cache). Verifies established_facts, inventory, position. Phase 1 of lightweight agent architecture. |
 | `call_npc.py` | Calls flash LLM with brief + context. `--dry-run` for preview. Phase 2 of lightweight agent architecture (N1). |
 | `ensure_agent.sh` | Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
@@ -292,6 +295,10 @@ Whenever you describe an action that changes world state (travel, discovery, com
 > `echo "<your draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/mj_checkpoint.py --declared "<player action>"`
 > → `✅ OK` (deliver), numbered feedback (rewrite then resubmit), or `⚠️ FORCED` (deliver as best as possible). The
 > gate never loops (budget of 2 attempts).
+> Before the judge, a **deterministic** check owns AGENCY-01/02/03 and does not fail open: it answers
+> `🚫 AGENCY GATE (deterministic) — TURN REFUSED` (rewrite: narrate only what the PC perceives) and, after
+> 3 attempts, `🚨 AGENCY GATE FORCED` (deliver, the violation is logged and re-injected). An operator can
+> unblock a live table with `MGM_AGENCY_GATE=off` (default ON, `MGM_AGENCY_MAX_ATTEMPTS=N` for the budget).
 
 ```
 🛡️ POST-ACTION CHECKLIST
@@ -722,6 +729,10 @@ Stopping IS the hand-back — prefer ending on the world's condition. A bare "Wh
 **Exception — When player explicitly asks for continuity :**
 If player says "I do this, then that, then that" in their own message — then those actions are validated. GM does not invent them.
 
+**⏩ Pacing gate — TURN-01/02/06 (`references/locked-lessons.md`) :** time or space advances only on an explicit fast-forward signal (`⏩`, or "avance rapide" / "fast forward" OPENING the message) — never on a question, an intention, or an ordinary action ("j'avance vers la porte" is a two-metre walk, not a permission). The grant is persisted and consumed by ONE turn. Run this **in the same breath as the checkpoint, before it**, on every turn :
+`echo "<draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/turn_state.py check --declared "<player message, VERBATIM>"` (0 = deliver, 1 = rewrite then re-run).
+`--declared` must carry the player's message word for word: it is the only thing that can arm a grant, so omitting it refuses every ellipse. After 2 refused attempts the gate forces the narration through rather than loop.
+
 *Concrete examples from this session: see `references/narrative-pacing-concrete.md`.*
 
 ### 6.7. SEQUENTIAL ACTION PROTOCOL — Continuous validation by Steward
@@ -812,7 +823,7 @@ Per-campaign isolation (memory, SOUL.md, config, sessions) is ensured by the **o
 | Mode | Description | When to use |
 |------|-------------|------------|
 | **Narrative** (default) | GM estimates durations by scale (moments, minutes, hours, days). Log in `world.json > global_state.timeline`. | Short campaigns, open exploration, low time constraint. |
-| **TU (Time Unit)** | 1 TU = 10 minutes. All events logged in `events.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mygamemaster/scripts/clock.py`. Configurable from `world.json > meta.temps`. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
+| **TU (Time Unit)** | 1 TU = 10 minutes, 144 TU/day — a **code constant** in `scripts/clock.py`, readable without opening any campaign. All events logged in `events.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mygamemaster/scripts/clock.py`. `world.json > meta.time` may **override** the unit (`units_per_day`, `time_unit_minutes`); a value that is not a strictly positive integer is rejected and reported. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
 
 **⚠️ Absolute rule — TU mode :** If TU mode is active (`world.json > meta.temps.regime === "TU"`), TIMELINE checklist is MANDATORY before and after each narrative action. *(This is the proven precedent of per-campaign conditional loading, generalized to `modules` block.)*
 
@@ -1038,7 +1049,7 @@ Heavy thematic blocks are **not** in this umbrella : they live in `references/mo
 
 ### Feature flags (`meta.features`)
 
-A **second switch**, above modules: the `world.json > meta.features` block exposes **6 axes** that govern behavior families. **Everything is ON by default** — act on an axis **only if** it is **explicitly** `false`. Resolution cascade : `meta.features.<axis>` > env `MGM_FEATURE_<AXIS>` > `True`. **FAIL-OPEN** : if info is unreadable, consider axis **ON**.
+A **second switch**, above modules: the `world.json > meta.features` block exposes **7 axes** that govern behavior families. **Everything is ON by default** — act on an axis **only if** it is **explicitly** `false`. Resolution cascade : `meta.features.<axis>` > env `MGM_FEATURE_<AXIS>` > `True`. **FAIL-OPEN** : if info is unreadable, consider axis **ON**.
 
 | Axis | When axis is `false` (otherwise: normal behavior) |
 |---|---|
@@ -1047,7 +1058,8 @@ A **second switch**, above modules: the `world.json > meta.features` block expos
 | `living_npcs_factions` | Pauses autonomous NPC/faction life: **do not load** `factions` and `proactivite_pnj` modules (see §3.1 / §4.2), do not have NPCs/factions act on own initiative |
 | `temporality` | Disables "living world" engine (opening projection `world_tick pre`, scene brief) — game runs without background temporal simulation |
 | `images` | Disables illustration generation (see `mygamemaster-images`) |
-| `tts` | Disables **narrative voice** (auto-voice of narration **and** `!raconte` command, see `mygamemaster-tts`) — written text unchanged. *Fine cut: keep `!raconte` but cut auto-voice → `meta.hooks.tts_auto=false`.* |
+| `dialogue` | Disables **dialogue grading** (checkpoint stops scoring conversations) — play them straight, or summarize a minor exchange directly (`references/dialogue-craft.md` §5) |
+| `tts` | Disables **narrative voice** (auto-voice of narration **and** `!raconte` command, see `mygamemaster-tts`) — written text unchanged. *Auto-voice is opt-in (`meta.hooks.tts_auto=true` / `MGM_TTS_AUTO=1`); the axis alone gives `!raconte`.* |
 
 > Wiring detail (cascade, axis → fine toggle mapping, env vars) : `docs/living-world/10-features.md`. Axes are already resolved runtime-side (`hooks/_lib.py`) — your role here is to **respect** an explicitly cut axis, never invent one.
 
@@ -1055,7 +1067,7 @@ A **second switch**, above modules: the `world.json > meta.features` block expos
 
 Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, atomic `meta.features` mutation):
 
-- **`!features` / `!feature`** (no argument) — **everyone** can consult. Launches list and relays effective state of 6 axes:
+- **`!features` / `!feature`** (no argument) — **everyone** can consult. Launches list and relays effective state of 7 axes:
   ```bash
   python3 /opt/modules/gaming/mygamemaster/scripts/feature_toggle.py <campaign> --list
   ```
@@ -1063,7 +1075,7 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
   ```bash
   python3 /opt/modules/gaming/mygamemaster/scripts/feature_toggle.py <campaign> <axis> on|off --author <author_id>
   ```
-  then **relay as-is** the message returned by script — **including warning** emitted for **structural** axis (`temporality`, `living_npcs_factions`) reminding to prefer session bounds. **Soft** axes (`traceability`, `verbosity`, `images`, `tts`) toggle without warning.
+  then **relay as-is** the message returned by script — **including warning** emitted for **structural** axis (`temporality`, `living_npcs_factions`) reminding to prefer session bounds. **Soft** axes (`traceability`, `verbosity`, `images`, `tts`, `dialogue`) toggle without warning.
 
 > **"Hot" effect.** `world.json` is reread **every turn** : a toggle takes effect at **next turn, without container redeployment** (remind player). Opposite of `MGM_FEATURE_*` variables (instance default, frozen at start = "cold"). Detail: `docs/living-world/10-features.md` § "Hot vs cold activation".
 
@@ -1164,7 +1176,7 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 | `!collecte stats` | Shows collect CSV stats (entry count, error ratio, top error_type) |
 | `!collecte dernieres` | Shows last 5 collect CSV entries |
 | `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyst` mode C) |
-| `!features` / `!feature` | Shows effective state of 6 feature flags (`meta.features`) — `feature_toggle.py --list` |
+| `!features` / `!feature` | Shows effective state of 7 feature flags (`meta.features`) — `feature_toggle.py --list`. The `tts` row also reports the resolved auto-voice state: `tts: ON` alone does **not** mean the game speaks by itself (auto-voice is opt-in) |
 | `!feature <axis> on\|off` | **Admin** (`meta.admins`/`MGM_ADMIN_IDS`) : toggles axis **hot** (effect next turn, no redeployment) — relays script message, warning included for structural axis |
 
 ---

@@ -60,7 +60,7 @@ Store as: openrouter_api_key
 
 MiniMax (OPTIONAL — enables voice narration):
   "Go to https://www.minimax.io → sign up → API Keys → Generate.
-   If you skip this, voice/TTS is silently disabled — nothing breaks."
+   If you skip this, there is no voice — nothing breaks, and the absence is reported."
 Ask: "Do you have a MiniMax API key? (paste it, or press Enter to skip): "
 Store as: minimax_api_key (omit if blank)
 

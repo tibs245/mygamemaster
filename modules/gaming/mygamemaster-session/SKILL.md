@@ -425,7 +425,7 @@ python3 $SCRIPTS/close_session.py $CAMP --titre "<episode title>" --teaser "<tea
 ```
 
 `close_session.py` chains `validate_json.py`, `validator-distances.py`,
-`check_session.py`, `clock.py --dry-run` then ~10-point pipeline check.
+`check_session.py`, `clock.py --json` then a 13-point pipeline check.
 Exit != 0 = wrap-up refused: fix listed points then re-run.
 
 **Available audit scripts (see also `mygamemaster-analyst` for 3 layers) :**

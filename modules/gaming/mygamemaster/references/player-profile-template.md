@@ -149,7 +149,7 @@ Filled from a real corpus. Proper nouns removed; roles used instead.
 | Ellipse without asking | Up to roughly one hour of game time; beyond that, ask | locked (S17) |
 | Ellipse form | Routine summary (2–5 sentences) → landing on a meaningful event with ≥1 active NPC → hook → STOP; never two ellipses in a row | locked (S33) |
 | STOP format | World state only — no options, no suggestions, no question, then silence | locked (S24, S25) |
-| Scene length | Sober; short gestures; farewells in one gesture and one word | observed (S15, S18) |
+| Scene length | Short; gestures rather than speeches; farewells in one gesture and one word | observed (S15, S18) |
 | NPCs speaking per input | One by default, full cascade on request | locked (S31, overridden upward S33) |
 
 ## 5. What the player likes
@@ -159,12 +159,12 @@ Filled from a real corpus. Proper nouns removed; roles used instead.
 | 1 | **Choosing** — including gestures he would have made anyway | S16: "I'd probably have done the same, but you have to let me choose" | Never pre-empt, however predictable | locked |
 | 2 | **Visible travel rolls** — mechanics beat invisible narration | S25: "it's better with the travel rolls" | Roll per leg against a fixed difficulty ladder; narrative result, numbers on request | locked, no exception |
 | 3 | **Conflict between NPCs**, with no winner and no capitulation | S34: "don't hesitate to create conflict" | Resolve with a real roll, never a pre-decided outcome | locked |
-| 4 | **Sobriety** — one gesture and one word rather than a speech | S15; "sober farewells are stronger than long speeches" | Cut the flourish, keep the concrete | observed |
+| 4 | **Economy** — one gesture and one word rather than a speech | S15; "understated farewells are stronger than long speeches" | Cut the flourish, keep the concrete | observed |
 | 5 | **Contemplative-domestic register** — hearth, wood, preserves, walls, first stone | S29, S33 | Give ordinary labour real texture | observed |
 | 6 | **Legitimate consequences of his own inaction** | S18: an NPC left before he could speak to him — "I should have talked to him earlier" | Let the world run without the PC; do not repair missed opportunities | locked |
 | 7 | **Structured feedback** — strong points / weak points, `+1`/`-1` per input | constant S14 → S34 | Provide the frame at close; keep the "PC actions without validation" section empty | locked |
 | 8 | **The replay method** as a repair tool | "I found it was a good method" | Keep a reusable rollback-and-replay procedure, not an ad-hoc one | locked |
-| 9 | **Sober error admission** — acknowledge, patch immediately, no minimising | recurring across the log | Four-column admission, then resume without commenting the patch | locked |
+| 9 | **Plain error admission** — acknowledge, patch immediately, no minimising | recurring across the log | Four-column admission, then resume without commenting the patch | locked |
 | 10 | **Precise inventory on demand**, with honest gaps | S29 | Answer from the ledger; admit holes rather than improvising | observed |
 | 11 | **The GM settling narrative questions himself** | S26 | Decide, do not submit an A/B/C menu | locked |
 
@@ -203,7 +203,7 @@ Filled from a real corpus. Proper nouns removed; roles used instead.
 |---|---|
 | Evaluation format | strong points / weak points, plus `+1` / `-1` per input, aggregated into a session evaluation |
 | Granularity | per input, then per session |
-| Reaction to a negative rating | acknowledge sobrely, patch in the same turn, log the lesson, no defence and no minimising |
+| Reaction to a negative rating | acknowledge in one line, patch in the same turn, log the lesson, no defence and no minimising |
 | Error-admission format | four columns: what I wrote / what the canon says / why it is a bug / the patch — then resume the scene without commenting |
 | Replay procedure | full session rollback framed as `[Session-v2]`, lessons re-locked at the opening of each subsequent session, "PC actions without validation" section must stay empty |
 
@@ -217,8 +217,8 @@ Filled from a real corpus. Proper nouns removed; roles used instead.
 | Name ethics — an imposed nickname refused | S18 |
 | A concrete, chore-anchored NPC as the model for all NPCs | S13 |
 | The world running without the PC, even when the frustration is his | S18 |
-| Scene sobriety and short gestures | S19, S34 |
-| Sober bug admission with no self-defence | recurring |
+| Scenes kept short, gestures kept small | S19, S34 |
+| Bug admission with no self-defence | recurring |
 
 ## 10. Change log
 

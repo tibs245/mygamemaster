@@ -42,7 +42,7 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - `mygamemaster-npc` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
 - `mygamemaster-faction` — persistent Faction agents: each faction runs as a collective intelligence agent
 - `mygamemaster-images` — image generation pipeline: deterministic map layer (`map_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
-- `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (auto via hook + manual `!raconte`)
+- `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (manual `!raconte`, plus an opt-in automatic hook mode)
 
 **Quality and output**
 - `mygamemaster-analyst` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
@@ -58,9 +58,9 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - **LLM judge** (`llm_judge.py`): an independent model checks each GM response on two axes — Steward compliance (soft) and conduct rules (strict: agency, NPC emotions, hidden mechanics, compartmentalization). Corrections are feed-forward (next turn), never blocking. Gate mode (`mj_checkpoint.py`) lets the GM validate a draft before delivering; after 2 failures it passes anyway (logged as "forced"), so sessions never hang
 - **Persistent pause mode**: prefix a message with `⏸️` (or be listed in `meta.admins`) to bypass the Steward display for debugging — tracing still runs, marked `bypass`
 
-### Feature Flags (6 axes, all ON by default)
+### Feature Flags (7 axes, all ON by default)
 
-Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice
+Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice · Dialogue
 
 All flags fail-open (absent = ON). Toggled live in `world.json > meta.features` — no redeploy needed.
 
@@ -265,7 +265,7 @@ See [ansible/inventory/group_vars/all/vault.example.yml](ansible/inventory/group
 | Key | Purpose |
 |---|---|
 | `openrouter_api_key` | LLM access for the GM + voice formatting |
-| `minimax_api_key` | Optional — narrative TTS; absent = TTS silently disabled (fail-open) |
+| `minimax_api_key` | Optional — narrative TTS; absent = no voice, and the miss is *reported* (hook journal + `tts_doctor.py`), not silently swallowed |
 | `discord_token_<slug>` | One Discord bot token per game instance |
 
 The default GM model is `minimax/minimax-m3` (via OpenRouter). The LLM judge ideally runs on a
@@ -283,7 +283,7 @@ incurred on your OpenRouter and MiniMax accounts.
 
 - The GM makes one LLM call per player message.
 - The LLM judge makes an additional call per turn (configurable `echantillon` to sample 1-in-N turns).
-- TTS generates audio for narration passages above a character threshold (default: 100 chars).
+- TTS costs nothing per turn unless auto-voice is opted in (`MGM_TTS_AUTO=1` / `meta.hooks.tts_auto=true`; **off by default**). Once opted in, it generates audio for every narration above a character threshold (code default: 280 chars; 100 on the reference ansible instance). `!raconte` bills only when someone asks for it.
 - Image generation is triggered per explicit request or scene event.
 
 Use the `echantillon` setting on the judge and the feature flags to control spending.

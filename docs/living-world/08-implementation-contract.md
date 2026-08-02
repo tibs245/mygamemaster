@@ -35,6 +35,9 @@ Scripts **don't guess** the campaign: they use the provided path.
 `0` success / nothing to report · `1` partial success or business condition reported (deadline passed,
 crossing found, intention refused…) · `2` usage error / file not found / broken JSON.
 (Identical to `clock.py`.)
+`world_tick.py` adds `3` — **temporal incoherence** (game time unreadable, a projection window running
+backwards, a reconciliation with no session log to reconcile against). It is a REFUSAL, not a
+degraded success: `close_session.py` treats it as blocking unless `MGM_ALLOW_CLOCK_DRIFT=1`.
 
 0.5 **Mandatory atomic writes** (reuse `faction_slice.py` pattern): tmp in same folder →
 `flush` + `os.fsync` → `os.replace`. `json.dump(..., ensure_ascii=False,

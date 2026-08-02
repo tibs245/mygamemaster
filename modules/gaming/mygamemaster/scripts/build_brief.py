@@ -59,6 +59,37 @@ def find_pnj(pnj_list, name):
     return None
 
 
+def voix_section(pnj):
+    """Renders the optional `voix` block (idiolect) as brief lines.
+
+    Fail-open: absent, empty or malformed block → [] (no section). Cf.
+    references/dialogue-craft.md §2④ and schemas/npcs.schema.json $defs.voix.
+    """
+    voix = pnj.get('voix') if isinstance(pnj, dict) else None
+    if not isinstance(voix, dict):
+        return []
+    champs = [
+        ('registre', 'Register'),
+        ('rythme', 'Rhythm'),
+        ('sous_tension', 'Under stress'),
+        ('lexique', 'Vocabulary / imagery'),
+        ('tics', 'Verbal signatures (use sparingly)'),
+        ('ne_dit_jamais', 'Never says'),
+    ]
+    out = []
+    for cle, label in champs:
+        val = voix.get(cle)
+        if isinstance(val, str) and val.strip():
+            out.append(f"  • {label}: {val.strip()}")
+        elif isinstance(val, list):
+            items = [str(v).strip() for v in val if str(v).strip()]
+            if items:
+                out.append(f"  • {label}: " + " ; ".join(items))
+    if not out:
+        return []
+    return ["--- VOICE (how you speak — this mouth and no other) ---"] + out + [""]
+
+
 def build_brief(pnj):
     """Build the text brief for an NPC from their sheet."""
     lines = []
@@ -69,6 +100,9 @@ def build_brief(pnj):
     lines.append(f"Relation: {pnj.get('relation_niveau', '')}")
     lines.append(f"Location: {pnj.get('localisation_actuelle', 'Unknown')}")
     lines.append("")
+
+    # Idiolect before the facts: a brief opening on a fact list produces a character who recites.
+    lines.extend(voix_section(pnj))
 
     faits = pnj.get('established_facts', [])
     if faits:

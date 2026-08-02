@@ -44,7 +44,8 @@ see [`AI-ONBOARDING-PROMPT.md`](AI-ONBOARDING-PROMPT.md).
 
 1. Create an account at <https://www.minimax.io>.
 2. Go to **API Keys** and generate one.
-3. Copy the key. If absent, the voice axis is silently disabled — nothing breaks.
+3. Copy the key. Without it there is no voice; nothing breaks, and the missing key is
+   reported rather than mimed as "the feature is off" (`tts_doctor.py`).
 
 ---
 
