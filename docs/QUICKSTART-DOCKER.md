@@ -82,8 +82,8 @@ ansible-playbook playbooks/build-image.yml   # builds mygamemaster:latest with a
 ansible-playbook playbooks/deploy.yml -e game=<slug>
 ```
 
-See [docs/01-prerequis-et-installation.md](01-prerequis-et-installation.md) and
-[docs/02-deployer-une-campagne.md](02-deployer-une-campagne.md) for the complete walkthrough.
+See [docs/01-prerequisites-and-installation.md](01-prerequisites-and-installation.md) and
+[docs/02-deploy-a-campaign.md](02-deploy-a-campaign.md) for the complete walkthrough.
 Or follow [docs/CREATE-A-GAME.md](CREATE-A-GAME.md) for a guided, AI-assisted setup.
 
 ---

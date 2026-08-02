@@ -228,18 +228,37 @@ Deadline format consumed **identically** (object):
 ```
 For each deadline: `approche` if `current ≥ ancre+min`, `echue` if
 `current ≥ ancre+max`. Deadlines still in **string format** (not migrated) are
-**ignored and reported** (not machine-advanceable). `resolue` are never
-overwritten (GM narrative decision).
+**ignored and reported** — they are not machine-advanceable, but they never
+refuse a wrap-up (they surface as the non-blocking point P13). `resolue` are
+never overwritten (GM narrative decision).
+
+**Drift detection (TIME-03/TIME-04).** Four files write game time independently
+(`rules.time.tracking.current_day`, integer `t` in `events.json`, the "Day N" /
+"Jour N" that OPENS an entry in the chronology or a session log, the resolved
+events of `evenements_programmes.json`). `clock.py` converts each to a game day
+and compares them; a spread above the tolerance is a **drift** and fails. A day
+written mid-sentence ("the levy must arrive by Day 63") is a future date, not a
+clock reading, and is deliberately not counted. A temporal file that exists but
+cannot be read is reported as a blocking anomaly, never dropped — a dropped
+source reads as an agreeing source.
 
 **Signature**
 ```
-python3 clock.py <campaign> [--dry-run|--apply] [--faction NAME] [--json] [--quiet]
+python3 clock.py <campaign> [--dry-run|--apply] [--faction NAME] [--json] [--quiet] [--drift]
 ```
 - `--dry-run` (DEFAULT): report only, writes nothing.
 - `--apply`: writes `echeance.statut` in `world.json` (`echue`/`en_cours`;
   `approche` is a report signal, not a persisted schema status).
+- `--drift`: the temporal sources only — what each clock says and how far apart.
 
-**Exit codes**: `0` no overdue · `1` ≥ 1 overdue unresolved · `2` usage.
+**Exit codes**: `0` no overdue deadline and clocks agree · `1` ≥ 1 overdue
+unresolved **and/or** the clocks diverge · `2` usage.
+
+**Environment**
+- `MGM_ALLOW_CLOCK_DRIFT=1` — escape hatch: a detected drift stays **reported**
+  but stops being fatal, so a live table whose divergence the GM judged
+  narratively acceptable can still wrap up. It fixes nothing.
+- `MGM_CLOCK_DRIFT_TOLERANCE_DAYS=<n>` — accepted spread in days (default 1).
 
 > ⚠️ Do NOT run `--apply` on real campaigns from this tooling (data migration
 > is handled elsewhere). Test `--apply` on a `/tmp` copy.
@@ -253,12 +272,19 @@ python3 $SCRIPTS/clock.py /tmp/copy --apply  # write, copy only
 
 ## 7. `close_session.py` — Wrap-Up Pipeline in 1 Command
 
-Chains `validate_json.py` → `validator-distances.py` → `check_session.py` →
-`clock.py --dry-run`, then a **~10-point pipeline check** (P1 locations propagated,
-P2 NPCs sheeted, P3 factions with short+long term goals, P4 factions in clock, P5
-clock up-to-date, P6 timeline, P7 `heure_fin`, P8 `resume`, P9 `etat_fin`, P10
-UT timeline). **REFUSES wrap-up (exit ≠ 0)** if a blocking step is missing;
-otherwise **proposes a commit message** — never commits itself.
+Chains `validate_json.py` → `validate_schema.py` → `validator-distances.py` →
+`check_session.py` → `clock.py --json`, then a **13-point pipeline check** (P1
+locations propagated, P2 NPCs sheeted, P3 factions with short+long term goals,
+P4 factions in clock, P5 clock up-to-date, P6 timeline, P7 `heure_fin`, P8
+`resume`, P9 `etat_fin`, P10 UT timeline, P11 player profile, P12 temporal
+coherence, P13 temporal hygiene). **REFUSES wrap-up (exit ≠ 0)** if a blocking
+step is missing; otherwise **proposes a commit message** — never commits itself.
+
+P5 and P12 are decided on the **content** of `clock.py`'s JSON report, not on
+its exit code: an unreadable report blocks too. P13 is **never** blocking — it
+carries what the clock reports but does not refuse over (a hand-written deadline,
+a non-24h calendar). `MGM_ALLOW_CLOCK_DRIFT=1` downgrades P5, P12 and the
+`world_tick post` temporal verdict to alerts, and is traced in the report.
 
 **Signature**
 ```
@@ -433,14 +459,39 @@ python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
 
 ---
 
+## 14. `dialogue_brief.py` — Conversation Slice (READ-ONLY, GM side)
+
+Assembles what a **conversation** needs, filtered on the stake of the exchange: the NPC's
+`voix` (idiolect), what they want here, what they hide (`connaissances_privees`), what they
+refuse (`lignes_rouges` / `peurs`), their dominant emotion, the relation, and only the
+`established_facts` relevant to the stake.
+
+Third sibling of the NPC readers, and the only one that FILTERS: `build_brief.py` serves a
+Level-2 NPC agent, `show_npc.py` dumps the complete sheet, this one serves the GM writing the
+scene — a brief that dumps everything produces a character who says everything, which is the
+defect it exists to fix (`references/dialogue-craft.md`).
+
+```bash
+python3 dialogue_brief.py <campaign> "<NPC>" --stake "what the PC wants from this exchange"
+python3 dialogue_brief.py <campaign> "<NPC>" --with "<other NPC>"   # check the mouths differ
+python3 dialogue_brief.py <campaign> "<NPC>" --json [--facts N]
+python3 dialogue_brief.py <campaign> --list                          # 🗣 = has a `voix` block
+```
+
+Fail-open on every optional block (no `voix`, no emotions, no private knowledge → the section
+is simply absent; a missing `voix` prints a reminder to write and persist one).
+
+---
+
 ## Summary of New Exit Codes
 
 | Script | Exit 0 | Exit 1 | Exit 2 |
 |--------|--------|--------|--------|
-| `clock.py` | no overdue deadline | ≥ 1 overdue unresolved | usage |
+| `clock.py` | no overdue deadline, clocks agree | ≥ 1 overdue unresolved and/or clocks diverge | usage |
 | `close_session.py` | pipeline green | blocking step missing | usage |
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |
 | `show_npc.py` | NPC found / `--list` | not found or ambiguous | npcs.json not found/usage |
 | `prefs.py` | read/write/dry-run OK | invalid data / write failure | sheet not found/usage |
 | `emotions.py` | OK (`summary` ALWAYS 0 — fail-open) | not found / ambiguous / unknown event | campaign not found / bad pair syntax |
+| `dialogue_brief.py` | brief produced / `--list` | NPC not found or ambiguous | campaign or npcs.json not found |

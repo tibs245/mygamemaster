@@ -35,7 +35,7 @@ Cross-cutting conventions (contract §0, §9):
 
 Targets: Python 3.11, PURE STDLIB (no external dependencies). Imports `worldlib`
 and `geo_query` (never the reverse). Cf. contract
-`docs/monde-vivant/08-contrat-implementation.md` §9, §13, §14.
+`docs/living-world/08-implementation-contract.md` §9, §13, §14.
 """
 
 from __future__ import annotations

@@ -18,7 +18,7 @@
 2. ✅ The `liens_hypotheses` must be explicitly marked as hypotheses, not facts. Use the prefix `UNCONFIRMED HYPOTHESIS — `.
 3. ✅ Update `localisation_actuelle` with each movement or change of hands.
 4. ❌ Do not leave an object narrated but unfiled — it is an object that exists only in the GM's memory, lost at the next session.
-5. ✅ See also the distinction `established_facts` vs `hypotheses_mj` (section §4.1 and `references/pnj-data-governance.md`) — the same principle applies to artefacts.
+5. ✅ See also the distinction `established_facts` vs `hypotheses_mj` (section §4.1 and `references/npc-data-governance.md`) — the same principle applies to artefacts.
 
 **Generic example:**
 ```json

@@ -1,0 +1,16 @@
+{
+  "session": 31,
+  "date": "2026-03-14",
+  "titre": "The North Ford",
+  "start_hour": "20:30",
+  "end_hour": "23:45",
+  "resume": "Day 58: the column reaches the north ford and finds it frozen over.",
+  "actions": ["The party crossed the frozen ford on foot"],
+  "visited_locations": ["North Ford"],
+  "npcs_met": ["Warden Halvard"],
+  "etat_fin": {
+    "lieu_actuel": "North Ford",
+    "jour": "Day 58"
+  },
+  "teaser": "The frost has not broken."
+}

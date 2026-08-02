@@ -46,7 +46,7 @@ Cross-cutting conventions (contract §0):
 Targets: Python 3.11, PURE STDLIB (no external dependencies). Imports `worldlib`
 (never the reverse); imports NO other script from the contract (parallel development;
 scripts call each other as subprocesses if needed). See contract
-`docs/monde-vivant/08-contrat-implementation.md` §8, §13, §14.
+`docs/living-world/08-implementation-contract.md` §8, §13, §14.
 """
 
 from __future__ import annotations
