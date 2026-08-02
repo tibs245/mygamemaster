@@ -375,7 +375,7 @@ class TestFermetureRefuseLaDerive(unittest.TestCase):
     def test_p5_et_p11_bloquent_la_fermeture(self):
         rapport, points = self._points(self._fermer())
         self.assertFalse(rapport["ok"])
-        for pid in ("P5", "P11"):
+        for pid in ("P5", "P12"):
             with self.subTest(point=pid):
                 self.assertFalse(points[pid]["ok"])
                 self.assertTrue(points[pid]["bloquant"])
@@ -384,9 +384,9 @@ class TestFermetureRefuseLaDerive(unittest.TestCase):
     def test_le_refus_dit_ce_qu_il_faut_resoudre(self):
         _, points = self._points(self._fermer())
         self.assertIn("Send a runner", points["P5"]["detail"])
-        self.assertIn("51 day(s)", points["P11"]["detail"])
-        self.assertIn("day 109", points["P11"]["detail"])
-        self.assertIn(C.ENV_ALLOW_DERIVE, points["P11"]["detail"])
+        self.assertIn("51 day(s)", points["P12"]["detail"])
+        self.assertIn("day 109", points["P12"]["detail"])
+        self.assertIn(C.ENV_ALLOW_DERIVE, points["P12"]["detail"])
 
     def test_le_rapport_porte_la_derive_en_machine(self):
         rapport, _ = self._points(self._fermer())
@@ -396,7 +396,7 @@ class TestFermetureRefuseLaDerive(unittest.TestCase):
     def test_l_echappatoire_degrade_en_alerte_et_la_trace(self):
         rapport, points = self._points(self._fermer(**{C.ENV_ALLOW_DERIVE: "1"}))
         self.assertTrue(rapport["clock_drift_override"])
-        for pid in ("P5", "P11"):
+        for pid in ("P5", "P12"):
             with self.subTest(point=pid):
                 self.assertFalse(points[pid]["bloquant"])
                 self.assertFalse(any(pid in b for b in rapport["bloquants"]))
@@ -410,14 +410,14 @@ class TestFermetureRefuseLaDerive(unittest.TestCase):
             json.loads((self.camp / "world.json").read_text(encoding="utf-8")),
             {"exit": 0}, {"exit": 2}, {}, False)
         par_id = {p["id"]: p for p in points}
-        for pid in ("P5", "P11"):
+        for pid in ("P5", "P12"):
             with self.subTest(point=pid):
                 self.assertFalse(par_id[pid]["ok"])
                 self.assertTrue(par_id[pid]["bloquant"])
 
 
 class TestCampagneSaineResteFermable(unittest.TestCase):
-    """Making P5/P11 blocking must not refuse a coherent campaign."""
+    """Making P5/P12 blocking must not refuse a coherent campaign."""
 
     def _campagne_resynchronisee(self, d: str, garder_chaine: bool = False) -> Path:
         camp = Path(d) / "camp"
@@ -466,10 +466,10 @@ class TestCampagneSaineResteFermable(unittest.TestCase):
             points = {p["id"]: p for p in CS.check_pipeline(
                 camp, camp / "sessions" / "031.json", monde,
                 {"exit": 0}, {"exit": 0}, rap, False)}
-            self.assertTrue(points["P11"]["ok"], points["P11"]["detail"])
-            self.assertFalse(points["P12"]["ok"])
-            self.assertFalse(points["P12"]["bloquant"])
-            self.assertIn("echeance_non_datable", points["P12"]["detail"])
+            self.assertTrue(points["P12"]["ok"], points["P12"]["detail"])
+            self.assertFalse(points["P13"]["ok"])
+            self.assertFalse(points["P13"]["bloquant"])
+            self.assertIn("echeance_non_datable", points["P13"]["detail"])
 
 
 if __name__ == "__main__":

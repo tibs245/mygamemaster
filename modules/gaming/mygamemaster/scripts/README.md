@@ -229,7 +229,7 @@ Deadline format consumed **identically** (object):
 For each deadline: `approche` if `current ≥ ancre+min`, `echue` if
 `current ≥ ancre+max`. Deadlines still in **string format** (not migrated) are
 **ignored and reported** — they are not machine-advanceable, but they never
-refuse a wrap-up (they surface as the non-blocking point P12). `resolue` are
+refuse a wrap-up (they surface as the non-blocking point P13). `resolue` are
 never overwritten (GM narrative decision).
 
 **Drift detection (TIME-03/TIME-04).** Four files write game time independently
@@ -273,17 +273,17 @@ python3 $SCRIPTS/clock.py /tmp/copy --apply  # write, copy only
 ## 7. `close_session.py` — Wrap-Up Pipeline in 1 Command
 
 Chains `validate_json.py` → `validate_schema.py` → `validator-distances.py` →
-`check_session.py` → `clock.py --json`, then a **12-point pipeline check** (P1
+`check_session.py` → `clock.py --json`, then a **13-point pipeline check** (P1
 locations propagated, P2 NPCs sheeted, P3 factions with short+long term goals,
 P4 factions in clock, P5 clock up-to-date, P6 timeline, P7 `heure_fin`, P8
-`resume`, P9 `etat_fin`, P10 UT timeline, P11 temporal coherence, P12 temporal
-hygiene). **REFUSES wrap-up (exit ≠ 0)** if a blocking step is missing;
-otherwise **proposes a commit message** — never commits itself.
+`resume`, P9 `etat_fin`, P10 UT timeline, P11 player profile, P12 temporal
+coherence, P13 temporal hygiene). **REFUSES wrap-up (exit ≠ 0)** if a blocking
+step is missing; otherwise **proposes a commit message** — never commits itself.
 
-P5 and P11 are decided on the **content** of `clock.py`'s JSON report, not on
-its exit code: an unreadable report blocks too. P12 is **never** blocking — it
+P5 and P12 are decided on the **content** of `clock.py`'s JSON report, not on
+its exit code: an unreadable report blocks too. P13 is **never** blocking — it
 carries what the clock reports but does not refuse over (a hand-written deadline,
-a non-24h calendar). `MGM_ALLOW_CLOCK_DRIFT=1` downgrades P5, P11 and the
+a non-24h calendar). `MGM_ALLOW_CLOCK_DRIFT=1` downgrades P5, P12 and the
 `world_tick post` temporal verdict to alerts, and is traced in the report.
 
 **Signature**

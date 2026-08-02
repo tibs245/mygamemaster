@@ -24,17 +24,18 @@ Chained steps (reuses neighbouring scripts via subprocess):
   P8  session log complete: resume not empty
   P9  session log complete: etat_fin present
   P10 timeline (UT regime): events.json present and valid
-  P11 temporal coherence: every clock of the campaign agrees (clock.py drift)
-  P12 temporal hygiene: deadlines datable, calendar plausible (NON-blocking)
+  P11 player profile: player-profile.md present and sourced to this session (non-blocking)
+  P12 temporal coherence: every clock of the campaign agrees (clock.py drift)
+  P13 temporal hygiene: deadlines datable, calendar plausible (NON-blocking)
 
-TIME-03/TIME-04 — P5 and P11 are BLOCKING and are decided on the CONTENT of
+TIME-03/TIME-04 — P5 and P12 are BLOCKING and are decided on the CONTENT of
 clock.py's report, not on its exit code. Game time has one writer; a close that
 proceeds over a divergent clock is how a campaign drifted 51 days unnoticed.
-P12 carries what the clock reports but does not refuse over — an undatable
+P13 carries what the clock reports but does not refuse over — an undatable
 deadline and a fantasy calendar are legitimate states, and gating on them would
 push a GM to leave the override on for good.
 
-Escape hatch: MGM_ALLOW_CLOCK_DRIFT=1 downgrades P5, P11 and the world_tick
+Escape hatch: MGM_ALLOW_CLOCK_DRIFT=1 downgrades P5, P12 and the world_tick
 temporal verdict to alerts, so a GM who judged the divergence narratively
 acceptable can still close. The override is traced in the report.
 
@@ -245,12 +246,33 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
         add("P10", "UT timeline: N/A (narrative regime)", True, False,
             "narrative regime — events.json not required")
 
-    # P11: the campaign's clocks must agree with EACH OTHER, not merely exist.
-    # P12: temporal hygiene — reported, never a refusal (see CLOCK._anomalie).
+    # P11 is NON-blocking: a stale profile is a writing lapse, not corrupt data,
+    # and campaigns created before the template existed have no file at all.
+    profil = campagne / "player-profile.md"
+    m_num = re.match(r"0*(\d+)", session_path.stem)
+    n_sess = int(m_num.group(1)) if m_num else None
+    if not profil.exists():
+        add("P11", "Player profile updated (player-profile.md)", False, False,
+            "player-profile.md absent — copy references/player-profile-template.md "
+            "into the campaign and fill it from this session")
+    elif n_sess is None:
+        add("P11", "Player profile updated (player-profile.md)", True, False,
+            "profile present (session number unreadable, freshness not checked)")
+    else:
+        texte = profil.read_text(encoding="utf-8", errors="replace")
+        frais = re.search(rf"\b[Ss]0*{n_sess}\b", texte) or \
+            re.search(rf"session\s*0*{n_sess}\b", texte, re.IGNORECASE)
+        add("P11", "Player profile updated (player-profile.md)", bool(frais), False,
+            "" if frais else f"no line sourced to session {n_sess} — record what this "
+            "session taught about the player's signals and preferences (or note "
+            "explicitly that it taught nothing new)")
+
+    # P12: the campaign's clocks must agree with EACH OTHER, not merely exist.
+    # P13: temporal hygiene — reported, never a refusal (see CLOCK._anomalie).
     if not rap_clock:
-        add("P11", "Temporal coherence: every clock agrees", False, True,
+        add("P12", "Temporal coherence: every clock agrees", False, True,
             "no clock report — divergence cannot be ruled out")
-        add("P12", "Temporal hygiene: deadlines datable, calendar plausible",
+        add("P13", "Temporal hygiene: deadlines datable, calendar plausible",
             True, False, "not checked (no clock report)")
     else:
         derive = rap_clock.get("derive") or {}
@@ -265,11 +287,11 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
                 + _apercu(f"{s['libelle']} → day {s['jour']}"
                           for s in derive.get("sources", [])))
         morceaux += [f"{a['code']}: {a['message']}" for a in bloquantes]
-        add("P11", "Temporal coherence: every clock agrees",
+        add("P12", "Temporal coherence: every clock agrees",
             not diverge, not override_derive,
             "" if not diverge else " ; ".join(morceaux)
             + f" → resynchronise the temporal files, or {_ESCAPE}=1")
-        add("P12", "Temporal hygiene: deadlines datable, calendar plausible",
+        add("P13", "Temporal hygiene: deadlines datable, calendar plausible",
             not signalees, False,
             "" if not signalees else
             _apercu(f"{a['code']}: {a['message']}" for a in signalees)

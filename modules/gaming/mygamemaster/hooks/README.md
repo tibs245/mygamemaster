@@ -17,12 +17,12 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 | `pre_llm_call.py` | `pre_llm_call` | injects authoritative state; records input prompt |
 | `pre_tool_call.py` | `pre_tool_call` | snapshot of counters; blocks broken JSON in strict mode |
 | `post_tool_call.py` | `post_tool_call` | calculates deltas actually persisted → ledger; **auto-commit** git of campaign (valid JSON) |
-| `transform_llm_output.py` | `transform_llm_output` | "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` → `mygamemaster-tts`, attached as `MEDIA:`, fail-open) + snapshot `last_narration` (for `!raconte`) |
+| `transform_llm_output.py` | `transform_llm_output` | "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` + **opt-in** `tts_auto`, attached as `MEDIA:`, fail-open, every outcome journalled in `.banquier/tts-status.json`) + snapshot `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | timestamped snapshot of campaign |
 | `llm_judge.py` | — (lib + CLI) | **LLM judge**: soft steward + strict conduct (`MGM_JUDGE_MOCK` for testing) |
 | `mj_checkpoint.py` | — (called by GM) | **gate** per-turn with loop-prevention budget |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 61 cases (including auto-TTS, persistent pause, admin judge) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 94 cases (including auto-TTS outcomes, persistent pause, admin judge) |
 
 ## Principles
 
@@ -39,6 +39,9 @@ Everything in `world.json > meta` (read hot): `verbosity`, `diagnostic.active`, 
 `auto_commit` (default **on**): automatic git commit after each validated write — the model
 no longer needs to run `git`; fail-open, never on broken JSON, runtime space (`.banquier/`,
 `collecte.csv`) excluded.
+`tts_auto` (default **off**, the only toggle that is): automatic narrative voice, opt-in via
+`MGM_TTS_AUTO=1` or `meta.hooks.tts_auto=true` — reasons in `_lib.tts_auto_default()`. Diagnose
+with `modules/gaming/mygamemaster-tts/scripts/tts_doctor.py`.
 One-time bypass: `⏸️` (alias `!pause`) in the message, or author listed in `meta.admins` /
 `MGM_ADMIN_IDS`. **Persistent pause**: `⏸️`/`!pause` arms a remembered pause mode for the session
 (`.banquier/snap-<sid>.json > pause_mode`) that lasts until `▶️`/`!reprise` — no need to re-apply

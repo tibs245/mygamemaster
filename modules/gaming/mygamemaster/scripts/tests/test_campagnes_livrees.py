@@ -60,6 +60,16 @@ class TestFeatures(unittest.TestCase):
                 axes = {k for k in _monde(nom)["meta"]["features"] if not k.startswith("_")}
                 self.assertEqual(axes - set(FT._FEATURES), set())
 
+    def test_la_voix_auto_est_documentee_comme_opt_in(self):
+        """`tts: true` must not read as "the voice speaks by itself".
+
+        The axis gives `!raconte`; the per-turn automatic voice is
+        meta.hooks.tts_auto and it ships false (docs/10-field-report.md). A
+        template that does not say so reproduces the confusion into every table."""
+        meta = _monde("_template")["meta"]
+        self.assertIs(meta.get("hooks", {}).get("tts_auto"), False)
+        self.assertIn("tts_auto", meta["features"].get("_schema", ""))
+
     def test_le_commentaire_ne_dit_plus_cinq(self):
         for nom in LIVREES:
             with self.subTest(campagne=nom):

@@ -11,7 +11,8 @@ written narration ──► tts_format.py ──► tts_generate.py ──► (f
 
 | Script | Role | Network |
 |---|---|---|
-| **`tts_render.py`** | **Normal path**: orchestrates format → synthesis → ambiance, writes MP3 + sidecar | via the 2 following |
+| **`tts_render.py`** | **Normal path**: orchestrates format → synthesis → ambiance, writes MP3 + sidecar (with `generator` and `producer`: who asked for this audio) | via the 2 following |
+| **`tts_doctor.py`** | **Diagnosis**: axis + opt-in, key in your shell *and* in the hook's env, thresholds, recorded outcomes, artefact provenance, real render — one run, exit 1 if something silences the game | optional (render) |
 | `tts_format.py` | Narration → voice script (pauses `<#x.x#>`, tics preserved, mechanics removed) + emotion/ambiance/key-moment | OpenRouter (`minimax/minimax-m3`, weak reflection) |
 | `tts_generate.py` | Voice script → MP3 (voice `French_Female_Speech_New`, model `speech-2.8-turbo`) | Minimax T2A v2 |
 
@@ -21,7 +22,8 @@ written narration ──► tts_format.py ──► tts_generate.py ──► (f
   `OPENROUTER_API_KEY` (format). Injected into container via `EnvironmentFile`.
 - **Text via stdin / `--text-file`**, never as arguments (markup `<#x#>`, accents).
 - **Exit codes**: `0` ok · `1` synthesis failure (no audio) · `2` usage
-  (missing key, empty text). Auto-TTS hook **fails open** on `≠ 0` (no `MEDIA:`).
+  (missing key, empty text). Auto-TTS hook **fails open** on `≠ 0` (no `MEDIA:`) but
+  records the return code **and** this script's stderr in `.banquier/tts-status.json`.
 - **Fail-open**: format failure → cleaned narration + `emotion=calm` ; ambiance/ffmpeg failure →
   voice only. Only total synthesis failure returns `1`.
 
@@ -30,6 +32,9 @@ written narration ──► tts_format.py ──► tts_generate.py ──► (f
 ```bash
 # Normal path (what the auto hook and !raconte command call)
 echo "<narration>" | python3 tts_render.py --out voice.mp3 --json
+
+# Why is there no voice? (axis, opt-in, key, thresholds, journal, provenance, real render)
+python3 tts_doctor.py /path/to/campaign        # --mock for no key / no cost
 
 # Without ambiance, voice only
 echo "<narration>" | python3 tts_render.py --out voice.mp3 --no-ambiance

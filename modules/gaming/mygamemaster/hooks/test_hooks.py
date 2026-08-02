@@ -204,37 +204,206 @@ def main():
         check("!pause : narration preserved + resume banner",
               "Raw narration." in resp and "▶️" in resp, json.dumps(out)[:120])
 
-        # ── 4b. auto-TTS (tts axis) : MEDIA: appended, gating, snapshot ──────
+        # ── 4b. auto-TTS : opt-in default, and every outcome recorded ────────
         print("\n[4b] transform_llm_output — narrative voice (auto-TTS, mocked)")
         narration = ("You push the heavy dungeon door. The icy air grips you, laden "
                      "with the smell of damp stone and an even older secret. At the far "
                      "end of the hall, a broken throne waits in the shadows, and an invisible gaze "
                      "slowly settles on you.")
-        tts_env = {
+        # Neutralised, not just unset: run_hook inherits os.environ, so an exported
+        # MGM_TTS_AUTO=1 would quietly turn the default-off checks into opt-in checks.
+        base_env = {
             "MINIMAX_API_KEY": "test", "MGM_TTS_MOCK": "1", "MGM_TTS_MIN_CHARS": "100",
+            "MGM_TTS_AUTO": "", "MGM_TTS_TIMEOUT": "", "MGM_FEATURE_TTS": "",
             "MGM_TTS_FORMAT_MOCK": json.dumps({
                 "script": "You push the door. <#1.0#> A broken throne.", "emotion": "fearful",
                 "ambiance": "dungeon", "moment_cle": True}),
         }
+        tts_env = dict(base_env, MGM_TTS_AUTO="1")   # explicit opt-in
+
+        def tts_status(c):
+            p = os.path.join(c, ".banquier", "tts-status.json")
+            return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+
+        def last_tts(c):
+            return tts_status(c).get("last") or {}
+
+        # DEFAULT (no opt-in): silent, and the silence is recorded as CONFIGURED.
+        campt = build_fixture(os.path.join(root, "tts"))
         out, err = run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_tts", "response": narration,
+            "cwd": campt, "session_id": "sess_tts_default", "response": narration,
+            "extra": {"model": "m"}}, env=base_env)
+        check("auto-TTS OFF by default → no MEDIA:", "MEDIA:" not in json.dumps(out))
+        ev = last_tts(campt)
+        check("default recorded as a configured skip, not a failure",
+              ev.get("outcome") == "skipped" and ev.get("reason") == "tts_auto_off", json.dumps(ev))
+        check("skip also traced on stderr", "[mj-tts]" in err and "tts_auto_off" in err, err[:160])
+
+        # Opt-in via env → voice attached, outcome 'ok', artefact self-identifying.
+        out, err = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": "sess_tts", "response": narration,
             "extra": {"model": "m"}}, env=tts_env)
         resp = out.get("response", "")
-        check("auto-TTS appends a MEDIA:", "MEDIA:" in resp, resp[-80:] if resp else "(empty)")
+        check("opt-in MGM_TTS_AUTO=1 → MEDIA: appended", "MEDIA:" in resp,
+              resp[-80:] if resp else "(empty)")
         check("original narration preserved", "broken throne waits" in resp)
+        ev = last_tts(campt)
+        check("success recorded (outcome ok, bytes, audio path)",
+              ev.get("outcome") == "ok" and ev.get("bytes", 0) > 0, json.dumps(ev))
+        audio = ev.get("audio", "")
+        check("auto artefact named for its producer", os.path.basename(audio).startswith("auto_"),
+              audio)
+        side = os.path.splitext(audio)[0] + ".json" if audio else ""
+        sidecar = json.load(open(side, encoding="utf-8")) if side and os.path.exists(side) else {}
+        check("sidecar records who produced the audio",
+              sidecar.get("producer") == "hook-auto"
+              and sidecar.get("generator") == "mygamemaster-tts/render", json.dumps(sidecar)[:120])
 
-        # tts axis OFF (env MGM_FEATURE_TTS=0) → no voice
+        # Opt-in via world.json (campaign wins, no env needed).
+        campw = build_fixture(os.path.join(root, "ttsworld"))
+        mw = json.load(open(os.path.join(campw, "world.json"), encoding="utf-8"))
+        mw["meta"]["hooks"]["tts_auto"] = True
+        write_json(os.path.join(campw, "world.json"), mw)
+        out, _ = run_hook("transform_llm_output.py", {
+            "cwd": campw, "session_id": "sess_ttsw", "response": narration,
+            "extra": {"model": "m"}}, env=base_env)
+        check("meta.hooks.tts_auto=true opts in without env",
+              "MEDIA:" in json.dumps(out), json.dumps(out)[-100:])
+
+        # tts axis OFF → no voice at all, and a reason distinct from tts_auto_off.
         off_env = dict(tts_env); off_env["MGM_FEATURE_TTS"] = "0"
         out, _ = run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_tts2", "response": narration,
+            "cwd": campt, "session_id": "sess_tts2", "response": narration,
             "extra": {"model": "m"}}, env=off_env)
         check("tts axis OFF → no MEDIA:", "MEDIA:" not in json.dumps(out))
+        check("axis OFF recorded as its own reason",
+              last_tts(campt).get("reason") == "axis_tts_off", json.dumps(last_tts(campt)))
 
-        # short narration → silent even with tts axis ON
+        # Below threshold → skip carries the numbers that explain it.
         out, _ = run_hook("transform_llm_output.py", {
-            "cwd": camp, "session_id": "sess_tts3", "response": "Ok, that works.",
+            "cwd": campt, "session_id": "sess_tts3", "response": "Ok, that works.",
             "extra": {"model": "m"}}, env=tts_env)
         check("short narration → no MEDIA:", "MEDIA:" not in json.dumps(out))
+        ev = last_tts(campt)
+        check("threshold skip explains itself (chars < min_chars)",
+              ev.get("reason") == "too_short" and ev.get("chars") == 15
+              and ev.get("min_chars") == 100, json.dumps(ev))
+
+        # Key missing while opted in → FAILURE, never a configured skip.
+        nokey_env = dict(tts_env); nokey_env["MINIMAX_API_KEY"] = ""
+        out, err = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": "sess_tts5", "response": narration,
+            "extra": {"model": "m"}}, env=nokey_env)
+        ev = last_tts(campt)
+        check("missing key recorded as a FAILURE (not silence by choice)",
+              ev.get("outcome") == "failed" and ev.get("reason") == "key_missing", json.dumps(ev))
+        check("failure states the hook env had no key", ev.get("key") is False, json.dumps(ev))
+        check("failure shouted on stderr too", "FAILED" in err and "key_missing" in err, err[:160])
+        check("failed turn still delivers the narration untouched",
+              "MEDIA:" not in json.dumps(out))
+
+        # Renderer exits non-zero (unroutable endpoint, no mock) → rc AND stderr kept.
+        ko_env = dict(tts_env)
+        ko_env.pop("MGM_TTS_MOCK")
+        ko_env["MINIMAX_API_URL"] = "http://127.0.0.1:1/t2a"
+        out, err = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": "sess_tts6", "response": narration,
+            "extra": {"model": "m"}}, env=ko_env)
+        ev = last_tts(campt)
+        check("non-zero renderer exit recorded with its return code",
+              ev.get("outcome") == "failed" and ev.get("reason", "").startswith("exit_")
+              and ev.get("rc"), json.dumps(ev))
+        check("renderer stderr captured, not thrown away",
+              "network" in (ev.get("stderr") or "").lower(), json.dumps(ev)[:200])
+        check("renderer failure never breaks the turn", "MEDIA:" not in json.dumps(out))
+
+        # last_failure survives a later success (evidence must not be overwritten).
+        run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": "sess_tts7", "response": narration,
+            "extra": {"model": "m"}}, env=tts_env)
+        st = tts_status(campt)
+        check("a success does not erase the last failure",
+              st.get("last", {}).get("outcome") == "ok"
+              and st.get("last_failure", {}).get("outcome") == "failed", json.dumps(st)[:200])
+        check("outcomes counted per reason",
+              st.get("counts", {}).get("skipped:too_short") == 1
+              and st.get("counts", {}).get("failed:key_missing") == 1, json.dumps(st.get("counts")))
+
+        # Timeout is its own reason (in-process: the child is stubbed out).
+        sys.path.insert(0, HOOKS_DIR)
+        import transform_llm_output as _TT
+        _real_run = _TT.subprocess.run
+
+        def _timeout(*a, **k):
+            raise _TT.subprocess.TimeoutExpired(cmd="tts_render.py", timeout=1)
+        try:
+            _TT.subprocess.run = _timeout
+            oc, rs, nfo = _TT._voice_narration(
+                _TT.L.campaign_dir({"cwd": campt}), {"session_id": "x"}, narration)
+        finally:
+            _TT.subprocess.run = _real_run
+        check("timeout is a named failure carrying its budget",
+              (oc, rs) == ("failed", "timeout") and nfo.get("timeout_s") == 40, "%s %s" % (rs, nfo))
+
+        campd = _TT.L.campaign_dir({"cwd": build_fixture(os.path.join(root, "ttsunit"))})
+        _real_renderer = _TT.RENDERER
+        try:
+            _TT.RENDERER = os.path.join(root, "does-not-exist.py")
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.RENDERER = _real_renderer
+        check("a missing renderer is named, and keeps the common event shape",
+              (oc, rs) == ("failed", "renderer_missing") and nfo.get("timeout_s") == 40
+              and nfo.get("renderer"), "%s %s" % (rs, nfo))
+
+        def _ok_but_silent(*a, **k):
+            return _TT.subprocess.CompletedProcess(args=[], returncode=0, stdout=b"", stderr=b"")
+        try:
+            _TT.subprocess.run = _ok_but_silent
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.subprocess.run = _real_run
+        check("renderer exiting 0 without producing audio is a failure, not a success",
+              (oc, rs) == ("failed", "no_audio_file") and nfo.get("rc") == 0, "%s %s" % (rs, nfo))
+
+        # The diagnosis is the LAST stderr line; tts_generate prints a retry warning
+        # per attempt before it, so a head-clip keeps the noise and drops the answer.
+        noisy = os.path.join(root, "noisy_renderer.py")
+        with open(noisy, "w", encoding="utf-8") as fh:
+            fh.write("import sys\n"
+                     "sys.stderr.write('attempt 1 failed: HTTP 401 ' + 'x' * 400 + '\\n')\n"
+                     "sys.stderr.write('ERROR: synthesis failed after 2 attempts\\n')\n"
+                     "sys.exit(1)\n")
+        try:
+            _TT.RENDERER = noisy
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.RENDERER = _real_renderer
+        check("the child's LAST stderr line survives truncation (tail, not head)",
+              (oc, rs) == ("failed", "exit_1")
+              and "synthesis failed after 2 attempts" in (nfo.get("stderr") or ""),
+              json.dumps(nfo)[:200])
+
+        # An unwritable .banquier must not be silent: an empty journal is read by
+        # tts_doctor.py as "the hook never ran here" — the opposite of the truth.
+        if os.geteuid() != 0:
+            campro = build_fixture(os.path.join(root, "ttsro"))
+            bq = os.path.join(campro, ".banquier")
+            os.makedirs(bq, exist_ok=True)
+            os.chmod(bq, 0o500)
+            try:
+                out, err = run_hook("transform_llm_output.py", {
+                    "cwd": campro, "session_id": "sess_ttsro", "response": narration,
+                    "extra": {"model": "m"}}, env=tts_env)
+            finally:
+                os.chmod(bq, 0o700)
+            check("an unwritable journal never breaks the turn",
+                  isinstance(out, dict) and "__raw__" not in out and "Traceback" not in err,
+                  (json.dumps(out)[:120] + " | " + err[-200:]))
+            check("a lost journal write is announced, not swallowed",
+                  "JOURNAL WRITE FAILED" in err, err[:200])
+            check("and the underlying defect is still named on the only channel left",
+                  "workspace_unwritable" in err, err[-200:])
 
         # snapshot last_narration written (feeds !raconte), even when Minimax key absent
         nokey = {"MINIMAX_API_KEY": ""}

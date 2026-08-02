@@ -205,6 +205,27 @@ def features(monde):
     return out
 
 
+def tts_auto_default():
+    """Default state of the AUTOMATIC narrative voice: OFF — opt-in only.
+
+    Do not flip this back to True without reading docs/10-field-report.md. It was
+    established from the artefacts of the retired campaign that the automatic path
+    produced 0 audio file over 34 sessions (the manual `!raconte` path produced
+    ~40/40 in the same directory), and that it failed without emitting a single
+    readable diagnosis. On top of that it spends 3-8 s inside a hook the runtime
+    kills at 45 s (ansible/templates/config.yaml.j2).
+
+    A feature never once observed to work must not ship enabled — but it is one
+    flag away, and its absence is now announced rather than mimed:
+      * env MGM_TTS_AUTO=1        → instance/deployment opt-in;
+      * meta.hooks.tts_auto=true  → campaign opt-in (world.json wins over env).
+    The `tts` axis itself stays ON by default, so `!raconte` is unaffected. Once
+    opted in, a missing MINIMAX_API_KEY is recorded as a FAILURE (tts_record),
+    never as "this turn did not want audio".
+    """
+    return as_bool(os.environ.get("MGM_TTS_AUTO"), False)
+
+
 def hooks_cfg(monde):
     """Effective meta.hooks toggles (all enabled by default).
 
@@ -235,8 +256,8 @@ def hooks_cfg(monde):
         "tick_post": gated("tick_post", True, feat["temporality"]),
         # Axis "living_npcs_factions" → exposed for the tick (actors that "think"):
         "living_npcs_factions": bool(feat["living_npcs_factions"]),
-        # Axis "tts" → automatic narrative voice (Minimax) in transform_llm_output:
-        "tts_auto": gated("tts_auto", True, feat["tts"]),
+        # Axis "tts" → automatic narrative voice; opt-in, cf. tts_auto_default():
+        "tts_auto": gated("tts_auto", tts_auto_default(), feat["tts"]),
         # The 6 raw axes, for direct consumers:
         "features": feat,
     }
@@ -365,8 +386,17 @@ def _sid(payload):
     return str(payload.get("session_id") or first_present(payload, ["session_id"]) or "default")
 
 
-def _locked_rw(path, mutate):
-    """Opens `path` (created if needed), applies mutate(data)->data under flock."""
+def _locked_rw(path, mutate, strict=False):
+    """Opens `path` (created if needed), applies mutate(data)->data under flock.
+
+    `strict=False` (historical behaviour, kept for the ledger and the snapshots):
+    any failure is swallowed and None is returned — losing a ledger line must not
+    cost the player his turn.
+
+    `strict=True`: the exception is RAISED into the caller. Use it whenever the
+    *absence* of the record would itself be read as information — a caller that
+    cannot tell "nothing happened" from "nothing could be written" will report the
+    wrong diagnosis (cf. tts_record / tts_doctor.py)."""
     try:
         path.parent.mkdir(exist_ok=True, parents=True)
         with open(path, "a+", encoding="utf-8") as fh:
@@ -383,6 +413,8 @@ def _locked_rw(path, mutate):
                 fcntl.flock(fh, fcntl.LOCK_UN)
         return data
     except Exception:
+        if strict:
+            raise
         return None
 
 
@@ -409,6 +441,67 @@ def ledger_read_clear(camp, payload):
 
     _locked_rw(path, mut)
     return out["box"]
+
+
+# ─── Auto-voice (TTS) outcome journal ────────────────────────────────────────
+
+TTS_STATUS_FILE = "tts-status.json"
+TTS_EVENTS_KEPT = 20
+
+
+def tts_record(camp, payload, outcome, reason, **fields):
+    """Persists ONE auto-voice outcome in .banquier/tts-status.json. NOT fail-open.
+
+    Raises (OSError, …) if the journal cannot be written. This is deliberate and it
+    is the one place in this file that does not swallow: an empty journal is read
+    by tts_doctor.py as "the hook never ran here", so a write that fails silently
+    turns a real, ongoing failure into a clean bill of health — the exact pathology
+    this journal exists to end. The caller decides what to do with the exception
+    (hooks/transform_llm_output.py `_tts_trace` announces it and continues, so the
+    turn is never lost for the sake of a log line).
+
+    stderr is not a channel this code owns — the runtime may discard it, and a
+    campaign that never sees a `[mj-tts]` line cannot tell "no trace" from "trace
+    went nowhere". So the decision is written where the hook already writes
+    (`.banquier/`, cf. ledger_append) and survives the session.
+
+    `outcome` is one of:
+      'ok'      — audio produced and attached;
+      'skipped' — CONFIGURED silence (axis off, opt-in not taken, pause, turn too
+                  short): normal operation, nothing to repair;
+      'failed'  — DEFECT (no key in the hook env, renderer absent, timeout,
+                  non-zero exit): something to repair.
+    Keeping those apart is the whole point: conflating them is what let a 0/34
+    failure rate look like a feature choosing to stay quiet.
+
+    `last_failure` is kept separately from `last`, so a later success never erases
+    the only evidence of the defect. Returns the recorded event.
+    """
+    event = {"ts": now_iso(), "outcome": outcome, "reason": reason,
+             "session": active_session_number(camp), "sid": _sid(payload)}
+    event.update({k: v for k, v in fields.items() if v is not None})
+    key = "%s:%s" % (outcome, reason)
+
+    def mut(data):
+        d = data if isinstance(data, dict) else {}
+        d["last"] = event
+        if outcome == "failed":
+            d["last_failure"] = event
+        counts = d.get("counts") if isinstance(d.get("counts"), dict) else {}
+        counts[key] = int(counts.get(key, 0)) + 1
+        d["counts"] = counts
+        recent = d.get("recent") if isinstance(d.get("recent"), list) else []
+        recent.append(event)
+        d["recent"] = recent[-TTS_EVENTS_KEPT:]
+        return d
+
+    _locked_rw(_bq_dir(camp) / TTS_STATUS_FILE, mut, strict=True)
+    return event
+
+
+def tts_status(camp):
+    """Reads the auto-voice journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / TTS_STATUS_FILE) or {}
 
 
 def snap_get(camp, payload, key):
@@ -802,7 +895,15 @@ def now_iso():
         return datetime.now().isoformat()
 
 
-def truncate(s, n):
+def truncate(s, n, keep="head"):
+    """Collapses newlines and clips to `n` chars.
+
+    `keep="tail"` clips from the FRONT instead. Use it for a child process's
+    stderr: the diagnosis is the LAST line (the `ERROR:` that preceded the exit),
+    and the retry warnings printed before it are exactly what a head-clip keeps
+    and a tail-clip discards."""
     s = "" if s is None else str(s)
     s = s.replace("\n", " ").strip()
-    return s if len(s) <= n else s[: n - 1] + "…"
+    if len(s) <= n:
+        return s
+    return "…" + s[-(n - 1):] if keep == "tail" else s[: n - 1] + "…"
