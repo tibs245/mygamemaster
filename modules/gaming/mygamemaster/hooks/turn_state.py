@@ -51,13 +51,31 @@ TRANSITIONS
          consumes it, used or not, so it can never silently authorise the next turn;
       2. a refusal never consumes it — the GM rewrites and resubmits the same turn.
 
+WHAT COUNTS AS A SIGNAL (the grant is EXPLICIT, or it is not a grant)
+    `⏩` and the `!ff`/`!ellipse` commands are read anywhere in the message. Everything
+    else — "avance rapide", "passe à la suite", "fast forward", "skip ahead" — must OPEN
+    the message (its first clause), because that is the only way to tell an instruction
+    addressed to the GM from an action declared by the player. A verb alone can never be
+    a signal: "j'avance vers la porte", "on avance prudemment dans le couloir", "je saute
+    la barrière", "I move on to the next room" are ORDINARY ACTIONS and are classified as
+    such — matching them as a substring is exactly the fail-open this module exists to
+    remove, since it would hand a three-hour ellipse to a two-metre walk. When in doubt
+    the message is an action: an ellipse then costs one refusal, where a wrong grant
+    costs a silent violation of the rule the player wrote himself.
+
 WHAT IS ENFORCED, AND WHAT IS NOT (do not overclaim)
     Enforced deterministically, on the narration draft, dialogue masked out:
       • temporal ellipse markers resolving to MORE than ~1 hour of game time
-        ("trois heures plus tard", "le lendemain", "the next morning", "days pass");
+        ("trois heures plus tard", "une heure et demie plus tard", "2h plus tard",
+        "le lendemain", "the next morning", "days pass"), and ONLY when the marker opens
+        a sentence, which is where an ellipse sits — mid-sentence the same words are
+        backstory or distance ("le village a brûlé deux ans après la guerre", "à quelques
+        jours de marche d'ici") and refusing those refuses legitimate world-building;
         an explicit sub-hour jump ("quelques instants plus tard", "une heure plus tard")
         is deliberately NOT an ellipse — TURN-02 sets the bar at about an hour;
-      • space advance markers (arrival / return / setting out);
+      • space advance markers (arrival / return / setting out) — the modal French
+        "arriver à + infinitif" ("vous arrivez à ouvrir la porte" = you manage to) is
+        excluded: it is not movement;
       • the count of those moments in a single narration (TURN-01) and the
         "never two ellipses in a row" clause (TURN-06).
     NOT enforced here, and left to the prompt or to another gate:
@@ -67,14 +85,28 @@ WHAT IS ENFORCED, AND WHAT IS NOT (do not overclaim)
         bar ("un peu plus tard" is minutes, "plus tard" alone can be a day), so it is
         deliberately let through — a narrow check that is honest beats a broad one that
         refuses legitimate turns;
+      • a duration marker that does NOT open a sentence ("vous repartez après deux jours
+        de repos") — see above: the position is what distinguishes a jump from a fact;
+      • a plain-language fast-forward request buried mid-message ("bon, je réfléchis, et
+        sinon avance rapide") — use `⏩`, it is read anywhere;
       • stacked PC actions and PC dialogue — that is AGENCY-01/02/03, owned by the
         agency gate in `hooks/mj_checkpoint.py`;
       • decision-STOP vs event-STOP (TURN-05): the caller declares it, nothing reads it.
 
+NEVER LOOPS (same contract as `hooks/mj_checkpoint.py`)
+    A refusal costs one attempt. After `gate_max_tentatives` attempts on the same turn
+    the narration is FORCED through (`ok` stays True, `forced` is set): the remaining
+    violations are logged to `.banquier/scoreboard.json` under the `turn_gate` key and
+    re-injected next turn via `set_pending`. A false refusal therefore costs at most N
+    rewrites, never a dead campaign. The attempt counter is this module's own
+    (`turn_gate_attempts`) — sharing `checkpoint_attempts` would let one gate reset the
+    other's budget.
+
 OPERATOR ESCAPE HATCH
     `MGM_TURN_GATE=0` (or world.json > `meta.hooks.turn_gate: false`) disables the
     refusal for a live campaign; the verdict then carries `_skipped` and the state is
-    still tracked. Default: ON.
+    still tracked. Default: ON. Budget: `meta.hooks.turn_gate_max_tentatives`
+    (falls back to the judge's `gate_max_tentatives`, default 2).
 
 USAGE (from the campaign cwd)
     echo "<narration draft>" | python3 .../turn_state.py check --declared "<player input>"
@@ -83,8 +115,18 @@ USAGE (from the campaign cwd)
     python3 .../turn_state.py reset                    # clear state + grant
   Exit codes for `check`: 0 = deliver, 1 = refused (rewrite, then resubmit).
 
-    Entry point for the in-turn gate (`hooks/mj_checkpoint.py` calls this, it does not
-    reimplement it):  check_narration(camp, payload, draft, declared) -> verdict dict.
+INTEGRATION (read this before wiring it in)
+    Today this module is a SECOND command the GM runs alongside `mj_checkpoint.py`; it is
+    not called from anywhere in the repository yet. The one-line hand-off, for whoever
+    merges the two gates:
+
+        v = turn_state.check_narration(camp, payload, draft, args.declared)
+        violations = v["violations"] + violations   # deterministic first, judge after
+
+    put right before `mj_checkpoint.main()` computes `n = L.attempts_inc(...)`, and its
+    own attempt budget dropped in favour of the checkpoint's. `declared` MUST be the
+    player's VERBATIM message: it is the only thing that can arm a grant — omit it and
+    no `⏩` is ever seen, so every ellipse is refused.
     Violations use the SAME shape as `hooks/llm_judge.py`
     ({"domaine","regle","extrait","pourquoi","correction"}) so the checkpoint can feed
     them to its existing `format_feedback` / `scoreboard_update` without adaptation.
@@ -109,32 +151,39 @@ STATES = (AWAITING_INPUT, DECISION_STOP, EVENT_STOP, FF_GRANTED)
 
 K_STATE = "turn_state"
 K_GRANT = "turn_ff_grant"
+K_ATTEMPTS = "turn_gate_attempts"    # this gate's own budget, NOT the checkpoint's
+SCOREBOARD_KEY = "turn_gate"
 
 ELLIPSE_THRESHOLD_MIN = 60          # TURN-02: "about an hour of game time"
 MAX_MOMENTS_WITHOUT_GRANT = 1       # TURN-01: one moment = one STOP
+DEFAULT_MAX_ATTEMPTS = 2
 
 # ── Player input signals — data-driven, bilingual, matched on folded text ────
 
 FF_MARKERS = ("⏩",)
 FF_COMMANDS = ("!ff", "!avance", "!fast-forward", "!fastforward", "!ellipse")
 
+# Anchored at the start of the first clause (see `_leading_clause`), never as a
+# substring: no bare verb can be listed here, "on avance" is an action, not a request.
 FF_PHRASES = (
     # FR
-    r"avance\s+rapide",
-    r"\bon\s+avance\b",
-    r"\bon\s+saute\b",
-    r"\bpass(?:e|ons)\s+a\s+la\s+suite\b",
-    r"\b(?:fais|faisons)\s+une\s+ellipse\b",
-    r"\bellipse\s+(?:jusqu|vers|au|a)\b",
-    r"\bsaute\s+(?:jusqu|au|a|le|la|vers)\b",
-    r"\bavance\s+(?:jusqu|au|a|vers)\b",
+    r"avanc(?:e|ons)\s+rapide\b",
+    r"ellipse\b",
+    r"fais(?:ons)?\s+une\s+ellipse\b",
+    r"pass(?:e|ons)\s+a\s+la\s+suite\b",
+    r"saut(?:e|ons)\s+jusqu",
     # EN
-    r"fast[-\s]?forward",
-    r"\bskip\s+(?:ahead|to|forward|the)\b",
-    r"\bjump\s+(?:ahead|to|forward)\b",
-    r"\bmove\s+on\s+to\b",
-    r"\btime\s+skip\b",
+    r"fast[-\s]?forward\b",
+    r"skip\s+(?:ahead|forward|to)\b",
+    r"jump\s+(?:ahead|forward|to)\b",
+    r"time\s+skip\b",
 )
+
+# Discourse openers stripped before anchoring, so "ok, avance rapide" still reads as one.
+_RE_LEAD_FILLER = re.compile(
+    r"^[\s\W_]*(?:(?:ok|okay|bon|bien|d'accord|alors|allez|allons|et|puis|donc|"
+    r"please|stp|svp|mj|gm)\b[\s,]*)*")
+_RE_CLAUSE_END = re.compile(r"[.!?;:\n]")
 
 # Checked BEFORE FF_PHRASES, so "je vais passer à la suite" stays an intention (TURN-02).
 INTENTION_PATTERNS = (
@@ -164,8 +213,8 @@ _UNITS_MIN = {
     "seconde": 1 / 60.0, "secondes": 1 / 60.0, "second": 1 / 60.0, "seconds": 1 / 60.0,
     "instant": 0.5, "instants": 0.5, "moment": 0.5, "moments": 0.5,
     "minute": 1, "minutes": 1, "min": 1, "mn": 1,
-    "heure": 60, "heures": 60, "hour": 60, "hours": 60,
-    "jour": 1440, "jours": 1440, "journee": 1440, "journees": 1440,
+    "heure": 60, "heures": 60, "hour": 60, "hours": 60, "h": 60, "hr": 60, "hrs": 60,
+    "jour": 1440, "jours": 1440, "journee": 1440, "journees": 1440, "j": 1440,
     "day": 1440, "days": 1440,
     "semaine": 10080, "semaines": 10080, "week": 10080, "weeks": 10080,
     "mois": 43200, "month": 43200, "months": 43200,
@@ -173,17 +222,26 @@ _UNITS_MIN = {
     "year": 525600, "years": 525600,
 }
 
+_HALF_FRAC = {"demi": 0.5, "demie": 0.5, "demis": 0.5, "demies": 0.5,
+              "quart": 0.25, "quarts": 0.25}
+
 _ALT_QTY = "|".join(re.escape(k) for k in sorted(_QTY, key=len, reverse=True))
 _ALT_UNIT = "|".join(re.escape(k) for k in sorted(_UNITS_MIN, key=len, reverse=True))
-_ALT_AFTER = r"plus\s+tard|apres|ecoulen?t|s'ecoulen?t|passent|passerent|later|" \
+_ALT_HALF = "|".join(re.escape(k) for k in sorted(_HALF_FRAC, key=len, reverse=True))
+_ALT_AFTER = r"plus\s+tard|ecoulen?t|s'ecoulen?t|passent|passerent|later|" \
              r"pass|passed|go\s+by|went\s+by|elapse[ds]?"
 _ALT_BEFORE = r"apres|au\s+bout\s+de|after|following"
 
-RE_DUREE_POST = re.compile(          # "trois heures plus tard", "quelques jours passent"
-    r"\b(?P<q>\d+|" + _ALT_QTY + r")\s+(?P<u>" + _ALT_UNIT + r")\b"
-    r"[^.!?\n]{0,30}?\b(?:" + _ALT_AFTER + r")\b")
-RE_DUREE_PRE = re.compile(           # "après trois heures de marche", "after two days"
-    r"\b(?:" + _ALT_BEFORE + r")\s+(?P<q>\d+|" + _ALT_QTY + r")\s+(?P<u>" + _ALT_UNIT + r")\b")
+# An ellipse OPENS a sentence. Mid-sentence, the same duration is backstory or a
+# distance ("le village a brûlé deux ans après la guerre") and moves no clock.
+_SENT_START = r"(?:^|(?<=[.!?…\n]))[\s\"«»“”'\-—–*_]*"
+_QTY_UNIT = (r"\b(?P<q>\d+|" + _ALT_QTY + r")\s*(?P<u>" + _ALT_UNIT + r")\b"
+             r"(?:\s+et\s+(?P<h>" + _ALT_HALF + r")\b)?")
+
+RE_DUREE_POST = re.compile(          # "Trois heures plus tard", "Quelques jours passent"
+    _SENT_START + _QTY_UNIT + r"[^.!?\n]{0,30}?\b(?:" + _ALT_AFTER + r")\b")
+RE_DUREE_PRE = re.compile(           # "Après trois heures de marche", "After two days"
+    _SENT_START + r"\b(?:" + _ALT_BEFORE + r")\s+" + _QTY_UNIT)
 
 # Jumps of more than an hour that carry no quantity of their own.
 NAMED_ELLIPSES = (
@@ -202,7 +260,8 @@ NAMED_ELLIPSES = (
 )
 
 TRAVEL_MARKERS = (                   # space advance: arrival, return, setting out
-    r"\b(?:vous|tu)\s+arriv(?:ez|es)\b",
+    # "arriver à + infinitif" = to manage to, not to move: excluded by the lookahead.
+    r"\b(?:vous|tu)\s+arriv(?:ez|es)\b(?!\s+a\s+\w+(?:er|ir|re)\b)",
     r"\b(?:vous|tu)\s+atteign(?:ez|s)\b",
     r"\bde\s+retour\s+(?:a|au|aux|chez|dans|sur)\b",
     r"\bvous\s+voila\s+(?:a|au|devant|dans)\b",
@@ -229,10 +288,11 @@ def _mask_dialogue(text):
     """Blanks quoted/dashed dialogue, preserving length so offsets stay valid.
 
     What a character SAYS about tomorrow does not move the clock — masking dialogue is
-    what keeps "je partirai le lendemain" from reading as an ellipse.
+    what keeps "je partirai le lendemain" from reading as an ellipse. The blank ends on a
+    "." so that a line of dialogue still closes a sentence for the ellipse anchor.
     """
     def blank(m):
-        return " " * (m.end() - m.start())
+        return " " * (m.end() - m.start() - 1) + "."
     return _RE_DASHLINE.sub(blank, _RE_QUOTED.sub(blank, text or ""))
 
 
@@ -263,11 +323,18 @@ def _excerpt(original, idx, start, end, pad=28):
 # ── Player input classification ──────────────────────────────────────────────
 
 
+def _leading_clause(folded):
+    """The message's first clause, stripped of punctuation and discourse openers."""
+    return _RE_LEAD_FILLER.sub("", _RE_CLAUSE_END.split(folded, maxsplit=1)[0]).strip()
+
+
 def classify_input(message):
     """Classifies a player input → (kind, matched signal). See INPUT_KINDS.
 
     Order matters and encodes TURN-02: the canonical marker wins, then a question or an
-    intention DISQUALIFIES the message whatever else it contains, then explicit phrases.
+    intention DISQUALIFIES the message whatever else it contains, then the explicit
+    phrases — and those only when they OPEN the message, so an action declared in the
+    present tense ("j'avance vers la porte") can never pass for a grant.
     """
     raw = message if isinstance(message, str) else ""
     if not raw.strip():
@@ -285,8 +352,9 @@ def classify_input(message):
         m = rx.search(folded)
         if m:
             return "intention", m.group(0)
+    clause = _leading_clause(folded)
     for rx in _RE_FF:
-        m = rx.search(folded)
+        m = rx.match(clause)
         if m:
             return "fast_forward", m.group(0)
     return "action", ""
@@ -295,12 +363,12 @@ def classify_input(message):
 # ── Non-ordinary moment detection ────────────────────────────────────────────
 
 
-def _duration_minutes(qty, unit):
+def _duration_minutes(qty, unit, half=None):
     try:
         q = float(qty) if str(qty).isdigit() else float(_QTY.get(qty, 1))
     except Exception:
         q = 1.0
-    return q * float(_UNITS_MIN.get(unit, 0))
+    return (q + _HALF_FRAC.get(half or "", 0.0)) * float(_UNITS_MIN.get(unit, 0))
 
 
 def detect_moments(draft):
@@ -324,7 +392,7 @@ def detect_moments(draft):
 
     for rx in (RE_DUREE_POST, RE_DUREE_PRE):
         for m in rx.finditer(folded):
-            minutes = _duration_minutes(m.group("q"), m.group("u"))
+            minutes = _duration_minutes(m.group("q"), m.group("u"), m.group("h"))
             # TURN-02 sets the bar at "about an hour": below it, no grant is needed.
             if minutes > ELLIPSE_THRESHOLD_MIN:
                 add("ellipse", m, minutes)
@@ -376,9 +444,25 @@ def grant_clear(camp, payload, reason=""):
                                         "ts": L.now_iso()})
 
 
+def attempts_get(camp, payload):
+    v = L.snap_get(camp, payload, K_ATTEMPTS)
+    return int(v) if isinstance(v, int) else 0
+
+
+def attempts_inc(camp, payload):
+    n = attempts_get(camp, payload) + 1
+    L.snap_set(camp, payload, K_ATTEMPTS, n)
+    return n
+
+
+def attempts_reset(camp, payload):
+    L.snap_set(camp, payload, K_ATTEMPTS, 0)
+
+
 def reset(camp, payload):
     set_state(camp, payload, AWAITING_INPUT)
     grant_clear(camp, payload, "reset")
+    attempts_reset(camp, payload)
 
 
 # ── Transitions ──────────────────────────────────────────────────────────────
@@ -419,9 +503,27 @@ def gate_enabled(monde):
     return L.as_bool(h.get("turn_gate"), env_default)
 
 
+def gate_max_attempts(monde):
+    """Anti-loop budget, mirroring the checkpoint's `gate_max_tentatives`."""
+    h = L.meta(monde).get("hooks")
+    h = h if isinstance(h, dict) else {}
+    try:
+        n = int(h.get("turn_gate_max_tentatives")
+                or L.judge_config(monde).get("gate_max_tentatives")
+                or DEFAULT_MAX_ATTEMPTS)
+    except Exception:
+        n = DEFAULT_MAX_ATTEMPTS
+    return max(1, n)
+
+
 def _violation(regle, extrait, pourquoi, correction):
     return {"domaine": "conduite", "regle": regle, "extrait": L.truncate(extrait, 160),
             "pourquoi": pourquoi, "correction": correction}
+
+
+def _pair(a, b):
+    """Two excerpts in one 160-char field — halved, so the second one survives."""
+    return "1) %s — 2) %s" % (L.truncate(a["excerpt"], 70), L.truncate(b["excerpt"], 70))
 
 
 def evaluate(moments, granted):
@@ -429,8 +531,10 @@ def evaluate(moments, granted):
     ellipses = [m for m in moments if m["kind"] == "ellipse"]
     violations = []
     if not granted:
+        rest = list(moments)
         if ellipses:
             e = ellipses[0]
+            rest.remove(e)
             violations.append(_violation(
                 "TURN-02", e["excerpt"],
                 "you advance time by more than about an hour without an explicit "
@@ -438,11 +542,12 @@ def evaluate(moments, granted):
                 "a question or an intention is not one",
                 "stay in the current moment and end on the state of the world, or ask "
                 "\"what do you do?\" before the ellipse"))
-        if len(moments) > MAX_MOMENTS_WITHOUT_GRANT:
-            a, b = moments[0], moments[1]
+        # Counted on what is left once the ellipse TURN-02 already named is cut:
+        # otherwise the GM reads two numbered items for one single fault.
+        if len(rest) > MAX_MOMENTS_WITHOUT_GRANT:
+            a, b = rest[0], rest[1]
             violations.append(_violation(
-                "TURN-01",
-                "1) %s — 2) %s" % (a["excerpt"], b["excerpt"]),
+                "TURN-01", _pair(a, b),
                 "two non-ordinary moments crossed in one narration (%s: « %s » then "
                 "%s: « %s ») — one moment = one STOP = one logged action"
                 % (a["kind"], a["marker"], b["kind"], b["marker"]),
@@ -450,7 +555,7 @@ def evaluate(moments, granted):
     elif len(ellipses) > 1:
         a, b = ellipses[0], ellipses[1]
         violations.append(_violation(
-            "TURN-06", "1) %s — 2) %s" % (a["excerpt"], b["excerpt"]),
+            "TURN-06", _pair(a, b),
             "the fast-forward is granted for ONE focal event, and you chained two "
             "ellipses (« %s » then « %s ») — never two ellipses in a row"
             % (a["marker"], b["marker"]),
@@ -467,7 +572,8 @@ def check_narration(camp, payload, draft, declared="", stop=DECISION_STOP, monde
     intention in the very same call.
 
     Returns {"ok", "violations", "moments", "state", "input", "granted",
-             "grant_consumed", "feedback"} (+ "_skipped" when the gate is disabled).
+             "grant_consumed", "feedback", "attempts"} (+ "_skipped" when the gate is
+     disabled, + "forced" when the budget ran out).
     A refusal NEVER consumes the grant — the GM rewrites and resubmits the same turn.
     """
     if monde is None:
@@ -479,6 +585,7 @@ def check_narration(camp, payload, draft, declared="", stop=DECISION_STOP, monde
         "ok": True, "violations": [], "moments": moments,
         "input": (obs or {}).get("input", ""), "granted": granted,
         "grant_consumed": False, "state": get_state(camp, payload), "feedback": "",
+        "attempts": 0, "max_attempts": gate_max_attempts(monde),
     }
     if not gate_enabled(monde):
         verdict["_skipped"] = "MGM_TURN_GATE off"
@@ -486,10 +593,25 @@ def check_narration(camp, payload, draft, declared="", stop=DECISION_STOP, monde
 
     violations = evaluate(moments, granted)
     if violations:
-        verdict["ok"] = False
+        n = attempts_inc(camp, payload)
+        forced = n >= verdict["max_attempts"]
+        L.scoreboard_update(camp, SCOREBOARD_KEY, False, 0, len(violations),
+                            [v.get("regle", "?") for v in violations],
+                            forced=1 if forced else 0)
         verdict["violations"] = violations
+        verdict["attempts"] = n
         verdict["feedback"] = format_feedback(violations)
-        return verdict
+        if not forced:
+            verdict["ok"] = False
+            return verdict
+        # Budget exhausted: the house rule is that a gate NEVER loops. The narration
+        # goes out, the violations are logged and re-injected on the next turn.
+        attempts_reset(camp, payload)
+        verdict["forced"] = n
+        L.set_pending(camp, payload, verdict["feedback"])
+    else:
+        attempts_reset(camp, payload)
+        L.scoreboard_update(camp, SCOREBOARD_KEY, True, 0, 0, [])
 
     # The grant belonged to THIS turn: consume it used or not, so an unused grant can
     # never silently authorise the next narration.
@@ -583,11 +705,17 @@ def main(argv=None):
     if "_skipped" in verdict:
         print("✅ TURN (gate off: %s) — deliver your narration." % verdict["_skipped"])
         return 0
+    if "forced" in verdict:
+        print("⚠️ TURN FORCED after %d attempts — correct as best you can and DELIVER "
+              "(remaining violations logged):\n%s" % (verdict["forced"],
+                                                      verdict["feedback"]))
+        return 0
     if verdict["ok"]:
         detail = " (⏩ grant consumed)" if verdict["grant_consumed"] else ""
         print("✅ TURN OK — pacing rules respected%s. Deliver your narration." % detail)
         return 0
-    print(verdict["feedback"])
+    print("%s\n\n➡️ Rewrite your narration then re-run the check (attempt %d/%d)."
+          % (verdict["feedback"], verdict["attempts"], verdict["max_attempts"]))
     return 1
 
 
