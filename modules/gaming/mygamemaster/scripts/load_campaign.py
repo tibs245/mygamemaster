@@ -13,10 +13,17 @@ This is the safeguard that makes conditional module loading
 (`world.json > modules.<x>.actif`) VERIFIABLE — instead of "the engine is supposed
 to read the modules block". No network, Python 3 stdlib only.
 
+It ALSO performs the FAIL-LOUD legacy-key check (see `verifier_cles_legacy`):
+a campaign still carrying pre-rename FRENCH structural keys (`univers`,
+`etat_global`, `acteurs`, `evenements`, `lieux`, …) is REFUSED instead of being
+silently read as empty. Without this guard the engine reports `meta.features` as
+active while `geo.locations`, `actors` and `events` all resolve to nothing — the
+living world runs on a void and nobody is told.
+
 Exit codes:
   0  campaign READY (active modules consistent, files present, required data there)
   1  inconsistency (module file missing, or required data absent)
-  2  usage / campaign not found / broken JSON
+  2  usage / campaign not found / broken JSON / LEGACY (pre-rename) keys detected
 
 Path convention (from project root):
   CAMP=.hermes/mygamemaster/campaigns/<campagne>
@@ -27,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -102,6 +110,184 @@ NON_MODULE_KEYS = {"_schema"}
 MODULES_DIR = Path(__file__).resolve().parent.parent / "references" / "modules"
 
 
+# --- FAIL-LOUD: pre-rename (French) structural keys ------------------------
+
+# Structural keys only (containers + identity fields the engine navigates by).
+# French keys the rename deliberately KEPT (`lieu`, `vers`, `ressources`,
+# `relations`, `factions`, `regions`, `unite`, …) are absent on purpose.
+LEGACY_STRUCTURAL_KEYS = {
+    # top-level containers
+    "systeme": "system",
+    "univers": "universe",
+    "regles": "rules",
+    "etat_global": "global_state",
+    # collections the living world walks
+    "lieux": "locations",
+    "acteurs": "actors",
+    "evenements": "events",
+    "pnj": "npcs",
+    "deplacements": "movements",
+    "trajectoire": "trajectory",
+    "chronologie": "timeline",
+    # identity / session bookkeeping
+    "nom": "name",
+    "temps": "time",
+    "suivi": "tracking",
+    "lieux_visites": "visited_locations",
+    "pnj_rencontres": "npcs_met",
+    "faits_etablis": "established_facts",
+    "secrets_mj": "gm_secrets",
+    "hypotheses_mj": "gm_hypotheses",
+    "inventaire": "inventory",
+    "equipement": "equipment",
+    "competences": "skills",
+    # feature axes (meta.features) — these decide what the engine runs
+    "tracabilite": "traceability",
+    "verbosite": "verbosity",
+    "temporalite": "temporality",
+    "pnj_faction_vivants": "living_npcs_factions",
+}
+
+ENV_ALLOW_LEGACY = "MGM_ALLOW_LEGACY_KEYS"
+
+FICHIERS_SCANNES = ("world.json", "npcs.json", "actors.json", "events.json", "geo.json")
+
+_MIGRATION_CMD = "python3 scripts/migrate_campaign_fr_en.py <campaign_dir> --apply"
+
+
+class LegacyKeysError(Exception):
+    """Raised when a campaign still carries pre-rename FRENCH structural keys.
+
+    Carries the structured findings so callers can render them their own way:
+      `.findings` = [{'fichier','chemin','trouvee','attendue','genre'}, …]
+      with genre ∈ {'legacy', 'ambigu'}.
+    """
+
+    def __init__(self, message: str, findings: list[dict]):
+        super().__init__(message)
+        self.findings = findings
+
+
+def _env_autorise_legacy() -> bool:
+    return os.environ.get(ENV_ALLOW_LEGACY, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _scanner_legacy(noeud, chemin: str, trouvailles: list[dict], fichier: str) -> None:
+    """Recursively collects every legacy FRENCH structural key of `noeud`.
+
+    Two blocking situations, both reported:
+      * 'legacy' — the FR key is there and its EN twin is NOT: every EN reader
+        of this container sees nothing at all (the silent-empty bug);
+      * 'ambigu' — FR and EN keys COEXIST in the same object: which one is
+        authoritative is undecidable, and readers would silently pick the EN one
+        while writers may keep feeding the FR one.
+    """
+    if isinstance(noeud, dict):
+        for cle, valeur in noeud.items():
+            if isinstance(cle, str) and cle in LEGACY_STRUCTURAL_KEYS:
+                attendue = LEGACY_STRUCTURAL_KEYS[cle]
+                trouvailles.append({
+                    "fichier": fichier,
+                    "chemin": f"{chemin}.{cle}",
+                    "trouvee": cle,
+                    "attendue": attendue,
+                    "genre": "ambigu" if attendue in noeud else "legacy",
+                })
+            _scanner_legacy(valeur, f"{chemin}.{cle}", trouvailles, fichier)
+    elif isinstance(noeud, list):
+        for i, item in enumerate(noeud):
+            _scanner_legacy(item, f"{chemin}[{i}]", trouvailles, fichier)
+
+
+def formater_erreur_legacy(trouvailles: list[dict]) -> str:
+    """Builds the actionable failure message (file, offending key, expected key,
+    migration command, and how to override)."""
+    lignes = [
+        "❌ LEGACY (pre-rename FRENCH) KEYS DETECTED — refusing to load this campaign.",
+        "",
+        "The engine reads ENGLISH structural keys. The keys below are still in their",
+        "old French form, so every reader resolves them to EMPTY and the session would",
+        "be played on a silently empty world (this is exactly how a real campaign lost",
+        "38 locations, 10 actors and 61 events without a single warning).",
+        "",
+    ]
+    par_fichier: dict[str, list[dict]] = {}
+    for t in trouvailles:
+        par_fichier.setdefault(t["fichier"], []).append(t)
+
+    for fichier, items in par_fichier.items():
+        lignes.append(f"  {fichier}")
+        vus = set()
+        for t in items:
+            # Collapse the same key repeated across list items into one line.
+            cle_courte = (t["chemin"].split("[")[0], t["trouvee"])
+            if cle_courte in vus:
+                continue
+            vus.add(cle_courte)
+            if t["genre"] == "ambigu":
+                lignes.append(
+                    f"    ✗ {t['chemin']}  → French key '{t['trouvee']}' COEXISTS with "
+                    f"its English twin '{t['attendue']}' (ambiguous: which one is authoritative?)"
+                )
+            else:
+                lignes.append(
+                    f"    ✗ {t['chemin']}  → found '{t['trouvee']}', expected '{t['attendue']}'"
+                )
+        lignes.append("")
+
+    lignes += [
+        "FIX — migrate the campaign (dry-run first, it writes nothing):",
+        f"    {_MIGRATION_CMD.replace(' --apply', '')}",
+        f"    {_MIGRATION_CMD}",
+        "",
+        "OVERRIDE — only if these French keys are intentional (inspecting an",
+        "un-migrated backup, deliberate test data…). The engine will then read them",
+        "as empty; you accept that:",
+        f"    {ENV_ALLOW_LEGACY}=1 python3 .../load_campaign.py <campaign_dir>",
+        "    …or pass --allow-legacy-keys on the command line.",
+    ]
+    return "\n".join(lignes)
+
+
+def verifier_cles_legacy(campagne: Path, autoriser: bool | None = None) -> list[dict]:
+    """FAIL-LOUD check: refuse a campaign still written with FRENCH structural keys.
+
+    `autoriser=None` (default) consults the environment variable
+    MGM_ALLOW_LEGACY_KEYS; pass True/False to decide explicitly (the CLI flag
+    --allow-legacy-keys passes True).
+
+    Returns the list of findings (empty when the campaign is clean).
+    Raises LegacyKeysError when findings exist and the override is not set.
+    Unreadable/absent files are skipped here — reporting broken JSON is the
+    caller's job (load_campaign returns exit 2 for that on its own).
+    """
+    campagne = Path(campagne)
+    if autoriser is None:
+        autoriser = _env_autorise_legacy()
+
+    trouvailles: list[dict] = []
+    for nom_fichier in FICHIERS_SCANNES:
+        chemin = campagne / nom_fichier
+        if not chemin.is_file():
+            continue
+        try:
+            data = _load_json(chemin)
+        except (OSError, json.JSONDecodeError):
+            continue  # not our error to report
+        _scanner_legacy(data, "$", trouvailles, str(chemin))
+
+    if trouvailles and not autoriser:
+        raise LegacyKeysError(formater_erreur_legacy(trouvailles), trouvailles)
+    if trouvailles:
+        print(
+            f"⚠️  {len(trouvailles)} legacy FRENCH key(s) present — tolerated because the "
+            f"override is active ({ENV_ALLOW_LEGACY}/--allow-legacy-keys). "
+            "The engine WILL read these sections as empty.",
+            file=sys.stderr,
+        )
+    return trouvailles
+
+
 # --- Data access -------------------------------------------------------
 
 def _get_path(data: dict, dotted: str):
@@ -142,10 +328,17 @@ def _load_json(path: Path):
 
 # --- Self-test core -------------------------------------------------------
 
-def analyser(campagne: Path) -> dict:
-    """Builds the readiness report for a campaign (structured dict)."""
+def analyser(campagne: Path, autoriser_legacy: bool | None = None) -> dict:
+    """Builds the readiness report for a campaign (structured dict).
+
+    Runs the FAIL-LOUD legacy-key guard FIRST: an un-migrated campaign must not
+    be declared READY on the strength of sections the engine cannot even see.
+    Raises LegacyKeysError unless the override is active.
+    """
     monde_path = campagne / "world.json"
     pnj_path = campagne / "npcs.json"
+
+    verifier_cles_legacy(campagne, autoriser=autoriser_legacy)
 
     monde = _load_json(monde_path)
     pnj_present = pnj_path.is_file()
@@ -358,6 +551,11 @@ def main(argv=None) -> int:
                         help="Path to the campaign folder (containing world.json).")
     parser.add_argument("--json", action="store_true",
                         help="Machine output (JSON) instead of the human-readable report.")
+    parser.add_argument("--allow-legacy-keys", action="store_true", dest="allow_legacy",
+                        help="Do NOT fail on pre-rename FRENCH structural keys (univers, "
+                             "etat_global, acteurs, evenements…); print a warning and carry on. "
+                             f"Equivalent to {ENV_ALLOW_LEGACY}=1. The engine will read the "
+                             "affected sections as EMPTY.")
     args = parser.parse_args(argv)
 
     campagne = Path(args.campagne)
@@ -367,7 +565,10 @@ def main(argv=None) -> int:
         return 2
 
     try:
-        rapport = analyser(campagne)
+        rapport = analyser(campagne, autoriser_legacy=args.allow_legacy or None)
+    except LegacyKeysError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     except json.JSONDecodeError as exc:
         print(f"❌ Broken JSON in {campagne}: {exc}", file=sys.stderr)
         return 2
