@@ -37,10 +37,17 @@ content word against three closed lexicons: perception → allowed, speech → A
 AGENCY-01. An action whose verb also appears in the player's declaration is AGENCY-03's bounded
 exception and is allowed, with the declaration cited in the report.
 
+TWO CALLERS, TWO REMEDIES FOR THE SAME VERDICT
+  * `mj_checkpoint.py` (GM-invoked, optional) — `analyze()` then "rewrite and come back".
+  * `transform_llm_output.py` (runtime hook, UNCONDITIONAL) — `analyze()` then `redact()`:
+    downstream of inference nothing can be re-generated, so the offending sentence is cut.
+    That path is the one that actually runs on every turn; the checkpoint is a courtesy.
+
 OPERATOR ESCAPE HATCH
-  MGM_AGENCY_GATE=off         disables the deterministic gate (default: ON).
+  MGM_AGENCY_GATE=off         disables the deterministic gate (default: ON), on BOTH callers.
                               Accepted off values: off / 0 / false / no / non / disabled.
-  MGM_AGENCY_MAX_ATTEMPTS=N   rewrite budget before the loud forced pass (mj_checkpoint.py).
+  MGM_AGENCY_MAX_ATTEMPTS=N   rewrite budget before the loud forced pass (mj_checkpoint.py);
+                              also bounds the redact/re-check rounds of the runtime hook.
 
 EXTENDING: everything is data in LEXICONS below — `"approch*"` is a prefix (≤5 trailing letters),
 `"dis"` an exact token, accents ignored on both sides. A new language is a new key; nothing else
@@ -479,12 +486,17 @@ def analyze(draft, declared="", pc_names=(), lexicons=None):
             if cut is None:
                 continue
             seg_masked, seg_raw = seg_masked[:cut], seg_raw[:cut]
-        for f in _findings_for_segment(seg_masked, seg_raw, prepared, names):
+        # The span is carried so `redact()` can cut the offending sentence out of the
+        # DELIVERED text: a hook has no way to ask for a new narration.
+        span = (s, s + len(seg_masked))
+        seg_findings = _findings_for_segment(seg_masked, seg_raw, prepared, names)
+        seg_findings.extend(_inverted_speech(seg_raw, prepared))
+        for f in seg_findings:
+            f["span"] = span
             if f["kind"] is AMBIGUOUS:
                 ambiguous += 1
             elif f["kind"] in (ACTION, SPEECH):
                 findings.append(f)
-        findings.extend(_inverted_speech(seg_raw, prepared))
 
     seen, uniq = set(), []
     for f in findings:
@@ -527,6 +539,12 @@ def analyze(draft, declared="", pc_names=(), lexicons=None):
             "action the player has just declared)" % len(actions),
             "Keep at most the single declared action, cite the declaration, and stop at the first STOP."))
 
+    # Spans are read back from the PRE-dedup findings: two identical sentences collapse to
+    # one violation but must both be cut, or half the offence still ships.
+    bad_keys = {(f["kind"], f["verb"], f["extrait"]) for f in bad_actions + bad_speech}
+    spans = sorted({f["span"] for f in findings
+                    if f.get("span") and (f["kind"], f["verb"], f["extrait"]) in bad_keys})
+
     return {
         "ok": not violations,
         "violations": violations,
@@ -535,7 +553,42 @@ def analyze(draft, declared="", pc_names=(), lexicons=None):
         "actions": len(actions),
         "ambiguous": ambiguous,
         "declared": _truncate(declared, 160),
+        "_spans": [list(sp) for sp in spans],
     }
+
+
+def redact(draft, report):
+    """Cut the flagged sentences out of `draft`. Returns (text, sentences_removed).
+
+    The delivery-time counterpart of a checkpoint refusal. `mj_checkpoint.py` can answer
+    "rewrite and come back" because the GM is still holding the draft; a runtime hook is
+    downstream of inference and has no such option, so the choice there is between cutting
+    the offending sentence and shipping it. AGENCY-01/02/03 are the rules for which shipping
+    is not an option, so the sentence goes.
+
+    Sentence spans are contiguous, so a cut removes the offending sentence together with the
+    space that introduced it; only the surrounding blank runs need repairing."""
+    spans = [tuple(sp) for sp in ((report or {}).get("_spans") or [])]
+    if not draft or not spans:
+        return draft, 0
+    merged = []
+    for raw in sorted(spans):
+        a, b = max(0, int(raw[0])), min(len(draft), int(raw[1]))
+        if b <= a:
+            continue
+        if merged and a <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    kept, prev = [], 0
+    for a, b in merged:
+        kept.append(draft[prev:a])
+        prev = b
+    kept.append(draft[prev:])
+    out = "".join(kept)
+    out = re.sub(r"[ \t]{2,}", " ", out)
+    out = re.sub(r"(?m)[ \t]+$", "", out)
+    return re.sub(r"\n{3,}", "\n\n", out).strip(), len(merged)
 
 
 def enabled(env=None):
