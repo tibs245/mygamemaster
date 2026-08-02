@@ -25,10 +25,13 @@ TWO KINDS OF "DO NOT BLOCK", never to be confused:
     continues to the LLM judge rather than being guessed at.
 
 HOW: dialogue (« … », " … ", “ … ”, dash lines) is masked first, so an NPC saying « tu devrais
-partir » is never read as the GM making the PC act. Narration is split into sentences, questions
-skipped, and each sentence anchored on a subject that can ONLY be the PC — French `tu`, English
-`you`, or a player-character proper name. `vous`/`te`/`me` are deliberately not anchors: in French
-they are usually object clitics ("Berthe vous regarde" is the NPC gazing, which is allowed). From
+partir » is never read as the GM making the PC act. Narration is split into sentences, the trailing
+interrogative CLAUSE of each is dropped (not the whole sentence — the protocol ends every turn on a
+handoff question), and each sentence is anchored on a subject that can only be the PC: French `tu`,
+English `you`, or a word of a player-character name. `vous`/`te`/`me` are never anchors — in French
+they are usually object clitics ("Berthe vous regarde" is the NPC gazing, which is allowed). `you`
+and PC names are anchors ONLY in subject position: a preposition or a known verb right before them
+("behind you stands…", "Berthe hands you…") means the PC is the object, which is allowed too. From
 the anchor we walk over clitics, auxiliaries, articles and adverbs only, and classify the first
 content word against three closed lexicons: perception → allowed, speech → AGENCY-02, action →
 AGENCY-01. An action whose verb also appears in the player's declaration is AGENCY-03's bounded
@@ -71,6 +74,14 @@ PERCEPTION, ACTION, SPEECH, AMBIGUOUS = "perception", "action", "speech", "ambig
 LEXICONS = {
     "fr": {
         "anchors": ["tu"],
+        # Determiners are a subset of `skip`: walked over from a real subject anchor, but NEVER
+        # after a conjunction — « et LE regard de Berthe » opens a new nominal subject.
+        "det": ["l", "le", "la", "les", "un", "une", "du", "de", "des", "ton", "ta", "tes",
+                "son", "sa", "ses", "cette", "ce", "ces", "leur", "leurs", "au", "aux", "d"],
+        # Prepositions before an anchor mark the PC as the OBJECT (« à Rubis », « devant Rubis »).
+        "prep": ["a", "de", "d", "vers", "chez", "pour", "avec", "sans", "contre", "derriere",
+                 "devant", "sous", "sur", "dans", "entre", "pres", "apres", "jusqu", "jusqua",
+                 "envers", "autour", "face", "loin", "aupres", "parmi"],
         "skip": [
             "t", "te", "y", "en", "l", "le", "la", "les", "lui", "leur", "se", "s", "me", "m",
             "nous", "vous",
@@ -134,6 +145,19 @@ LEXICONS = {
     },
     "en": {
         "anchors": ["you"],
+        # `you` is an object as often as a subject ("Berthe hands you a bowl", "behind you stands
+        # a figure"), so it only anchors in SUBJECT position — see `object_anchors` / `prep`.
+        "object_anchors": ["you"],
+        "det": ["the", "a", "an", "your", "his", "her", "its", "their", "this", "that", "these",
+                "those", "my", "our", "some", "another", "each", "every"],
+        "prep": [
+            "at", "to", "behind", "before", "beside", "besides", "around", "near", "past",
+            "toward", "towards", "opposite", "above", "below", "beneath", "under", "underneath",
+            "with", "without", "for", "of", "from", "upon", "into", "onto", "against", "across",
+            "between", "beyond", "over", "through", "throughout", "about", "after", "alongside",
+            "among", "amongst", "by", "on", "in", "off", "outside", "inside", "like", "unlike",
+            "than", "until", "till", "unto", "atop", "amid",
+        ],
         "skip": [
             "yourself", "the", "a", "an", "your", "his", "her", "its", "their",
             "have", "has", "had", "are", "were", "am", "is", "been", "being", "ve", "re",
@@ -151,7 +175,9 @@ LEXICONS = {
             "see", "sees", "saw", "seen", "hear", "hears", "heard", "feel", "feels", "felt",
             "smell", "smells", "smelled", "smelt", "taste", "tastes", "tasted",
             "notice*", "perceive*", "sense", "senses", "sensed", "recogniz*", "recognis*",
-            "realiz*", "realis*", "know", "knows", "knew", "remember*", "glimpse*", "make",
+            "realiz*", "realis*", "know", "knows", "knew", "remember*", "glimpse*",
+            # NOT "make": it would whitelist "you make your way across the bridge", a movement.
+            # "you make out a shape" stays AMBIGUOUS and goes to the judge, which is the safe side.
         ],
         "speech": [
             "say", "says", "said", "reply", "replies", "replied", "answer*", "ask", "asks",
@@ -188,6 +214,9 @@ LEXICONS = {
 
 _TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
 _SENT_RE = re.compile(r"[.!?…;\n]+")
+# Clause separators inside a sentence: they end an interrogative clause, and they mark a subject
+# position ("Berthe steps back, you follow" — `you` is the subject of the second clause).
+_CLAUSE_RE = re.compile(r"[,;:—–]|\s-\s")
 
 _QUOTE_RES = [
     re.compile(r"«.*?»", re.S),
@@ -234,6 +263,12 @@ def _sentences(masked):
     return spans
 
 
+def _question_cut(seg):
+    """Where the trailing interrogative clause starts, or None if the whole segment is one."""
+    cuts = [m.start() for m in _CLAUSE_RE.finditer(seg)]
+    return cuts[-1] if cuts and _clean(seg[:cuts[-1]]) else None
+
+
 def _match(token, patterns):
     """Matching lexicon entry, or None. 'stem*' is a prefix accepting ≤5 extra letters."""
     for p in patterns:
@@ -254,23 +289,44 @@ def _classify(token, lex):
     return AMBIGUOUS, None
 
 
-def _scan_anchor(tokens, i, lex):
+def _scan_anchor(tokens, i, lex, skip=None):
     """Walks forward from a PC-subject anchor to the first content word and classifies it.
 
-    Only clitics/articles/auxiliaries/adverbs are walked over: the first word that is neither a
-    skip word nor a known verb ends the scan as AMBIGUOUS, which keeps a noun further down the
-    sentence from ever being read as a verb."""
+    Only clitics/articles/auxiliaries/adverbs (and the other words of the PC's own name) are
+    walked over: the first word that is neither a skip word nor a known verb ends the scan as
+    AMBIGUOUS, which keeps a noun further down the sentence from ever being read as a verb.
+
+    `skip` overrides the walk-over set — the conjunction path passes a determiner-free one."""
+    skip = lex["_skip"] if skip is None else skip
     j, steps = i + 1, 0
     while j < len(tokens) and steps < 5:
         tok = tokens[j]
         if tok in lex["_hedge"]:
             return AMBIGUOUS, None
-        if tok in lex["_skip"]:
+        if tok in skip or tok in lex["_names"]:
             j += 1
             steps += 1
             continue
         return _classify(tok, lex)
     return AMBIGUOUS, None
+
+
+def _object_position(tokens, spans, i, lex, seg):
+    """True when an anchor that can ALSO be an object is not the subject of its clause.
+
+    English `you` is an object at least as often as a subject, so anchoring on it unconditionally
+    reads "Behind you stands a hooded figure" or "Berthe hands you a bowl" as the GM making the PC
+    act — the very mistake the French clitics `te`/`vous` are excluded to avoid. A preposition or a
+    known verb immediately before the anchor, with no clause break in between, means the PC is
+    being acted UPON, which AGENCY-01 explicitly permits. Same test guards PC proper names
+    ("Berthe hands the journal to Rubis")."""
+    if i == 0:
+        return False
+    if _CLAUSE_RE.search(seg[spans[i - 1].end():spans[i].start()]):
+        return False  # "…, you step back" — a clause break restores the subject reading.
+    if tokens[i - 1] in lex["_prep"]:
+        return True
+    return _classify(tokens[i - 1], lex)[0] is not AMBIGUOUS
 
 
 def _usable_name(name, lexicons):
@@ -284,48 +340,76 @@ def _usable_name(name, lexicons):
     return True
 
 
+def _name_parts(pc_names, lexicons):
+    """Every WORD of a PC name is an anchor of its own.
+
+    Campaign sheets carry "Oryn Ashveil" while tokens are single words, so an unsplit name could
+    never match and third-person PC narration went undetected on every shipped campaign. Each part
+    still has to survive the collision test above, and a part shorter than 3 letters is dropped."""
+    parts = []
+    for raw in pc_names or []:
+        for part in _TOKEN_RE.findall(strip_accents(raw or "")):
+            if len(part) >= 3 and part not in parts and _usable_name(part, lexicons):
+                parts.append(part)
+    return parts
+
+
 def _prepare(lexicons, pc_names):
     prepared = []
     lexicons = lexicons or LEXICONS
-    names = [strip_accents(n) for n in (pc_names or []) if n and len(strip_accents(n)) >= 3]
-    names = [n for n in names if _usable_name(n, lexicons)]
+    names = set(_name_parts(pc_names, lexicons))
     for code, lex in lexicons.items():
         d = dict(lex)
         d["_code"] = code
         d["_skip"] = set(lex.get("skip") or [])
         d["_hedge"] = set(lex.get("hedge") or [])
-        d["_anchors"] = set(lex.get("anchors") or []) | set(names)
+        d["_names"] = names
+        d["_anchors"] = set(lex.get("anchors") or []) | names
         d["_conj"] = set(lex.get("conj") or [])
+        d["_prep"] = set(lex.get("prep") or [])
+        # Anchors that are only anchors in subject position (object pronouns, PC names).
+        d["_object_anchors"] = set(lex.get("object_anchors") or []) | names
+        # Conjunction walk-over set: determiners removed, so « et le regard … » / "and the guard …"
+        # end the scan as AMBIGUOUS instead of reading the new subject noun as a PC verb.
+        d["_conj_skip"] = d["_skip"] - set(lex.get("det") or [])
         prepared.append(d)
-    return prepared, set(names)
+    return prepared, names
 
 
 def _findings_for_segment(seg_masked, seg_raw, prepared, names):
     out = []
-    tokens = [strip_accents(t) for t in _TOKEN_RE.findall(seg_masked)]
+    spans = list(_TOKEN_RE.finditer(seg_masked))
+    tokens = [strip_accents(m.group(0)) for m in spans]
+
+    def _add(kind, entry, subject):
+        out.append({"kind": kind, "verb": entry, "lang": lex["_code"],
+                    "extrait": _clean(seg_raw), "subject": subject})
+
     for lex in prepared:
         anchored = False
         for i, tok in enumerate(tokens):
             if tok not in lex["_anchors"]:
-                # "tu hoches la tête ET tu souris" often drops the second pronoun. A conjunction
-                # inherits the PC subject, but only once the sentence has established one.
+                # A conjunction inherits the PC subject ("tu hoches la tête ET souris"), but never
+                # over a determiner: « et le regard de Berthe » introduces a new nominal subject.
                 if anchored and tok in lex["_conj"]:
-                    kind, entry = _scan_anchor(tokens, i, lex)
+                    kind, entry = _scan_anchor(tokens, i, lex, skip=lex["_conj_skip"])
                     if kind in (ACTION, SPEECH):
-                        out.append({"kind": kind, "verb": entry, "lang": lex["_code"],
-                                    "extrait": _clean(seg_raw), "subject": tok})
+                        _add(kind, entry, tok)
+                continue
+            back, hit = _classify(tokens[i - 1], lex) if i > 0 else (AMBIGUOUS, None)
+            if tok in lex["_object_anchors"] and _object_position(tokens, spans, i, lex, seg_masked):
+                if tok in names and back == SPEECH:  # « … », dit Rubis — line attributed to the PC
+                    _add(SPEECH, hit, tok)
                 continue
             anchored = True
             kind, entry = _scan_anchor(tokens, i, lex)
-            back, hit = _classify(tokens[i - 1], lex) if i > 0 else (AMBIGUOUS, None)
             # « … », dit Rubis. — a speech verb just BEFORE a PC name attributes the line to the PC.
             if kind is AMBIGUOUS and tok in names and back == SPEECH:
                 kind, entry = SPEECH, hit
             # "si tu avances", "if you step" — a hedge introducing the clause makes it hypothetical.
             elif i > 0 and tokens[i - 1] in lex["_hedge"]:
                 kind, entry = AMBIGUOUS, None
-            out.append({"kind": kind, "verb": entry, "lang": lex["_code"],
-                        "extrait": _clean(seg_raw), "subject": tok})
+            _add(kind, entry, tok)
     return out
 
 
@@ -389,7 +473,12 @@ def analyze(draft, declared="", pc_names=(), lexicons=None):
     for s, e in _sentences(masked):
         seg_masked, seg_raw = masked[s:e], text[s:e]
         if _clean(seg_masked).endswith("?"):
-            continue
+            # Only the interrogative CLAUSE is exempt: skipping the whole segment made
+            # "Tu recules d'un pas — que fais-tu ?" a one-comma bypass of the entire gate.
+            cut = _question_cut(seg_masked)
+            if cut is None:
+                continue
+            seg_masked, seg_raw = seg_masked[:cut], seg_raw[:cut]
         for f in _findings_for_segment(seg_masked, seg_raw, prepared, names):
             if f["kind"] is AMBIGUOUS:
                 ambiguous += 1

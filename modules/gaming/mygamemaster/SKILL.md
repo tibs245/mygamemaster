@@ -286,6 +286,10 @@ Whenever you describe an action that changes world state (travel, discovery, com
 > `echo "<your draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/mj_checkpoint.py --declared "<player action>"`
 > → `✅ OK` (deliver), numbered feedback (rewrite then resubmit), or `⚠️ FORCED` (deliver as best as possible). The
 > gate never loops (budget of 2 attempts).
+> Before the judge, a **deterministic** check owns AGENCY-01/02/03 and does not fail open: it answers
+> `🚫 AGENCY GATE (deterministic) — TURN REFUSED` (rewrite: narrate only what the PC perceives) and, after
+> 3 attempts, `🚨 AGENCY GATE FORCED` (deliver, the violation is logged and re-injected). An operator can
+> unblock a live table with `MGM_AGENCY_GATE=off` (default ON, `MGM_AGENCY_MAX_ATTEMPTS=N` for the budget).
 
 ```
 🛡️ POST-ACTION CHECKLIST

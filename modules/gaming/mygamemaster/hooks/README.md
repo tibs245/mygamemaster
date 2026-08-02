@@ -23,7 +23,7 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 | `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action |
 | `mj_checkpoint.py` | — (called by GM) | **gate** per-turn: agency gate first, then LLM judge, each with a loop-prevention budget |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 146 cases (including auto-TTS, persistent pause, admin judge, the agency corpus table) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 191 cases (including auto-TTS, persistent pause, admin judge, the agency corpus table and a HELD-OUT false-positive table) |
 
 ## Principles
 

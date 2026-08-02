@@ -113,6 +113,12 @@ AGENCY_VIOLATIONS = [
      "I go to the traps", ["AGENCY-01", "AGENCY-03"]),
     ("EN action beyond a declared move",
      "You pull the first one. It's full of silvery perch.", "I go to the traps", ["AGENCY-01"]),
+    ("FR action smuggled in front of the handoff question",
+     "Tu recules d'un pas — que fais-tu ?", "", ["AGENCY-01"]),
+    ("FR action before a comma-attached question",
+     "Tu poses la main sur la pierre, que fais-tu ?", "", ["AGENCY-01"]),
+    ("EN action before a comma-attached question",
+     "You step back into the shadows, what do you do?", "", ["AGENCY-01"]),
 ]
 
 AGENCY_LEGITIMATE = [
@@ -178,6 +184,66 @@ AGENCY_LEGITIMATE = [
     ("FR scene state before the PC",
      "Le feu crépite. La cabane fume doucement dans l'automne. Devant toi, Rousset est déjà parti "
      "couper du bois. Tu entends le murmure de la Douce. Que fais-tu ?", ""),
+]
+
+# HELD-OUT false-positive table: the reported rate is measured HERE, never on AGENCY_LEGITIMATE,
+# which is the table the lexicons were tuned against and so cannot falsify them.
+AGENCY_HELDOUT = [
+    ("EN PC as object of a preposition, inverted subject",
+     "Behind you stands a hooded figure.", ""),
+    ("EN PC as object, NPC subject after the verb",
+     "Opposite you sits a man in a grey cloak.", ""),
+    ("EN world rising around the PC", "Around you rise the black walls of the keep.", ""),
+    ("EN NPC acts on the PC then acts on itself",
+     "Berthe hands you a bowl of broth and sits down opposite.", ""),
+    ("EN NPC yields to the PC then gestures",
+     "The guard steps aside for you and gestures at the stairs.", ""),
+    ("EN NPC watches the PC and stays silent", "The old man watches you and says nothing.", ""),
+    ("EN scene-output-template block 2 verbatim",
+     "Berthe sets down the knife and does not meet your eyes.", ""),
+    ("EN scene-output-template block 1 verbatim",
+     "The lantern gutters; cold damp rises from the stairwell.", ""),
+    ("EN scene-output-template ✅ showing rewrite",
+     "Hadrec sets the hammer down a little too fast. \"We're closed,\" he says, already "
+     "half-turning back to the forge — though the forge is dark and there is nothing left to "
+     "work.", ""),
+    ("EN NPC declines to ask", "He doesn't ask what you want.", ""),
+    ("EN narrative-pacing state of the world",
+     "The traps are further down on the left bank; the smoker is ready.", ""),
+    ("EN world moving on without the PC",
+     "Rousset returns with more perch. Evening falls. Firmin hasn't come back.", ""),
+    ("EN NPC improvises with what they own",
+     "The blanket spread on the ground serves as a gathering mat.", ""),
+    ("EN weather acting near the PC",
+     "Rain finds the gap in the roof and pools on the flagstones by your boots.", ""),
+    ("EN offstage sound", "A dog barks somewhere past the gate, then falls quiet.", ""),
+    ("EN NPC leaning toward the PC",
+     "The innkeeper leans over the counter toward you and lowers his voice.", ""),
+    ("FR perception then an NPC gaze as new subject",
+     "Tu sens le froid et le regard de Berthe pèse sur ta nuque.", ""),
+    ("FR perception then an NPC cry as new subject",
+     "Tu entends un bruit avant le cri de Berthe.", ""),
+    ("FR perception then a noun colliding with an action stem (bois)",
+     "Tu entends un craquement et le bois de la charpente travaille.", ""),
+    ("FR perception then a noun colliding with an action stem (serrure)",
+     "Tu entends la clé et la serrure joue dans le bois gonflé.", ""),
+    ("FR perception then a noun colliding with an action stem (poussière)",
+     "Tu vois la lueur au bout du couloir et la poussière danse dedans.", ""),
+    ("FR perception then a noun colliding with an action stem (lit)",
+     "Tu entends un râle et le lit grince dans le noir.", ""),
+    ("FR world acting on itself across a conjunction",
+     "Le vent tombe d'un coup et la porte de la grange bat contre le mur.", ""),
+    ("FR PC name as object of a preposition",
+     "Berthe tend le journal à Rubis, la main tremblante.", ""),
+    ("FR NPC speaks to the PC then resumes its own business",
+     "Firmin te parle sans lever les yeux, puis retourne à son établi.", ""),
+    ("FR landscape before the PC", "Devant toi, la Douce charrie des branches noires.", ""),
+    ("FR offstage animal", "Un chien aboie derrière la palissade, puis se tait.", ""),
+    ("FR ambient state across a conjunction",
+     "La neige tient sur les toits et le froid monte des dalles.", ""),
+    ("FR NPC offer inside the fiction", "Rousset propose d'aller couper du bois.", ""),
+    ("FR two world facts across a conjunction",
+     "L'odeur de fumée arrive du fournil et les braises rougeoient sous la cendre.", ""),
 ]
 
 
@@ -704,14 +770,25 @@ def main():
             rep = AG.analyze(draft, declared, PC_NAMES)
             if not rep["ok"]:
                 fp.append((label, [v["regle"] for v in rep["violations"]]))
-            check("passes %s" % label, rep["ok"],
+            check("passes (tuned) %s" % label, rep["ok"],
                   "%s → %s" % (draft[:60], [v["regle"] for v in rep["violations"]]))
-        rate = 100.0 * len(fp) / max(1, len(AGENCY_LEGITIMATE))
-        print("     measured false-positive rate: %.1f%% (%d/%d legitimate narrations blocked)"
-              % (rate, len(fp), len(AGENCY_LEGITIMATE)))
-        check("false-positive rate is zero on the corpus table", not fp, json.dumps(fp)[:160])
+        check("no false positive on the tuned table", not fp, json.dumps(fp)[:160])
         check("violation recall is total on the corpus table",
               blocked == len(AGENCY_VIOLATIONS), "%d/%d" % (blocked, len(AGENCY_VIOLATIONS)))
+
+        held_fp = []
+        for label, draft, declared in AGENCY_HELDOUT:
+            rep = AG.analyze(draft, declared, PC_NAMES)
+            if not rep["ok"]:
+                held_fp.append((label, [v["regle"] for v in rep["violations"]]))
+            check("passes (held-out) %s" % label, rep["ok"],
+                  "%s → %s" % (draft[:60], [v["regle"] for v in rep["violations"]]))
+        rate = 100.0 * len(held_fp) / max(1, len(AGENCY_HELDOUT))
+        print("     measured false-positive rate: %.1f%% (%d/%d HELD-OUT narrations blocked) — "
+              "the tuned table is excluded, it cannot falsify the lexicons it produced"
+              % (rate, len(held_fp), len(AGENCY_HELDOUT)))
+        check("false-positive rate is zero on the HELD-OUT table", not held_fp,
+              json.dumps(held_fp)[:200])
 
         # An ambiguous construction is NOT decided here: it is handed to the LLM judge.
         amb = AG.analyze("Tu as le pas lourd de celui qui n'a pas dormi.", "", PC_NAMES)
@@ -720,6 +797,26 @@ def main():
         collide = AG.analyze("Berthe regarde la porte.", "", ["Regarde"])
         check("PC name colliding with a verb is not used as an anchor", collide["ok"],
               json.dumps(collide)[:120])
+
+        # Shipped campaign sheets carry two-word names ("Oryn Ashveil"), tokens are single words.
+        two = AG.analyze("Oryn kneels by the fire and draws his blade.", "", ["Oryn Ashveil"])
+        check("multi-word PC name : each part anchors (first name)", not two["ok"],
+              json.dumps(two)[:140])
+        full = AG.analyze("Oryn Ashveil s'agenouille devant le feu.", "", ["Oryn Ashveil"])
+        check("multi-word PC name : the scan walks over the other part", not full["ok"],
+              json.dumps(full)[:140])
+        obj = AG.analyze("Berthe tend le journal à Oryn Ashveil.", "", ["Oryn Ashveil"])
+        check("PC name in object position is not a PC action", obj["ok"], json.dumps(obj)[:140])
+        check("English `you` only anchors in subject position",
+              AG.analyze("Behind you stands a hooded figure.", "", PC_NAMES)["ok"]
+              and not AG.analyze("You stand by the fire.", "", PC_NAMES)["ok"])
+        check("a clause break restores the subject reading of `you`",
+              not AG.analyze("Berthe steps back, you follow her.", "", PC_NAMES)["ok"])
+        check("conjunction inheritance stops at a determiner",
+              AG.analyze("Tu entends un bruit et le regard de Berthe se lève.", "", PC_NAMES)["ok"]
+              and not AG.analyze("Tu ouvres la porte et franchis le seuil.", "", PC_NAMES)["ok"])
+        mk = AG.analyze("You make your way across the bridge.", "", PC_NAMES)
+        check("« make » is not whitelisted as perception", mk["ambiguous"] >= 1, json.dumps(mk)[:140])
 
         # ── 15b. end-to-end : the gate is independent of the LLM judge ───────
         print("\n[15b] mj_checkpoint — agency gate with the judge switched OFF")
@@ -749,6 +846,18 @@ def main():
         out, code = run_cli("mj_checkpoint.py", args=["--file", os.path.join(root, "absent.txt")],
                             cwd=campag, env=noj)
         check("unreadable draft : refused instead of waved through", code == 1, out[:120])
+        # End to end with a two-word sheet name, as both shipped campaigns have.
+        write_json(os.path.join(campag, "characters", "404.json"), {
+            "meta": {"character_name": "Oryn Ashveil", "discord_id": "404"},
+            "stats": {}, "inventory": [], "health": {"hp_current": 10, "hp_max": 10}})
+        out, code = run_cli("mj_checkpoint.py", args=[
+            "--draft", "Oryn Ashveil s'agenouille devant le feu."], cwd=campag, env=noj)
+        check("two-word sheet name : third-person PC action refused",
+              code == 1 and "AGENCY-01" in out, out[:120])
+        out, code = run_cli("mj_checkpoint.py", args=[
+            "--draft", "Berthe tend le journal à Oryn Ashveil, la main tremblante."],
+            cwd=campag, env=noj)
+        check("two-word sheet name : PC as object still passes", code == 0, out[:120])
         # A gate bug must refuse, not approve: it does not get to be the reason a turn passes.
         import io, contextlib  # noqa: E402
         import mj_checkpoint as MC  # noqa: E402
