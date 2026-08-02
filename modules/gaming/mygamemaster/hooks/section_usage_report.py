@@ -4,10 +4,13 @@ section_usage_report.py — Reads .banquier/section-usage.json (one or more
 campaigns) and prints "section -> turns solicited -> observed trigger".
 
 This is the read side of the instrumentation in hooks/pre_llm_call.py
-(_section_triggers / _lib.section_usage_record). It resolves the DECLENCHEUR
-classifications MESURE-SKILL.md §3 could argue only from section content, not
-from usage — see docs/.../INSTRUMENTATION.md for what a fired trigger proves
-and does not prove.
+(_section_triggers / _lib.section_usage_record). It settles the section
+classifications that could otherwise only be argued from what a section says,
+never from whether it is used.
+
+A fired trigger proves the CONDITION held on that turn — never that the model
+read the matching part of SKILL.md. Read the counts as "this situation occurs
+N times in 20 turns", not as "this section earned its place".
 
 Usage:
   python3 section_usage_report.py [path/campaign ...]   # default: cwd
