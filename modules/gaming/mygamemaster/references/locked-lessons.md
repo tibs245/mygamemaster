@@ -11,7 +11,7 @@ the mystic NPC, the guide NPC).
 2. **IDs are thematic and stable** (`AGENCY-03`, `TIME-02`). Never renumber, never use a session number or a global counter — the old `#1…#128` numbering collapsed (three different rules held `#75`).
 3. **A new observation edits an existing rule** unless no rule covers it; only then append a new ID at the end of its family.
 4. **Hard cap: 65 rules, one line each.** Reaching the cap means merge, not append — the worked example, the verbatim and the session story go to the campaign log, never here.
-5. **Every rule declares two columns, and they are not the same claim.** `Enforced today` is falsifiable: it reads `code` only when a deterministic check in this repo *refuses the violating outcome*, and the row then names the artifact (file, plus function or check id) so a reader can go and break it. Everything else reads `prompt`, including code that only warns — opt-in, fail-open or advisory code is not enforcement, the corpus locked that lesson itself (TIME-04). `Target` is the intention: who *should* own the rule. When the two differ the target is written in **bold** and the row is open debt; when they match, nothing is emphasised.
+5. **Every rule declares two columns, and they are not the same claim.** `Enforced today` is falsifiable: it reads `code` only when a deterministic check in this repo *refuses the violating outcome*, and the row then names the artifact (file, plus function or check id) so a reader can go and break it. Everything else reads `prompt`, including code that only warns — opt-in, fail-open or advisory code is not enforcement, the corpus locked that lesson itself (TIME-04). `Target` is the intention: who *should* own the rule. When the two differ the target is written in **bold** and the row is open debt; when they match, nothing is emphasised. **One carve-out, stated here so the asymmetry is a rule and not an oversight:** a check that owns a discrete lifecycle step — today only `close_session.py` at wrap-up — reads `code` when it refuses *inside* that step, even though the step itself is prompt-invoked; the invocation gap is then logged once, as its own debt, in the fail-open inventory. A helper with no defined trigger point (`roll.py`, callable at any moment or never) does not qualify. Read every `code` in this file as "refuses at close, if close is run".
 6. **Never promote a rule to `code` because code was merged nearby.** Promote it the day the check refuses. Written-only rules recidivate: the corpus shows 8 agency violations committed within one hour of writing the rule that forbade them — and a check that cannot say no is a written rule with a runtime cost.
 
 Artifacts are named by file basename: scripts live in this module's `scripts/` directory, runtime
@@ -112,7 +112,7 @@ flow → STOP · question → one answer → STOP.
 | **WORLD-01** | Give every active NPC at least one logged scene or dated note per game day — including during ellipses — prioritising NPC↔NPC interaction over NPC↔PC. | BC-FLAT | `prompt` — `world_tick.py post` runs at close but is explicitly non-blocking and gated on `actors.json` | **`code`** | S13, S28, S33 (125 notes written retroactively) |
 | **WORLD-02** | Give each NPC an explicit drive and play it unprompted; a drive that is never exercised is a failed drive. | BC-FLAT | `prompt` | `prompt` | S28 |
 | **WORLD-03** | Promote every recurrence into canon: a place played in a session must exist in the world geography before close, an NPC, object or sign reaching three appearances gets a sheet, and any change to a place updates its record. | BC-SPACE | `code` — `check_session.py` `lieu_absent` / `pnj_sans_fiche` (blocking), gating `close_session.py` points P1/P2; the three-appearances threshold is not counted | `code` | S18–S23 (5 orphan places), S28 |
-| **WORLD-04** | Faction clocks are alive, not statuses: an event whose date has passed cannot stay "scheduled" — narrate WHO / WHAT / WHY / CONSEQUENCE, or cancel it explicitly. | BC-FLAT | `code` — `check_session.py` `echeance_depassee` (blocking) plus P3/P4; a free-text deadline stays informational (`echeance_non_parsable`) | `code` | S33 |
+| **WORLD-04** | Faction clocks are alive, not statuses: an event whose date has passed cannot stay "scheduled" — narrate WHO / WHAT / WHY / CONSEQUENCE, or cancel it explicitly. | BC-FLAT | `code` — `check_session.py` `echeance_depassee` (blocking), plus `close_session.py` P3/P4 read directly from `world.json`; a free-text deadline stays informational (`echeance_non_parsable`) | `code` | S33 |
 | **WORLD-05** | The world runs without the PC: a missed opportunity is a legitimate outcome, not a bug to repair. | BC-FLAT | `prompt` | `prompt` | S18 (validated by the player) |
 | **WORLD-06** | Give any newly introduced NPC an entry score of at least two actions, and never let an NPC cross a scene without acting, being perceived and leaving a trace. | BC-FLAT | `prompt` | `prompt` | S14, S30, S31 |
 | **WORLD-07** | Before narrating a scene, load in the same turn the place sheet, the sheet of every present NPC including their background actions, the calendar, the open threads and the GM secrets. | BC-FLAT | `prompt` — `scene_brief.py` is read-only and strictly fail-open, and `pre_llm_call.py` skips it entirely when the current location is unknown | **`code`** | S16 (place described from memory), S31 |
@@ -140,7 +140,7 @@ flow → STOP · question → one answer → STOP.
 | **MECH-01** | Roll before narrating any uncertain outcome, give the result as narration without the raw number, never dress a failure as a success, and resolve conflict with a real roll instead of a pre-decided outcome. | BC-RES | `prompt` — `roll.py` rolls real dice and applies the natural-die rule mechanically, but nothing requires the GM to call it | **`code`** | S12, S13, S25, S28–S34 |
 | **MECH-02** | Offer visible travel rolls for each leg (descent, march, orientation, watchfulness, crossing) against a fixed difficulty ladder, with numbers disclosed only on request. | BC-RES | `prompt` | `prompt` | S25 (strongest positive signal of the corpus) |
 | **MECH-03** | Express every ration stock in person-days and divide by group size, and route every object transfer through a ledger write rather than through prose. | BC-RES | `prompt` — no ledger write path exists for object transfers | **`code`** | S15, S23 |
-| **DATA-01** | Write canon only through the API scripts with schema validation as a post-condition, using a unique anchor per patch; never hand-edit structured data and never use a blind replace-all. | BC-DATA | `code` — `close_session.py` blocks on `validate_json.py` and `validate_schema.py`, and `pre-commit.hook` blocks a corrupted commit; the write-time post-condition itself is opt-in (`garde_json_strict`, default off) | `code` | S23 (two JSON corruptions) |
+| **DATA-01** | Write canon only through the API scripts with schema validation as a post-condition, using a unique anchor per patch; never hand-edit structured data and never use a blind replace-all. | BC-DATA | `prompt` — `validate_json.py` and `validate_schema.py` refuse malformed or schema-deviant canon at close, never a hand-edit or a blind replace-all that yields valid JSON; the write-time post-condition `garde_json_strict` is off by default, and `pre-commit.hook` is an opt-in template with an `MGM_SKIP_HOOK=1` bypass | **`code`** | S23 (two JSON corruptions) |
 | **DATA-02** | Keep one canonical channel: any play that happened outside the instrumented channel must be re-integrated as a structured report, in the same format as a logged session, before close. | BC-DATA | `prompt` — nothing detects play that happened off-channel | **`code`** | S20, S21 (sessions played, files empty) |
 | **DATA-03** | When the player states a rule of play, apply it in the data, trace it in the log, and promote it into the world rules file — the log alone does not make it discoverable. | BC-DATA | `prompt` | `prompt` | S23, S24 |
 | **CLOSE-01** | Trigger close from state and never from intention, refuse to close while any violation flag is open, generate the teaser only after the temporal sync, and pair every significant patch with a snapshot, a replayable audit script and a log entry. | BC-CLOSE | `code` — `close_session.py` refuses (exit 1) as soon as one blocking point fails; the teaser ordering and the snapshot/audit/log triplet are not checked | `code` | S22, S23, S21→S22 teaser desync |
@@ -164,7 +164,7 @@ Kept visible so they are not rediscovered. Never reinstate without a new player 
 | Under-documentation complaint about an NPC quoting troop numbers | **Closed by the player** ("his question is legitimate"). | — |
 | Chronology bug reported in S19 | **Withdrawn** — player false memory; the passage does not exist in the canonical log. | — |
 | Self-assigned session scores aggregated into a quality trend | **Not evidence.** Only player-issued evaluations count. | — |
-| "27 rules are applied by `code`" (former single "Applied by" column) | **Withdrawn** — four were. The column stated an intention as a state, in the very file that diagnoses that failure mode; it is now split into `Enforced today` and `Target`. | This file's preamble, rule 5 |
+| "27 rules are applied by `code`" (former single "Applied by" column) | **Withdrawn** — three were, and only at close. The column stated an intention as a state, in the very file that diagnoses that failure mode; it is now split into `Enforced today` and `Target`. | This file's preamble, rule 5 |
 
 ---
 
@@ -198,13 +198,15 @@ These carry the values a rule consumes; the rule itself is above. One line each 
 | 0 — session-destroying | 15 | 0 | 15 | 6 | 6 |
 | 1 — canon integrity | 18 | 0 | 18 | 9 | 9 |
 | 2 — living world & channel | 16 | 2 | 14 | 6 | 4 |
-| 3 — style, mechanics, data | 12 | 2 | 10 | 6 | 4 |
-| **Total** | **61** | **4** | **57** | **27** | **23** |
+| 3 — style, mechanics, data | 12 | 1 | 11 | 6 | 5 |
+| **Total** | **61** | **3** | **58** | **27** | **24** |
 
-The four rules a deterministic check actually refuses today: **WORLD-03** and **WORLD-04**
-(`check_session.py`, gating `close_session.py` P1–P4), **DATA-01** (`validate_json.py` +
-`validate_schema.py` at close, `pre-commit.hook` at commit) and **CLOSE-01** (`close_session.py`
-exit 1). Every one of them guards *canon at rest*; not one of them guards a narration in flight.
+The three rules a deterministic check actually refuses today — all three at close, and only once
+`close_session.py` is actually invoked, which `SKILL.md` §4 (data governance) asks the GM to do but
+nothing forces: **WORLD-03** (`check_session.py` `lieu_absent` / `pnj_sans_fiche`, gating `close_session.py`
+P1/P2), **WORLD-04** (`check_session.py` `echeance_depassee`, plus P3/P4 read directly in
+`close_session.py`) and **CLOSE-01** (`close_session.py` exit 1). Every one of them guards *canon at
+rest*; not one guards a narration in flight, and not one runs unless the GM asks for it.
 
 The five highest-recidivism rules — agency (8 reported violations), temporal drift (7
 rediscoveries), lexical loops (8 rediscoveries), verification discipline (6), empty meta turns (4)
@@ -213,17 +215,21 @@ and still recurred; text is not an enforcement mechanism, and neither is a check
 
 ### Code that exists but does not enforce
 
-Named so the debt is worked, not rediscovered. Each of these runs; none of them can say no.
+Named so the debt is worked, not rediscovered. None of these refuses the violating outcome on its
+own — either because it cannot say no, or because nothing guarantees it is ever asked.
 
 | Artifact | Rule it was written for | Why it does not count |
 |---|---|---|
+| `close_session.py` itself, the host of every `code` row above | CLOSE-01, WORLD-03, WORLD-04 | it refuses correctly once it runs, but no hook, no CI step and no automation invokes it — `SKILL.md` §4 asks the GM to run it at close ("Run this script at close"), and a GM who declares the session closed from intention never triggers a single check |
+| `validate_json.py` and `validate_schema.py` at close | DATA-01 | they refuse malformed or schema-deviant canon, not a hand-edit or a blind replace-all that yields valid JSON — `validate_schema.py` is tolerant by design (`additionalProperties: true` everywhere) |
+| `pre-commit.hook`, installed by `install-hooks.sh` | DATA-01 | a template, live only once copied into `.git/hooks/`; checks JSON *syntax* only and honours an `MGM_SKIP_HOOK=1` bypass |
 | `llm_judge.py` (rubric AGENTIVITE, B2) and the `mj_checkpoint.py` gate | AGENCY-01/02, KNOW-01/02 | opt-in (`meta.hooks.judge.actif`, off by default), fail-open on any error, and the gate forces the turn through after `gate_max_tentatives` attempts |
 | `clock.py` at close, via `close_session.py` point P5 | TIME-01, TIME-03 | run in dry-run, and P5 carries `bloquant=False`: drift is printed, never synchronised, never refused |
 | `world_tick.py post` at close | WORLD-01 | documented non-blocking; gated on `actors.json` and on the `temporality` feature axis |
 | `scene_brief.py`, injected by `pre_llm_call.py` | WORLD-07, SPACE-01 | strictly fail-open (minimal brief, exit 0) and skipped entirely when the current location is unknown — the turn then narrates from memory |
 | `post_tool_call.py` | AUDIT-02 | re-reads and diffs every campaign write, but the delta reaches the GM only at DEBUG/TRACE, and the hook is fail-open by contract |
 | `_scrub_player_channel` in `transform_llm_output.py` | META-04 | strips code fences and tracebacks; a prose recap after the STOP passes untouched |
-| `garde_json_strict` in `pre_tool_call.py` | DATA-01 | the only write-time validation post-condition, and it is off by default — corruption is caught later, at close |
+| `garde_json_strict` in `pre_tool_call.py` | DATA-01 | the only write-time validation post-condition, and it is off by default — corruption is caught later, at close, and only if it broke the syntax or the schema |
 | `roll.py` | MECH-01 | rolls real dice and applies the natural-die rule, but nothing requires the GM to call it |
 
 ## The prompt core
