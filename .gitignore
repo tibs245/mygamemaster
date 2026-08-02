@@ -31,6 +31,7 @@ ansible/inventory/host_vars/
 # --- Real game data (kept local as reference; only _template/ and example-* committed) ---
 /data/mygamemaster/campaigns/la-naissance-dun-roi/
 /data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/
+/data/mygamemaster/campaigns/nouvelle-marche/
 
 # --- Local editor/agent settings (may contain host IPs, paths) ---
 .claude/settings.local.json
