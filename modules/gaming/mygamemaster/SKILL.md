@@ -722,6 +722,9 @@ Stopping IS the hand-back — prefer ending on the world's condition. A bare "Wh
 **Exception — When player explicitly asks for continuity :**
 If player says "I do this, then that, then that" in their own message — then those actions are validated. GM does not invent them.
 
+**⏩ Pacing gate — TURN-01/02/06 (`references/locked-lessons.md`) :** time or space advances only on an explicit fast-forward signal (`⏩`, "avance rapide", "fast forward") — never on a question, a discussion or an intention. The grant is persisted and consumed by ONE turn ; check a draft :
+`echo "<draft>" | python3 /opt/modules/gaming/mygamemaster/hooks/turn_state.py check --declared "<player input>"` (0 = deliver, 1 = rewrite).
+
 *Concrete examples from this session: see `references/narrative-pacing-concrete.md`.*
 
 ### 6.7. SEQUENTIAL ACTION PROTOCOL — Continuous validation by Steward
