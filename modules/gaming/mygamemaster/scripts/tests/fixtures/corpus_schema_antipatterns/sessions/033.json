@@ -1,0 +1,36 @@
+{
+  "session": 33,
+  "date": "2026-01-03",
+  "participants": [
+    "PC_01"
+  ],
+  "start_hour": "Jour 62 aube",
+  "end_hour": "Jour 62 soir",
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ],
+  "npcs_met": [
+    {
+      "name": "NPC_ALLY",
+      "role": "ROLE_01"
+    }
+  ],
+  "visited_locations": [
+    {
+      "name": "LOC_VILLAGE"
+    }
+  ],
+  "hooks_S33_vers_S34": {
+    "hook_1": "HOOK_01",
+    "hook_2": "HOOK_02"
+  },
+  "mystique_signes_S33": [
+    {
+      "signe_id": "SIGN_01",
+      "signe_type": "TYPE_01"
+    }
+  ]
+}

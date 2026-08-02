@@ -53,6 +53,9 @@ _EN = {
     "pause.active": ("⏸️ *Pause active — the game is suspended. "
                      "Send ▶️ (or `!reprise`) to resume.*"),
     "pause.resumed": "▶️ *Game resumed.*",
+    # Last resort when the agency gate had to cut the WHOLE narration (never an error
+    # message: the player is not told a draft was rejected — cf. the dialogue fallback).
+    "agency.emptied": "*(The scene rests here. What do you do?)*",
     # ── scoreboard.py — headers + helpers ──
     "scoreboard.none": "No metrics yet (scoreboard.json missing).",
     "scoreboard.title": "📊 Scoreboard per model — campaign {name}",
@@ -91,6 +94,7 @@ _FR = {
     "pause.active": ("⏸️ *Pause active — la partie est suspendue. "
                      "Envoyez ▶️ (ou `!reprise`) pour reprendre.*"),
     "pause.resumed": "▶️ *Partie reprise.*",
+    "agency.emptied": "*(La scène s'arrête là. Que fais-tu ?)*",
     "scoreboard.none": "Aucune métrique pour l'instant (scoreboard.json absent).",
     "scoreboard.title": "📊 Tableau de bord par modèle — campagne {name}",
     "scoreboard.col_model": "modèle",

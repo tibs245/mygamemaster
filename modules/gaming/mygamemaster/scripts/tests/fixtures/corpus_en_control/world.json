@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "campagne": "CORPUS_EN",
+    "version": 1,
+    "time": {
+      "regime": "Narratif"
+    },
+    "pj_ids": [
+      "PC_01"
+    ],
+    "features": {
+      "monde_vivant": true,
+      "propagation_causale": true
+    }
+  },
+  "modules": {
+    "travel": {
+      "actif": false,
+      "params": {}
+    },
+    "factions": {
+      "actif": true,
+      "params": {}
+    },
+    "weather": {
+      "actif": true,
+      "params": {}
+    },
+    "worldbuilding_lieux": {
+      "actif": true,
+      "params": {}
+    },
+    "proactivite_pnj": {
+      "actif": true,
+      "params": {}
+    },
+    "artefacts": {
+      "actif": false,
+      "params": {}
+    },
+    "politique": {
+      "actif": false,
+      "params": {}
+    },
+    "construction_royaume": {
+      "actif": false,
+      "params": {}
+    }
+  },
+  "universe": {
+    "regions": [
+      {
+        "id": "reg:R1",
+        "name": "REGION_01",
+        "locations": [
+          {
+            "id": "loc:village",
+            "name": "LOC_VILLAGE"
+          },
+          {
+            "id": "loc:forest",
+            "name": "LOC_FOREST"
+          }
+        ]
+      }
+    ],
+    "entites_politiques": [
+      {
+        "id": "pol:P1",
+        "name": "POLITY_01"
+      }
+    ]
+  },
+  "global_state": {
+    "factions": [
+      {
+        "name": "FACTION_A",
+        "short_term_goals": "GOAL_ST_01",
+        "long_term_goals": "GOAL_LT_01"
+      }
+    ],
+    "timeline": "Jour 12 EVENT_A. Jour 18 EVENT_B.",
+    "faction_actions_horloge": {
+      "actions": [
+        {
+          "faction": "FACTION_A",
+          "actions_en_cours": []
+        }
+      ]
+    },
+    "gm_secrets": "SECRET_01"
+  },
+  "rules": {
+    "time": {
+      "tracking": {
+        "current_day": 18,
+        "current_hour": "J18 aube"
+      },
+      "movements": {
+        "LOC_VILLAGE -> LOC_FOREST": "2 h"
+      }
+    },
+    "weather": {
+      "saison": "SEASON_01"
+    }
+  },
+  "system": {
+    "des": "d20",
+    "seuils": {
+      "facile": 10,
+      "difficile": 18
+    }
+  }
+}

@@ -46,6 +46,39 @@ toggles — read live):
 }
 ```
 
+## Player agency — the one rule enforced without asking the model
+
+AGENCY-01/02/03 (never act, speak or feel in the player character's place) is the rule the field
+report found broken most expensively, and it is the only one checked **deterministically**, locally,
+with no model involved: `agency_gate.py`.
+
+What matters is *where* it is called from. It is called from `transform_llm_output.py`, the hook the
+runtime runs on the finished text of **every** turn — not from a command the GM is asked to type.
+A rule whose trigger is a line of prompt is a rule the model can skip, and it did: eight violations
+in one hour, an hour after the rule was written.
+
+Because that call sits downstream of inference, no new narration can be requested; the offending
+sentence is therefore **cut out** of the delivered text, the rest of the turn is delivered normally,
+and the correction is re-injected on the next turn like the judge's. The player is never told a
+sentence was removed. If a whole narration has to go, a neutral hand-back replaces it — never an
+empty message and never an error.
+
+- **A detected violation is never delivered.** That outcome does not depend on any model, network
+  call, configuration flag or attempt budget.
+- **An infrastructure failure is not a verdict.** If the analyser itself crashes, the turn ships
+  unchanged and is journalled as `blind` — breaking every session over our own bug would be a worse
+  answer than an unguarded turn, and the journal makes the unguarded turn findable.
+- **Never loops:** one pass per turn, nothing re-generated, cut/re-check rounds bounded by
+  `MGM_AGENCY_MAX_ATTEMPTS` (default 3), and no counter shared with the other gates.
+- **Journal:** every verdict lands in `<campaign>/.banquier/agency-gate.json`
+  (`clean` / `enforced` / `skipped` / `blind`, with counts). Measured cost: ~0.6 ms per turn.
+- **Escape hatch:** `MGM_AGENCY_GATE=off` disables it for a live campaign, loudly and traceably.
+  An explicit pause (⏸️/`!pause`) suspends it like the judge; an admin bypass does **not**.
+
+`mj_checkpoint.py` still exists and still checks the same rules, one step earlier: a GM that submits
+its draft gets to *rewrite* rather than be *cut*, which is strictly better. It is now an
+optimisation, not the guarantee.
+
 ## LLM rule checker (judge) — flexible Banker + strict conduct
 
 **Enabled by default at deploy time** with `google/gemma-4-31b-it` (set in

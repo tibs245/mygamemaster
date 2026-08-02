@@ -1,0 +1,27 @@
+{
+  "session": 2,
+  "date": "2026-01-02",
+  "start_hour": "Jour 81 aube",
+  "end_hour": "Jour 81 soir",
+  "participants": [
+    "PC_01"
+  ],
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_02"
+    }
+  ],
+  "npcs_met": [
+    {
+      "name": "NPC_ALLY",
+      "role": "ROLE_01"
+    }
+  ],
+  "visited_locations": [
+    {
+      "name": "LOC_VILLAGE"
+    }
+  ],
+  "resume": "SUMMARY_02"
+}

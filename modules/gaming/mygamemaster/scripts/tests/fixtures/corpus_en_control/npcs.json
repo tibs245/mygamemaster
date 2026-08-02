@@ -1,0 +1,17 @@
+[
+  {
+    "name": "NPC_ALLY",
+    "description": "DESC_01",
+    "attitude": "ATTITUDE_01",
+    "established_facts": [
+      "FACT_01"
+    ],
+    "gm_hypotheses": [
+      "HYP_01"
+    ],
+    "inventory": [
+      "ITEM_01"
+    ],
+    "localisation_actuelle": "LOC_VILLAGE"
+  }
+]
