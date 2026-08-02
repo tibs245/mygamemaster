@@ -1168,7 +1168,7 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 | `!collecte stats` | Shows collect CSV stats (entry count, error ratio, top error_type) |
 | `!collecte dernieres` | Shows last 5 collect CSV entries |
 | `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyst` mode C) |
-| `!features` / `!feature` | Shows effective state of 6 feature flags (`meta.features`) — `feature_toggle.py --list` |
+| `!features` / `!feature` | Shows effective state of 6 feature flags (`meta.features`) — `feature_toggle.py --list`. The `tts` row also reports the resolved auto-voice state: `tts: ON` alone does **not** mean the game speaks by itself (auto-voice is opt-in) |
 | `!feature <axis> on\|off` | **Admin** (`meta.admins`/`MGM_ADMIN_IDS`) : toggles axis **hot** (effect next turn, no redeployment) — relays script message, warning included for structural axis |
 
 ---

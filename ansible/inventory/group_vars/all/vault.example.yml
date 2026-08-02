@@ -21,8 +21,10 @@
 openrouter_api_key: "sk-or-v1-REPLACE_ME"
 
 # Narrative voice (axis `tts`, skill mygamemaster-tts) — MiniMax T2A v2, speech-2.8-turbo.
-# Fail-open: ABSENT/commented out → voice is a silent no-op (nothing breaks).
-# Present → audio generation is enabled (axis `tts` ON by default, threshold 100 characters).
+# ABSENT/commented out → no voice; nothing breaks, but the miss is REPORTED
+# (.banquier/tts-status.json + tts_doctor.py), not mimed as "the feature is off".
+# Present → `!raconte` works. The per-turn AUTOMATIC voice is a separate opt-in
+# (mgm_tts_auto / meta.hooks.tts_auto), OFF by default.
 minimax_api_key: "REPLACE_ME-minimax-key"
 
 # ── One Discord bot token PER game instance ──────────────────────────────────

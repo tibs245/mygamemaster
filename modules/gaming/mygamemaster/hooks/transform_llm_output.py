@@ -171,11 +171,17 @@ def _tts_min_chars():
 
 
 def _tts_timeout():
-    """Generation budget in the hook, in seconds.
+    """WALL-CLOCK budget for the whole generation in the hook, in seconds.
 
     Stays well under the runtime's own hook timeout (45 s, see
     ansible/templates/config.yaml.j2): overrunning it kills the whole hook, which
-    costs the CSV line and the Steward block, not merely the audio."""
+    costs the CSV line and the Steward block, not merely the audio.
+
+    This value alone is what bounds the child, via subprocess.run(timeout=…). The
+    `--timeout` we also pass to tts_render.py is a PER-CALL budget and segmented
+    synthesis (MGM_TTS_SEGMENT, ON by default) applies it once per segment, so N
+    segments can and will exceed it — the kill here is the real deadline, and it
+    is recorded as `failed:timeout`."""
     try:
         return max(5, int(os.environ.get("MGM_TTS_TIMEOUT", "40")))
     except ValueError:
@@ -215,16 +221,20 @@ def _voice_narration(camp, payload, narration):
     Never raises. Every failure is NAMED and carries the child's return code and
     stderr in `info` — the historical bug was to pipe that stderr and never read
     it, while telling the operator to go and look at it."""
+    # Every early return reuses this dict: a failure event missing `timeout_s`
+    # reads as a different schema in the journal.
     info = {"timeout_s": _tts_timeout()}
     if not os.path.isfile(RENDERER):
-        return FAIL, "renderer_missing", {"renderer": RENDERER}
+        info["renderer"] = RENDERER
+        return FAIL, "renderer_missing", info
     out_dir = os.path.join(str(camp), ".banquier", "tts")
     sess = L.active_session_number(camp) or 0
     out = os.path.join(out_dir, "auto_s%s_%d.mp3" % (sess, int(time.time())))
     try:
         os.makedirs(out_dir, exist_ok=True)
     except OSError as e:
-        return FAIL, "workspace_unwritable", {"error": str(e)}
+        info["error"] = str(e)
+        return FAIL, "workspace_unwritable", info
     env = dict(os.environ)
     env["MGM_TTS_PRODUCER"] = "hook-auto"
     try:
@@ -240,7 +250,7 @@ def _voice_narration(camp, payload, narration):
         info["error"] = "%s: %s" % (type(e).__name__, e)
         return FAIL, "spawn_error", info
     info["rc"] = r.returncode
-    info["stderr"] = L.truncate((r.stderr or b"").decode("utf-8", "replace"), 300)
+    info["stderr"] = L.truncate((r.stderr or b"").decode("utf-8", "replace"), 300, keep="tail")
     if r.returncode != 0:
         return FAIL, "exit_%d" % r.returncode, info
     if not (os.path.isfile(out) and os.path.getsize(out) > 0):
@@ -254,14 +264,25 @@ def _tts_trace(camp, payload, outcome, reason, narration, info):
     """Record the auto-voice outcome durably, then echo it on stderr.
 
     Order matters: the durable record comes first, because stderr is the channel
-    that was proven useless (34 sessions, not one `[mj-tts]` line ever surfaced)."""
+    that was proven useless (34 sessions, not one `[mj-tts]` line ever surfaced).
+
+    A journal write that FAILS is announced, never swallowed: an empty
+    .banquier/tts-status.json is read by tts_doctor.py as "the hook never ran on
+    this campaign", so a silent loss here would answer a live defect with a clean
+    bill of health. The exception is caught rather than propagated for one reason
+    only — a lost log line must not cost the player his turn — and the doctor
+    cross-checks by testing `.banquier` for writability instead of trusting the
+    absence of records."""
     info = dict(info or {})
     info["chars"] = len(narration)
     info["key"] = bool(os.environ.get("MINIMAX_API_KEY"))
     try:
         L.tts_record(camp, payload, outcome, reason, **info)
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(
+            "[mj-tts] JOURNAL WRITE FAILED (%s: %s): the auto-voice outcome could not be "
+            "recorded in .banquier/tts-status.json — the journal is NOT a record of what "
+            "happened here. Run tts_doctor.py.\n" % (type(e).__name__, e))
     detail = " ".join("%s=%s" % (k, info[k]) for k in
                       ("rc", "stderr", "chars", "min_chars", "timeout_s", "audio")
                       if k in info)

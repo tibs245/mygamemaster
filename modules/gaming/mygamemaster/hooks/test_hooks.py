@@ -210,8 +210,11 @@ def main():
                      "with the smell of damp stone and an even older secret. At the far "
                      "end of the hall, a broken throne waits in the shadows, and an invisible gaze "
                      "slowly settles on you.")
+        # Neutralised, not just unset: run_hook inherits os.environ, so an exported
+        # MGM_TTS_AUTO=1 would quietly turn the default-off checks into opt-in checks.
         base_env = {
             "MINIMAX_API_KEY": "test", "MGM_TTS_MOCK": "1", "MGM_TTS_MIN_CHARS": "100",
+            "MGM_TTS_AUTO": "", "MGM_TTS_TIMEOUT": "", "MGM_FEATURE_TTS": "",
             "MGM_TTS_FORMAT_MOCK": json.dumps({
                 "script": "You push the door. <#1.0#> A broken throne.", "emotion": "fearful",
                 "ambiance": "dungeon", "moment_cle": True}),
@@ -341,6 +344,66 @@ def main():
             _TT.subprocess.run = _real_run
         check("timeout is a named failure carrying its budget",
               (oc, rs) == ("failed", "timeout") and nfo.get("timeout_s") == 40, "%s %s" % (rs, nfo))
+
+        campd = _TT.L.campaign_dir({"cwd": build_fixture(os.path.join(root, "ttsunit"))})
+        _real_renderer = _TT.RENDERER
+        try:
+            _TT.RENDERER = os.path.join(root, "does-not-exist.py")
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.RENDERER = _real_renderer
+        check("a missing renderer is named, and keeps the common event shape",
+              (oc, rs) == ("failed", "renderer_missing") and nfo.get("timeout_s") == 40
+              and nfo.get("renderer"), "%s %s" % (rs, nfo))
+
+        def _ok_but_silent(*a, **k):
+            return _TT.subprocess.CompletedProcess(args=[], returncode=0, stdout=b"", stderr=b"")
+        try:
+            _TT.subprocess.run = _ok_but_silent
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.subprocess.run = _real_run
+        check("renderer exiting 0 without producing audio is a failure, not a success",
+              (oc, rs) == ("failed", "no_audio_file") and nfo.get("rc") == 0, "%s %s" % (rs, nfo))
+
+        # The diagnosis is the LAST stderr line; tts_generate prints a retry warning
+        # per attempt before it, so a head-clip keeps the noise and drops the answer.
+        noisy = os.path.join(root, "noisy_renderer.py")
+        with open(noisy, "w", encoding="utf-8") as fh:
+            fh.write("import sys\n"
+                     "sys.stderr.write('attempt 1 failed: HTTP 401 ' + 'x' * 400 + '\\n')\n"
+                     "sys.stderr.write('ERROR: synthesis failed after 2 attempts\\n')\n"
+                     "sys.exit(1)\n")
+        try:
+            _TT.RENDERER = noisy
+            oc, rs, nfo = _TT._voice_narration(campd, {"session_id": "x"}, narration)
+        finally:
+            _TT.RENDERER = _real_renderer
+        check("the child's LAST stderr line survives truncation (tail, not head)",
+              (oc, rs) == ("failed", "exit_1")
+              and "synthesis failed after 2 attempts" in (nfo.get("stderr") or ""),
+              json.dumps(nfo)[:200])
+
+        # An unwritable .banquier must not be silent: an empty journal is read by
+        # tts_doctor.py as "the hook never ran here" — the opposite of the truth.
+        if os.geteuid() != 0:
+            campro = build_fixture(os.path.join(root, "ttsro"))
+            bq = os.path.join(campro, ".banquier")
+            os.makedirs(bq, exist_ok=True)
+            os.chmod(bq, 0o500)
+            try:
+                out, err = run_hook("transform_llm_output.py", {
+                    "cwd": campro, "session_id": "sess_ttsro", "response": narration,
+                    "extra": {"model": "m"}}, env=tts_env)
+            finally:
+                os.chmod(bq, 0o700)
+            check("an unwritable journal never breaks the turn",
+                  isinstance(out, dict) and "__raw__" not in out and "Traceback" not in err,
+                  (json.dumps(out)[:120] + " | " + err[-200:]))
+            check("a lost journal write is announced, not swallowed",
+                  "JOURNAL WRITE FAILED" in err, err[:200])
+            check("and the underlying defect is still named on the only channel left",
+                  "workspace_unwritable" in err, err[-200:])
 
         # snapshot last_narration written (feeds !raconte), even when Minimax key absent
         nokey = {"MINIMAX_API_KEY": ""}

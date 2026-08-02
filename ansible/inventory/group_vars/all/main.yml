@@ -94,12 +94,18 @@ mgm_judge_model: minimax/minimax-m3              # ⚠️ same model as the GM �
 #   mgm_feature_temporality: true         # living world engine (world_tick pre/post, scene brief, propagation)
 #   mgm_feature_images: true              # skill mygamemaster-images
 
-# ─── Narrative voice (tts axis) — ENABLED by default on this instance ─────────
-# Explicit instance default + auto-voice length threshold. Fail-open on
-# MINIMAX_API_KEY: without a key (see vault.example.yml) the axis is a silent no-op.
-# To disable auto-voice while keeping !raconte: set meta.hooks.tts_auto=false (world.json).
-mgm_feature_tts: true                     # Minimax narrative voice (skill mygamemaster-tts + auto-TTS)
-mgm_tts_min_chars: 100                    # narration >= 100 chars → auto-voice (short turns stay silent)
+# ─── Narrative voice (tts axis) ───────────────────────────────────────────────
+# The AXIS is on: `!raconte` (manual, on demand) works. The AUTOMATIC per-turn
+# voice is a separate toggle and it is OFF by default — that path produced 0 audio
+# file over 34 sessions of real play, so it ships opt-in (docs/10-field-report.md).
+# To ENABLE auto-voice: uncomment mgm_tts_auto below (whole instance) or set
+# meta.hooks.tts_auto=true in a campaign's world.json (the world always wins).
+# A missing MINIMAX_API_KEY (see vault.example.yml) is no longer mimed as "disabled":
+# it is recorded as a failure in .banquier/tts-status.json. Diagnose with
+# `python3 modules/gaming/mygamemaster-tts/scripts/tts_doctor.py <campaign>`.
+mgm_feature_tts: true                     # axis: Minimax voice available (skill mygamemaster-tts)
+mgm_tts_min_chars: 100                    # auto-voice threshold: narration >= 100 chars
+#   mgm_tts_auto: false                   # auto-voice per turn — opt-in, default OFF
 
 # ─── Instance: deploy the SAME campaign multiple times (e.g. for testing) ────
 # instance=main  → deploy_id = <campaign_slug>            (production, backwards-compatible)

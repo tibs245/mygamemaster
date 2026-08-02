@@ -386,8 +386,17 @@ def _sid(payload):
     return str(payload.get("session_id") or first_present(payload, ["session_id"]) or "default")
 
 
-def _locked_rw(path, mutate):
-    """Opens `path` (created if needed), applies mutate(data)->data under flock."""
+def _locked_rw(path, mutate, strict=False):
+    """Opens `path` (created if needed), applies mutate(data)->data under flock.
+
+    `strict=False` (historical behaviour, kept for the ledger and the snapshots):
+    any failure is swallowed and None is returned — losing a ledger line must not
+    cost the player his turn.
+
+    `strict=True`: the exception is RAISED into the caller. Use it whenever the
+    *absence* of the record would itself be read as information — a caller that
+    cannot tell "nothing happened" from "nothing could be written" will report the
+    wrong diagnosis (cf. tts_record / tts_doctor.py)."""
     try:
         path.parent.mkdir(exist_ok=True, parents=True)
         with open(path, "a+", encoding="utf-8") as fh:
@@ -404,6 +413,8 @@ def _locked_rw(path, mutate):
                 fcntl.flock(fh, fcntl.LOCK_UN)
         return data
     except Exception:
+        if strict:
+            raise
         return None
 
 
@@ -439,7 +450,15 @@ TTS_EVENTS_KEPT = 20
 
 
 def tts_record(camp, payload, outcome, reason, **fields):
-    """Persists ONE auto-voice outcome in .banquier/tts-status.json. Fail-open.
+    """Persists ONE auto-voice outcome in .banquier/tts-status.json. NOT fail-open.
+
+    Raises (OSError, …) if the journal cannot be written. This is deliberate and it
+    is the one place in this file that does not swallow: an empty journal is read
+    by tts_doctor.py as "the hook never ran here", so a write that fails silently
+    turns a real, ongoing failure into a clean bill of health — the exact pathology
+    this journal exists to end. The caller decides what to do with the exception
+    (hooks/transform_llm_output.py `_tts_trace` announces it and continues, so the
+    turn is never lost for the sake of a log line).
 
     stderr is not a channel this code owns — the runtime may discard it, and a
     campaign that never sees a `[mj-tts]` line cannot tell "no trace" from "trace
@@ -476,7 +495,7 @@ def tts_record(camp, payload, outcome, reason, **fields):
         d["recent"] = recent[-TTS_EVENTS_KEPT:]
         return d
 
-    _locked_rw(_bq_dir(camp) / TTS_STATUS_FILE, mut)
+    _locked_rw(_bq_dir(camp) / TTS_STATUS_FILE, mut, strict=True)
     return event
 
 
@@ -876,7 +895,15 @@ def now_iso():
         return datetime.now().isoformat()
 
 
-def truncate(s, n):
+def truncate(s, n, keep="head"):
+    """Collapses newlines and clips to `n` chars.
+
+    `keep="tail"` clips from the FRONT instead. Use it for a child process's
+    stderr: the diagnosis is the LAST line (the `ERROR:` that preceded the exit),
+    and the retry warnings printed before it are exactly what a head-clip keeps
+    and a tail-clip discards."""
     s = "" if s is None else str(s)
     s = s.replace("\n", " ").strip()
-    return s if len(s) <= n else s[: n - 1] + "…"
+    if len(s) <= n:
+        return s
+    return "…" + s[-(n - 1):] if keep == "tail" else s[: n - 1] + "…"

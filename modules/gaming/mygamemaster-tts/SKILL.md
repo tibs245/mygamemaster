@@ -42,6 +42,9 @@ Voices the **last narration** on demand (zero latency on normal turns), or a **p
 
 ```bash
 MGM_TTS_AUTO=1                      # instance / deployment default
+# ansible deployment: set `mgm_tts_auto: true` in group_vars — the playbook
+# injects the variable into the container unit; exporting it in your own shell
+# does NOT reach the hook subprocess inside the container.
 ```
 ```json
 "meta": { "hooks": { "tts_auto": true } }   // world.json — campaign, wins over env
@@ -239,16 +242,16 @@ To add a new language, open `scripts/tts_generate.py` and add one entry to
 |---|---|---|
 | `tts` axis | `world.json > meta.features.tts` / `MGM_FEATURE_TTS` / `!feature tts on\|off` | activate/cut **all** voice (auto **and** `!raconte`) — live |
 | `meta.hooks.tts_auto` | `world.json` | **auto-voice opt-in** — default `false` (see § B), governed by the `tts` axis; `!raconte` is unaffected either way |
-| `MGM_TTS_AUTO` | env | instance-level auto-voice opt-in (default `0`; `world.json` wins) |
+| `MGM_TTS_AUTO` | env | instance-level auto-voice opt-in (default `0`; `world.json` wins). Ansible: `mgm_tts_auto` in `group_vars` — the unit file has no `MGM_TTS_AUTO` line unless that var is defined |
 | `meta.langue` | `world.json` | campaign language code (e.g. `"fr"`, `"en"`) — selects the default voice/boost |
 | `meta.audio.voice` | `world.json` | campaign voice override (takes priority over `meta.langue`) |
 | `meta.audio.language_boost` | `world.json` | campaign language_boost override |
 | `MGM_LANGUAGE` / `MGM_LANGUE` | env | instance-level language code (same effect as `meta.langue`, lower priority) |
-| `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = silent no-op |
+| `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = no audio, recorded as `failed:key_missing` (not as a silence by choice) |
 | `MGM_TTS_MIN_CHARS` | env | auto-voice length threshold (default 280) |
 | `MGM_TTS_FORMAT_MODEL` | env | format step model (default `minimax/minimax-m3`) |
 | `MGM_TTS_SEGMENT` | env | multi-emotion voice by segments (default ON; `0`/`off` = mono-call) |
-| `MGM_TTS_TIMEOUT` | env | auto-voice generation budget in hook (default 40 s; keep it under the runtime's 45 s hook timeout, otherwise the whole hook is killed and the turn loses its CSV line too) |
+| `MGM_TTS_TIMEOUT` | env | auto-voice **wall-clock** budget in the hook (default 40 s; keep it under the runtime's 45 s hook timeout, otherwise the whole hook is killed and the turn loses its CSV line too). The `--timeout` the hook passes on to the renderer is a **per-call** budget and segmented synthesis applies it once per segment, so only this kill deadline actually bounds the total — an overrun is recorded as `failed:timeout` |
 | `MGM_TTS_PRODUCER` | env | caller tag stamped in the sidecar (`manual`, `hook-auto`, `doctor`) |
 | `MGM_TTS_AMBIANCE_VOLUME` | env | ambient bed volume under voice (default 0.16) |
 

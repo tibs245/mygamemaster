@@ -45,9 +45,12 @@ except Exception:  # pragma: no cover - the TTS module must stay usable alone
 
 
 def _mask(value):
-    if not value:
-        return "absent"
-    return "present (%d chars, …%s)" % (len(value), value[-4:])
+    """present/absent and nothing else — this report is pasted into game channels.
+
+    SKILL.md tells the GM model to run this script when the voice is silent and to
+    relay the output; a key length and its last characters would land in a chat log
+    the operator does not control. Every decision below uses only bool(key)."""
+    return "present" if value else "absent"
 
 
 def _line(label, value, flag=" "):
@@ -80,6 +83,24 @@ def journal(camp):
     if L is None:
         return {}
     return L.tts_status(camp)
+
+
+def journal_writable(camp):
+    """Can the hook record anything here at all?
+
+    Without this test an EMPTY journal is ambiguous, and the tempting reading is
+    the wrong one: "the hook never ran". A `.banquier/` the container user cannot
+    write (a documented hazard here — SELinux relabelling on recreate, see
+    hermes-campaign.container.j2) produces exactly the same empty journal while
+    the auto-voice fails on every single turn."""
+    bq = os.path.join(str(camp), ".banquier")
+    target = bq if os.path.isdir(bq) else str(camp)
+    if not os.access(target, os.W_OK | os.X_OK):
+        return False
+    status = os.path.join(bq, "tts-status.json")
+    if os.path.exists(status) and not os.access(status, os.W_OK):
+        return False
+    return True
 
 
 def artefacts(camp):
@@ -173,6 +194,7 @@ def main():
             "MGM_TTS_SEGMENT": os.environ.get("MGM_TTS_SEGMENT", "1 (default)"),
         },
         "journal": journal(camp),
+        "journal_writable": journal_writable(camp),
         "artefacts": artefacts(camp),
     }
     rep["render"] = ({"skipped": "no key and no --mock"} if (not key and not args.mock)
@@ -203,9 +225,17 @@ def main():
                            "" if last_fail.get("key", True) else
                            " (and the HOOK's own environment had no MINIMAX_API_KEY — "
                            "the key must be exported to the runtime, not just to your shell)"))
-    if not rep["journal"]:
+    if not rep["journal_writable"]:
+        problems.append(
+            "%s is not writable by this user: the hook CANNOT record anything here, so an "
+            "empty journal below proves nothing and every auto-voice outcome is being lost. "
+            "Fix the permissions / SELinux label on the campaign volume first — until then "
+            "no diagnosis of the voice is trustworthy."
+            % os.path.join(camp, ".banquier"))
+    elif not rep["journal"]:
         notes.append("the hook has never recorded an auto-voice decision here: it never "
-                     "ran on this campaign, or this deployment predates the journal.")
+                     "ran on this campaign, or this deployment predates the journal. "
+                     "(.banquier/ IS writable, so this is a real absence, not a lost write.)")
     if isinstance(rep["render"], dict) and rep["render"].get("ok") is False:
         problems.append("end-to-end render FAILED (%s): %s"
                         % (rep["render"].get("reason"), rep["render"].get("stderr", "")))
@@ -246,6 +276,9 @@ def main():
     print("\n[4] what the hook recorded (%s)"
           % os.path.join(camp, ".banquier", "tts-status.json"))
     counts = rep["journal"].get("counts") or {}
+    _line("journal writable", "yes" if rep["journal_writable"] else
+          "NO — nothing can be recorded, an empty journal below means nothing",
+          " " if rep["journal_writable"] else "!")
     _line("outcomes", ", ".join("%s=%d" % kv for kv in sorted(counts.items())) or "(nothing yet)")
     if rep["journal"].get("last"):
         _line("last", json.dumps(rep["journal"]["last"], ensure_ascii=False)[:200])
