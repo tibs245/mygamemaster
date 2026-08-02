@@ -47,7 +47,7 @@ Environment=MGM_JUDGE_MODEL={{ mgm_judge_model | default('') }}
 # Feature flags — INSTANCE defaults (cascade: world.json > MGM_FEATURE_<AXE> > True).
 # A variable is injected ONLY if the Ansible var mgm_feature_<axe> is defined; otherwise
 # the runtime falls back to its default of True. world.json > meta.features takes priority
-# (per-campaign override, at runtime). See docs/monde-vivant/10-features.md.
+# (per-campaign override, at runtime). See docs/living-world/10-features.md.
 {% if mgm_feature_traceability is defined %}
 Environment=MGM_FEATURE_TRACEABILITY={{ '1' if (mgm_feature_traceability | bool) else '0' }}
 {% endif %}

@@ -165,6 +165,6 @@ to get a mid-way memo.
 
 ## References
 
-- `mygamemaster-analyste/SKILL.md` — Data audit (step 1 of !wrap-up)
+- `mygamemaster-analyst/SKILL.md` — Data audit (step 1 of !wrap-up)
 - `mygamemaster-session/SKILL.md` — !wrap-up orchestrator
 - `sessions/NNN.json` — Source of actions and encounters

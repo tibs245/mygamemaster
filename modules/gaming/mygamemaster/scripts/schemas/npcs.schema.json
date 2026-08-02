@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/npcs.schema.json",
   "title": "npcs.json — NPC sheets for a MJ Tonnerre campaign (canonical format)",
-  "description": "Canonical format per references/pnj-data-governance.md. Tolerates both containers: bare array [...] OR {\"pnj\": [...]}. Each sheet distinguishes established_facts (played) and gm_hypotheses (deductions not usable in narration). Two optional private layers (Level 2, audit/06-niveau2-factions.md §4): connaissances_privees (NPC's hidden knowledge, seeded by GM) and notes_privees (agent's inner monologue, appended by the coordinator).",
+  "description": "Canonical format per references/npc-data-governance.md. Tolerates both containers: bare array [...] OR {\"pnj\": [...]}. Each sheet distinguishes established_facts (played) and gm_hypotheses (deductions not usable in narration). Two optional private layers (Level 2, audit/06-niveau2-factions.md §4): connaissances_privees (NPC's hidden knowledge, seeded by GM) and notes_privees (agent's inner monologue, appended by the coordinator).",
   "oneOf": [
     {
       "type": "array",

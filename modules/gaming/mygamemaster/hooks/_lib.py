@@ -172,7 +172,7 @@ def diagnostic_cfg(monde):
 # The world (world.json) has the final say; env sets the instance/deployment default.
 # Effects remain fail-open: an ON axis with missing data (e.g. living world
 # without geo.json) is a simple no-op, never an error.
-# Wiring details: docs/monde-vivant/10-features.md.
+# Wiring details: docs/living-world/10-features.md.
 
 FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts")
 
@@ -210,7 +210,7 @@ def hooks_cfg(monde):
 
     Feature flags (meta.features) are the MAIN SWITCHES: if an axis is OFF,
     the fine-grained toggles it governs are forced OFF. Otherwise the fine toggle
-    meta.hooks.<x> decides (default ON). Detailed mapping: docs/monde-vivant/10-features.md.
+    meta.hooks.<x> decides (default ON). Detailed mapping: docs/living-world/10-features.md.
     """
     h = meta(monde).get("hooks")
     h = h if isinstance(h, dict) else {}

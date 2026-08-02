@@ -100,7 +100,7 @@ Ask:
    - **Free / narrative system** — simple rolls, focus on story. You improvise resolutions.
    - **Adapted existing system** — D&D 5e, FATE, PBTA, Cthulhu, OSR... you draw from their mechanics.
    - **House system** — the group defines its own rules.
-   - **Existing templates** — load `references/systemes/` for complete pre-built systems (ex: `expedition-abime.md` for Made in Abyss / vertical dark fantasy, `pathfinder-d20-simplifie.md` for Kingmaker / kingdom building).
+   - **Existing templates** — load `references/systems/` for complete pre-built systems (ex: `expedition-abyss.md` for Made in Abyss / vertical dark fantasy, `pathfinder-d20-simplified.md` for Kingmaker / kingdom building).
 
 8. **Crunch level** (1 to 5):
    - 1: Almost no dice, everything is narrative
@@ -255,7 +255,7 @@ Create the files:
 6. Initialize `sessions/001.json` with the preamble
 7. Initialize git: `git init && git add . && git commit -m "🎲 Campaign initialized"`
 8. **Campaign isolation** — No action needed: memory/config isolation is ensured by the **one-container-per-campaign** model (see README). No `hermes profile create` to run.
-   > _(History: `references/profiles-multi-campagne.md` described the old Hermes profile mechanism. It's replaced by container-level isolation.)_
+   > _(History: `references/profiles-multi-campaign.md` described the old Hermes profile mechanism. It's replaced by container-level isolation.)_
 
 9. **If independent campaign:** separate git and separate folder (memory isolation is already ensured by the container)
 
@@ -296,11 +296,11 @@ Then send a message in the channel: "The campaign is ready. Type `!sheet` to see
 
 ## References & Templates
 
-Complete and reusable systems are stored in `references/systemes/`. When a player requests a custom system during onboarding, first check if an existing template fits before creating a new one.
+Complete and reusable systems are stored in `references/systems/`. When a player requests a custom system during onboarding, first check if an existing template fits before creating a new one.
 
 | File | Description |
 |------|-------------|
-| `references/systemes/expedition-abime.md` | D20 system — Expedition & Abyss (vertical dark fantasy, Mark of the Abyss, Treasure, Fear). Inspired by *Made in Abyss*. Crunch 3/5. |
-| `references/systemes/pathfinder-d20-simplifie.md` | Simplified D20 Pathfinder (6 stats: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Kingmaker/kingdom building inspiration. Crunch 2-3/5. |
+| `references/systems/expedition-abyss.md` | D20 system — Expedition & Abyss (vertical dark fantasy, Mark of the Abyss, Treasure, Fear). Inspired by *Made in Abyss*. Crunch 3/5. |
+| `references/systems/pathfinder-d20-simplified.md` | Simplified D20 Pathfinder (6 stats: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Kingmaker/kingdom building inspiration. Crunch 2-3/5. |
 
-> **Isolation:** Campaign memory isolation is ensured by the dedicated container (one container per campaign, see README) — nothing to configure at onboarding. _(History: `mygamemaster/references/profiles-multi-campagne.md`, old profile mechanism, now replaced.)_
+> **Isolation:** Campaign memory isolation is ensured by the dedicated container (one container per campaign, see README) — nothing to configure at onboarding. _(History: `mygamemaster/references/profiles-multi-campaign.md`, old profile mechanism, now replaced.)_

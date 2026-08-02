@@ -73,7 +73,7 @@ def _tick_post_si_actif(campagne: Path, num: int) -> dict:
     {'lance':bool,'exit':int,'stdout':str,'stderr':str,'raison':str}.
 
     Simplified gate: we do NOT read meta.hooks.tick_post here. world_tick.py
-    guards ITSELF on features.temporality (cf. _lib + docs/monde-vivant/10):
+    guards ITSELF on features.temporality (cf. _lib + docs/living-world/10):
     if temporality is OFF, it performs a clean no-op exit 0. We only keep
     the `actors.json exists` check to avoid a useless call on a campaign
     without a living world.
@@ -81,7 +81,7 @@ def _tick_post_si_actif(campagne: Path, num: int) -> dict:
     if not (campagne / "actors.json").exists():
         return {"lance": False, "raison": "actors.json absent (living world not initialised)"}
     # ⚠️ world_tick.py uses SUBCOMMANDS: the verb 'post' comes FIRST,
-    #    before the positional <campaign> (cf. docs/monde-vivant/09 §3.4).
+    #    before the positional <campaign> (cf. docs/living-world/09 §3.4).
     #    DO NOT write [campagne, "post", …].
     r = lancer("world_tick.py",
                ["post", str(campagne), "--session", str(num), "--apply"])

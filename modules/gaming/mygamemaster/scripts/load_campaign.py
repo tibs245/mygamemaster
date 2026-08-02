@@ -54,7 +54,7 @@ from pathlib import Path
 #   artefacts           -> global_state.artefacts_connus        (artefacts.md:7 ; README:42)
 #   politique           -> universe.entites_politiques OR souverainete (politique.md:60-91 ; README:43)
 #   weather             -> rules.weather                        (weather.md:16 ; README:44)
-#   worldbuilding_lieux -> universe.regions                     (worldbuilding-lieux.md:123 ; README:45)
+#   worldbuilding_lieux -> universe.regions                     (worldbuilding-locations.md:123 ; README:45)
 #   construction_royaume-> system.construction_royaume OR rules.construction (construction-royaume.md:5 ; README:46)
 
 MODULES = {
@@ -92,7 +92,7 @@ MODULES = {
         "info": ["universe.regions[].biodiversite"],  # progressive (per region)
     },
     "worldbuilding_lieux": {
-        "fichier": "worldbuilding-lieux.md",
+        "fichier": "worldbuilding-locations.md",
         "requis": [["universe.regions"]],
         "info": [],
     },

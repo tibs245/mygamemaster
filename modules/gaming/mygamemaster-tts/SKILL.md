@@ -36,7 +36,7 @@ When the `tts` axis is **ON** (default) **and** `MINIMAX_API_KEY` is present, th
 `transform_llm_output` hook **automatically** voices sufficiently long **narrations**
 (threshold `MGM_TTS_MIN_CHARS`, default 280 — short turns/mechanics stay silent, to remain **smooth**)
 and **attaches the audio** to the message via `MEDIA:`. You don't have to do **anything**:
-it's wired at runtime. Details: `docs/monde-vivant/10-features.md` (tts axis).
+it's wired at runtime. Details: `docs/living-world/10-features.md` (tts axis).
 
 - **Cut auto-voice without breaking anything**: `!feature tts off` (live, next turn) — also disables
   `!raconte`. To keep `!raconte` but disable auto: `meta.hooks.tts_auto=false`.

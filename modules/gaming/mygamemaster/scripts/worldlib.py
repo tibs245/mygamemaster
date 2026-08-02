@@ -21,7 +21,7 @@ scene_brief:
   * conversion of "pinned" deadlines (clock.py format) to T.
 
 Targets: Python 3.11, PURE STDLIB (no external dependencies — no pip / numpy
-/ scipy). See contract `docs/monde-vivant/08-contrat-implementation.md` §3, §13,
+/ scipy). See contract `docs/living-world/08-implementation-contract.md` §3, §13,
 §14: the public signatures below are FROZEN.
 
 Cross-cutting conventions (contract §0):

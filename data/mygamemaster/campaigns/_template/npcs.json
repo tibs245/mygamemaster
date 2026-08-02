@@ -1,5 +1,5 @@
 {
-  "_schema": "modules/gaming/mygamemaster/scripts/schemas/npcs.schema.json — see references/pnj-data-governance.md",
+  "_schema": "modules/gaming/mygamemaster/scripts/schemas/npcs.schema.json — see references/npc-data-governance.md",
   "_howto": [
     "One entry per NPC the players can meet. Delete the example below and write your own.",
     "established_facts = what was actually PLAYED and is now canon. The GM may narrate it freely.",

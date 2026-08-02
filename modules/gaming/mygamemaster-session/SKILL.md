@@ -414,9 +414,9 @@ python3 $SCRIPTS/close_session.py $CAMP --titre "<episode title>" --teaser "<tea
 `check_session.py`, `clock.py --dry-run` then ~10-point pipeline check.
 Exit != 0 = wrap-up refused: fix listed points then re-run.
 
-**Available audit scripts (see also `mygamemaster-analyste` for 3 layers) :**
+**Available audit scripts (see also `mygamemaster-analyst` for 3 layers) :**
 - `build_brief.py <campaign> <npc> --cache` : extract NPC brief (MD5 cache)
-- `call_pnj.py <campaign> <npc> <context> --dry-run` : simulate RP response
+- `call_npc.py <campaign> <npc> <context> --dry-run` : simulate RP response
 
 Pipeline report goes to GM, never to players.
 
@@ -427,7 +427,7 @@ an independent, reusable skill.
 
 #### Step 1 — 🐞 Steward Audit (`!analyse-bug`)
 
-Calls `mygamemaster-analyste/SKILL.md` in **wrap-up audit mode**.
+Calls `mygamemaster-analyst/SKILL.md` in **wrap-up audit mode**.
 Verifies ALL points: weather, time, inventories, NPCs, locations, factions,
 clock, artifacts.
 
@@ -553,7 +553,7 @@ Before initializing new session, verify **persistence structures** are in place.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> 📄 **Complete procedure** (minimal structure `rules.time.tracking`, gentle migration of sheets, parent git handling, documented gaps) : `references/audit-persistance-dry-run.md`.
+> 📄 **Complete procedure** (minimal structure `rules.time.tracking`, gentle migration of sheets, parent git handling, documented gaps) : `references/persistence-audit-dry-run.md`.
 
 **Process :** DON'T block resumption for these gaps. FIX them before sending opening narration (between step 5.7 and 6.5).
 
@@ -571,7 +571,7 @@ Before writing any opening narrative phrase (the reminder with summary, the scen
    **c) Words put in NPC mouth** — make NPC say a summary the PC didn't express that way.
    **d) Object/relation characterization minimized** — reduce emotional weight of object played as important.
 
-   (Real cases documented : `references/audit-persistance-dry-run.md`.)
+   (Real cases documented : `references/persistence-audit-dry-run.md`.)
 
    → **Cure :** before writing opening narration, read `sessions/NNN.json → actions[]` + `etat_fin` entirely + `characters/<id>.json` + faction clock. For each factual detail (time, object, location, NPC words), verify trace in logs. No trace = probably invented. Don't start narrative sentence before checking these 4 points.
 
@@ -655,7 +655,7 @@ Use `outils/gestion_temps.py` (CLI or Python module) to add and validate events.
 ### 2. `sessions/NNN.json` (detailed narrative log)
 - **Session start** → action type `meta` : `"Start of session {N}"`
 - **Player action** → action type `roll|action|combat|dialogue` with player and description
-- **Sheet modification** → action type `modif_perso` (see `mygamemaster-personnage` skill)
+- **Sheet modification** → action type `modif_perso` (see `mygamemaster-character` skill)
 - **NPC meeting** → add to `npcs_met[]`
 - **Location visit** → add to `visited_locations[]`
 - **Wrap-up** → action type `meta` : `"Session {N} wrapped up"`
@@ -685,10 +685,10 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | Skill | Interaction |
 |-------|-------------|
 | `mygamemaster` (hat) | This skill auto-loads on `!cloture`, `!reprendre`, `!session` |
-| `mygamemaster-personnage` | `!cloture` reads all sheets for group state; `!reprendre` too |
-| `mygamemaster-inventaire` | `!cloture` saves inventories via character sheets |
-| `mygamemaster-outils` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-outils` |
-| `mygamemaster-intendant` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
+| `mygamemaster-character` | `!cloture` reads all sheets for group state; `!reprendre` too |
+| `mygamemaster-inventory` | `!cloture` saves inventories via character sheets |
+| `mygamemaster-tools` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-tools` |
+| `mygamemaster-steward` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
 | `mygamemaster-initiation` | Campaign first session created after `!init` |
 
 ---
@@ -713,7 +713,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | **Invent time jumps or unplayed days in events.json** | **Only add what was ACTUALLY played. If session continues same instant, t doesn't change. Only events traceable to played action are canon.** |
 | **Narrate `!reprendre` opening without checking logs first** | **Before any narrative sentence, check 4 points from step 6.5 (`actions[]`, `visited_locations[]`, `npcs_met[]`, `etat_fin`, `end_hour`).** |
 
-> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/audit-persistance-dry-run.md`.
+> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/persistence-audit-dry-run.md`.
 
 ---
 
@@ -725,7 +725,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | User Signal | Action |
 |---|---|
-| "Create a Problem/Solution/Consequence file" | Use `references/template-probleme-solution-consequence.md` |
+| "Create a Problem/Solution/Consequence file" | Use `references/template-problem-solution-consequence.md` |
 | "Did you note our previous points?" + list | Apply checklist below on each listed point |
 | "Fixes to prioritize before resumption" | Treat as post-session checklist, commit before replying |
 
@@ -826,8 +826,8 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 
 ## References
 
-- `references/audit-persistance-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
-- `references/template-probleme-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
+- `references/persistence-audit-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
+- `references/template-problem-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
 
 ## Dependencies
 
@@ -839,10 +839,10 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 - **Files** : `./npcs.json`
 - **Files** : `./characters/<id>.json`
 - **Scripts** : `./outils/gestion_temps.py` (t calculations, validation, queries)
-- **Required skills** : `mygamemaster-personnage` (sheet reading), `mygamemaster-outils` (action formatting), `mygamemaster-intendant` (Steward — CSV collection)
+- **Required skills** : `mygamemaster-character` (sheet reading), `mygamemaster-tools` (action formatting), `mygamemaster-steward` (Steward — CSV collection)
 - **Files** : `collecte.csv` — diagnostic data (player evaluation written at wrap-up, Phase 1 step 5)
 - **Files** : `world.json > meta.diagnostic` — enable/disable player collection at wrap-up
-- **References** : `references/template-probleme-solution-consequence.md` (post-session fix template)
+- **References** : `references/template-problem-solution-consequence.md` (post-session fix template)
 - **No external tools** needed — everything via JSON files
 
 ---

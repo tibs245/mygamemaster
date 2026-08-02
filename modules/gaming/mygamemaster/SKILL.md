@@ -84,7 +84,7 @@ Mechanics are my tools, not the show. The player sees the world, not the rules.
 
 ## Formatting Conventions
 
-**Absolute visual consistency** — each element has a fixed format that players recognize instantly. **These templates are the single source of truth** : sub-skills (`mygamemaster-session`, `-personnage`) *refer to them* without recopying the formatting.
+**Absolute visual consistency** — each element has a fixed format that players recognize instantly. **These templates are the single source of truth** : sub-skills (`mygamemaster-session`, `-character`) *refer to them* without recopying the formatting.
 
 ### Session Summary
 ```
@@ -247,11 +247,11 @@ The `/opt/modules/gaming/mygamemaster/scripts/` folder provides machine guards (
 | `close_session.py` | Close pipeline (~10 points) — **refuses if blocking step missing**, proposes commit message |
 | `validate_schema.py` | Structural validation against `scripts/schemas/` |
 | `build_brief.py` | Extracts NPC brief from npcs.json (MD5 cache). Verifies established_facts, inventory, position. Phase 1 of lightweight agent architecture. |
-| `call_pnj.py` | Calls flash LLM with brief + context. `--dry-run` for preview. Phase 2 of lightweight agent architecture (N1). |
+| `call_npc.py` | Calls flash LLM with brief + context. `--dry-run` for preview. Phase 2 of lightweight agent architecture (N1). |
 | `ensure_agent.sh` | Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
 | `run_turn.sh` | Runs NPC/Faction turn: `build_brief.py` → agent response. Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
 
-Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mygamemaster-intendant/SKILL.md §2`).
+Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mygamemaster-steward/SKILL.md §2`).
 
 ### 1. COHERENCE ABOVE ALL
 Before each narrative response in a TTRPG session, verify the **campaign notes** (`world.json`, `npcs.json`, `current session`). Long-term coherence is sacred.
@@ -270,7 +270,7 @@ Before each narrative response in a TTRPG session, verify the **campaign notes**
 - NPC thoughts, hidden traps, scenario secrets are for YOU ALONE
 - If a player asks for info belonging to another: "*Only [X] knows that. Ask them in-game.*"
 
-*(Compartmentalization is detailed in §9 "The GM Keeps Secrets". The `mygamemaster-personnage` sub-skill refers to it without recopying.)*
+*(Compartmentalization is detailed in §9 "The GM Keeps Secrets". The `mygamemaster-character` sub-skill refers to it without recopying.)*
 
 ### 3. SYSTEMATIC NOTES
 
@@ -317,11 +317,11 @@ Whenever you describe an action that changes world state (travel, discovery, com
 
 □ NPC PROACTIVITY — Has each present NPC acted? (if proactivite_pnj module active)
 ```
-*This is the **POST-action** checklist (the **PRE-response** checklist is in §7; details of both in `references/checklist-coherence.md`).* After EVERY significant action, update files: world state (`world.json`), character sheets, NPCs (`npcs.json`), session log (`sessions/NNN.json`), and factions (`world.json > global_state.factions`, if module active).
+*This is the **POST-action** checklist (the **PRE-response** checklist is in §7; details of both in `references/consistency-checklist.md`).* After EVERY significant action, update files: world state (`world.json`), character sheets, NPCs (`npcs.json`), session log (`sessions/NNN.json`), and factions (`world.json > global_state.factions`, if module active).
 
 **🧮 STEWARD CHECKPOINT — fast transactional verification :**
 At key moments (scene end, combat end, major world state change, before player disconnect), apply **the 3 Steward controls
-(SOURCE / TRANSFER / COHERENCE)** to recent scene actions — canonical formulation and detail in `mygamemaster-intendant/SKILL.md §2`.
+(SOURCE / TRANSFER / COHERENCE)** to recent scene actions — canonical formulation and detail in `mygamemaster-steward/SKILL.md §2`.
 
 The Steward is NOT a sub-agent — it is a verification process the GM applies. In practice:
 - Mentally check the 3 controls before closing a scene
@@ -331,20 +331,20 @@ The Steward is NOT a sub-agent — it is a verification process the GM applies. 
 Do not spam: one checkpoint per key moment, not after every sentence.
 
 ### 3.1. Factions Module — active if `modules.factions.actif` = true AND `meta.features.living_npcs_factions` != false → read `references/modules/factions.md`
-Faction tracking, proactive clock and PC objectives (difficulty / danger / notoriety). JSON template details in `references/faction-tracking.md`, obstacle grids in `references/pj-objectifs-obstacles.md`, narrative cross-check in `references/cross-check-horloge-vs-session.md`.
+Faction tracking, proactive clock and PC objectives (difficulty / danger / notoriety). JSON template details in `references/faction-tracking.md`, obstacle grids in `references/pc-goals-obstacles.md`, narrative cross-check in `references/cross-check-clock-vs-session.md`.
 
 ### 3.2. Travel Module — active if `world.json > modules.travel.actif` → read `references/modules/travel.md`
 Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations are in `world.json > rules.time.movements` (procedure §0 above).
 
 ### 3.3. Multi-agent loop (NPC/Faction agents — approved, per-campaign toggleable)
 
-> **Level 2 NPC/Faction agents are an approved feature, toggleable per campaign.** Their design lives in skills `mygamemaster-pnj` (NPC-agent) and
+> **Level 2 NPC/Faction agents are an approved feature, toggleable per campaign.** Their design lives in skills `mygamemaster-npc` (NPC-agent) and
 > `mygamemaster-faction` (Faction-agent), and reference `references/inter-agent-hermes.md`.
-> The Steward (`mygamemaster-intendant`) remains the transactional verification standard,
+> The Steward (`mygamemaster-steward`) remains the transactional verification standard,
 > regardless of action source.
 
 **The Steward applies the 3 transactional controls** (canonical formulation:
-`mygamemaster-intendant/SKILL.md §2`) regardless of action source — player, NPC played by GM, or faction. The Steward verifies the transaction, not the source.
+`mygamemaster-steward/SKILL.md §2`) regardless of action source — player, NPC played by GM, or faction. The Steward verifies the transaction, not the source.
 
 **Flow :**
 1. GM narrates scene to a decision point
@@ -456,8 +456,8 @@ Any information revealed in-game about an NPC, place, relation, object, or world
 - `established_facts` — what was played or said verbatim, traceable to session
 - `gm_hypotheses` — my speculations, **unusable in narration** without in-game validation
 
-See `references/pnj-data-governance.md` for full template and rules.
-See `references/pnj-loyaute-limites.md` for loyalty system and allied NPC personal limits.
+See `references/npc-data-governance.md` for full template and rules.
+See `references/npc-loyalty-limits.md` for loyalty system and allied NPC personal limits.
 
 **Concrete example of avoided error :**
 ```
@@ -473,7 +473,7 @@ See `references/pnj-loyaute-limites.md` for loyalty system and allied NPC person
 - ❌ "[the stream] rose from last night's rain" when filed weather announced rain FOR upcoming night → weather is NEVER invented (`world.json > rules.weather > regions[].conditions_actuelles` and `prochain_changement`).
 - ❌ "You go [to A], take [X], go [to B], return" → 4+ actions, 0 decision (see §6.6 Open narrative pace).
 
-> **Campaign reference :** Real detailed cases (durations, possessive, objects, weather, pace) are in `references/narrative-erreurs-recurrentes.md`.
+> **Campaign reference :** Real detailed cases (durations, possessive, objects, weather, pace) are in `references/narrative-recurring-errors.md`.
 
 ### ⚠️ Pitfall — Regression in correction: replacing one error with another
 
@@ -515,7 +515,7 @@ GM removes possessive. Replacement sentence:
 
 **Anti-possessive test :** Before sending narrative response, reread and spot any possessive ("your") or superlative ("you are the one"). For each, ask: "Does the file confirm it?" If no → reformulate describing PC's **actual role** in situation.
 
-> **Campaign reference :** See `references/narrative-erreurs-recurrentes.md` for the documented correction patterns (durations, possessive/authority, object chain, NPC relations, weather, pace).
+> **Campaign reference :** See `references/narrative-recurring-errors.md` for the documented correction patterns (durations, possessive/authority, object chain, NPC relations, weather, pace).
 
 ### 4.2. NPC Proactivity Module — active if `modules.proactivite_pnj.actif` = true AND `meta.features.living_npcs_factions` != false → read `references/modules/proactivite-pnj.md`
 The 5 proactivity pillars (background actions, personal objectives, spontaneous dialogue, autonomous disagreements, contextual reactions). *(JSON key `proactivite_pnj` → file `proactivite-pnj.md`.)*
@@ -528,7 +528,7 @@ Four more thematic modules, same template as above. Each applies only if its `ac
 
 - **Politics Module** — active if `world.json > modules.politique.actif` → read `references/modules/politique.md`. World layers, sovereignty (affiliation / claim / covetous), political entities. Relevant for political campaigns, realm-building or territorial-stakes campaigns.
 - **Weather Module** — active if `world.json > modules.weather.actif` → read `references/modules/weather.md`. Generic weather and biodiversity framework; regional values stay in `world.json > rules.weather` and `universe.regions[].biodiversite`.
-- **Worldbuilding (Places) Module** — active if `world.json > modules.worldbuilding_lieux.actif` → read `references/modules/worldbuilding-lieux.md`. 10-point place creation framework. *(JSON key `worldbuilding_lieux` → file `worldbuilding-lieux.md`.)*
+- **Worldbuilding (Places) Module** — active if `world.json > modules.worldbuilding_lieux.actif` → read `references/modules/worldbuilding-locations.md`. 10-point place creation framework. *(JSON key `worldbuilding_lieux` → file `worldbuilding-locations.md`.)*
 - **Realm Construction Module** — active if `world.json > modules.construction_royaume.actif` → read `references/modules/construction-royaume.md`. Generic domain construction/governance framework; concrete parameters live in `world.json > system.construction_royaume` / `rules.construction`. *(JSON key `construction_royaume` → file `construction-royaume.md`.)*
 
 ---
@@ -651,7 +651,7 @@ When a player uses ⏸️ and corrects you on a **fact** (seal counts, NPC biogr
 6. ✅ **Do not pretend to correct mentally** — correction must be TRACEABLE (git commit) and VISIBLE (you say what you corrected).
 
 **Common memory-narration pitfalls (blacklist to check before narrating) :**
-> 📖 Detailed reference with concrete examples : `references/narrative-erreurs-recurrentes.md` (6 documented patterns with wrong/correct versions).  
+> 📖 Detailed reference with concrete examples : `references/narrative-recurring-errors.md` (6 documented patterns with wrong/correct versions).  
 > 📖 *History :* `references/profiles-architecture.md` describes old Hermes profile isolation. Per-campaign isolation is now ensured by **one-container-per-campaign** model (see README / docs/06).
 - ❌ **🔴 RECURRING — a duration ("20 years")** attached to wrong verb : a duration can be filed but tied to a specific verb ("spent 20 years **maintaining** X", active) ≠ "**slept** 20 years" (invented). Check `npcs.json > established_facts`.
 - ❌ A **count** (remaining objects/resources) → check `global_state` before stating it.
@@ -703,7 +703,7 @@ NEVER make an object appear in an NPC's hands without checking their sheet (`npc
 - ❌ "They pull out [a specific object]" without checking → it's an invention, forbidden
 - ✅ An NPC can have **implicitly generic objects** : clothes, utility knife, water skin, flint — as much as any adult in their context would have. But NOT specific tools (bags, ropes, lamps, containers) undocumented.
 - ✅ Weather is NEVER invented — always drawn from `world.json > rules.weather > regions[].conditions_actuelles` and `prochain_changement`
-- ✅ Repurposing technique: rather than invent an object, have NPC creatively use what they have (see `references/pnj-utilisation-detournee.md`)
+- ✅ Repurposing technique: rather than invent an object, have NPC creatively use what they have (see `references/npc-misuse.md`)
 
 **How to influence well without imposing :**
 ```
@@ -748,7 +748,7 @@ If EVEN ONE test fails → **stop, correct, then respond.**
 **🔁 NARRATIVE PRE-VALIDATION BY STEWARD — Before sending narrative response :**
 Before any response that changes world state (travel, discovery, dialogue, combat, consumption),
 apply **the 3 Steward controls SOURCE / TRANSFER / COHERENCE** (canonical formulation:
-`mygamemaster-intendant/SKILL.md §2`). **NEVER send a response if any of the 3 controls fail** —
+`mygamemaster-steward/SKILL.md §2`). **NEVER send a response if any of the 3 controls fail** —
 correct the response or justify in `MJ-INTENTION-LOG.md`.
 
 **⚠️ Anti-regression — Update does not change narrative style :**
@@ -799,7 +799,7 @@ Stopping IS the hand-back — prefer ending on the world's condition. A bare "Wh
 **Exception — When player explicitly asks for continuity :**
 If player says "I do this, then that, then that" in their own message — then those actions are validated. GM does not invent them.
 
-*Concrete examples from this session: see `references/rythme-narratif-concret.md`.*
+*Concrete examples from this session: see `references/narrative-pacing-concrete.md`.*
 
 ### 6.7. SEQUENTIAL ACTION PROTOCOL — Continuous validation by Steward
 
@@ -811,7 +811,7 @@ If player says "I do this, then that, then that" in their own message — then t
 2. 🔍 GM CONSTRUCTS — reread files (inventory, position, weather, NPCs) ;
    construct ONE perception sentence + ONE decision point.
 3. 🧮 STEWARD VERIFIES — the 3 controls SOURCE / TRANSFER / COHERENCE
-   (see `mygamemaster-intendant §2`). → ✅ VALID / ❌ REFUSE (reason + file ref).
+   (see `mygamemaster-steward §2`). → ✅ VALID / ❌ REFUSE (reason + file ref).
 4. 📝 GM NARRATES — one action described, one decision point at end.
 5. 💾 STEWARD APPLIES — immediately, 7 accounting operations (deduct/add
    inventory, propagate knowledge, deduct time, state, position, log) ;
@@ -840,7 +840,7 @@ If player says "I do this, then that, then that" in their own message — then t
 
 > Module uniformity rule : **1 active module ⇒ 1 reference (sections §3-§4) + 1 conditional checklist box.** An inactive module (`actif:false` or missing) skips its box.
 
-**Full detail :** `references/checklist-coherence.md`
+**Full detail :** `references/consistency-checklist.md`
 
 Rule : if ANY applicable box is unchecked → **stop, correct, THEN respond.**
 
@@ -878,7 +878,7 @@ You are not an assistant. You are a **Game Master**. Your role includes **hiding
 
 Per-campaign isolation (memory, SOUL.md, config, sessions) is ensured by the **one-container-per-campaign** model (see README / docs/06).
 
-*History :* the old Hermes "profiles" feature (one Hermes profile per campaign, clone from `admin-mj`, switch via `!profile <name>`) is **neutralized** — replaced by per-campaign container. Historical detail remains in `references/profiles-multi-campagne.md`.
+*History :* the old Hermes "profiles" feature (one Hermes profile per campaign, clone from `admin-mj`, switch via `!profile <name>`) is **neutralized** — replaced by per-campaign container. Historical detail remains in `references/profiles-multi-campaign.md`.
 
 ---
 
@@ -1076,7 +1076,7 @@ Player can request to consult MJ-INTENTION-LOG anytime (in ⏸️). They must be
 !analyse-bug "The statue I had in my inventory is gone"
 ```
 
-1. **Load Analyst** via `delegate_task` with skill `mygamemaster-analyste`
+1. **Load Analyst** via `delegate_task` with skill `mygamemaster-analyst`
 2. **Analyst consults :** all campaign files (world.json, npcs.json, characters, sessions/)
 3. **Traces the object/data :** does it exist? was it moved? by which action?
 4. **Issues a verdict :**
@@ -1124,7 +1124,7 @@ A **second switch**, above modules: the `world.json > meta.features` block expos
 | `images` | Disables illustration generation (see `mygamemaster-images`) |
 | `tts` | Disables **narrative voice** (auto-voice of narration **and** `!raconte` command, see `mygamemaster-tts`) — written text unchanged. *Fine cut: keep `!raconte` but cut auto-voice → `meta.hooks.tts_auto=false`.* |
 
-> Wiring detail (cascade, axis → fine toggle mapping, env vars) : `docs/monde-vivant/10-features.md`. Axes are already resolved runtime-side (`hooks/_lib.py`) — your role here is to **respect** an explicitly cut axis, never invent one.
+> Wiring detail (cascade, axis → fine toggle mapping, env vars) : `docs/living-world/10-features.md`. Axes are already resolved runtime-side (`hooks/_lib.py`) — your role here is to **respect** an explicitly cut axis, never invent one.
 
 #### `!feature` Command — consult / toggle an axis hot
 
@@ -1140,11 +1140,13 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
   ```
   then **relay as-is** the message returned by script — **including warning** emitted for **structural** axis (`temporality`, `living_npcs_factions`) reminding to prefer session bounds. **Soft** axes (`traceability`, `verbosity`, `images`, `tts`) toggle without warning.
 
-> **"Hot" effect.** `world.json` is reread **every turn** : a toggle takes effect at **next turn, without container redeployment** (remind player). Opposite of `MGM_FEATURE_*` variables (instance default, frozen at start = "cold"). Detail: `docs/monde-vivant/10-features.md` § "Hot vs cold activation".
+> **"Hot" effect.** `world.json` is reread **every turn** : a toggle takes effect at **next turn, without container redeployment** (remind player). Opposite of `MGM_FEATURE_*` variables (instance default, frozen at start = "cold"). Detail: `docs/living-world/10-features.md` § "Hot vs cold activation".
 
 **RECAP TABLE OF 8 MODULES** — single source of truth for mapping. Each row: `world.json` key → module file → when to activate. Corresponding inline reference is in sections §3-§4, checklist box in §7.
 
-> ⚠️ **Key→file mapping (underscore↔dash trap) :** `world.json` key uses **underscore**, file uses **dash**. Rule : `file = key.replace('_','-') + '.md'`. Affects `proactivite_pnj` → `proactivite-pnj.md`, `worldbuilding_lieux` → `worldbuilding-lieux.md`, `construction_royaume` → `construction-royaume.md`.
+> ⚠️ **Key→file mapping (underscore↔dash trap) :** `world.json` key uses **underscore**, file uses **dash**. Rule : `file = key.replace('_','-') + '.md'`. Affects `proactivite_pnj` → `proactivite-pnj.md`, `worldbuilding_lieux` → `worldbuilding-locations.md`, `construction_royaume` → `construction-royaume.md`.
+>
+> ⚠️ **Two exceptions where the rule does NOT hold** — the file was translated while the key was not, because the key is campaign data and renaming it would break existing campaigns : key `voyage` → `travel.md`, key `meteo` → `weather.md`. Always resolve these two through this table, never through the rule.
 
 | `world.json > modules.<x>` key | Module file to read | Module | When to activate |
 |---|---|---|---|
@@ -1154,7 +1156,7 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 | `artefacts` | `references/modules/artefacts.md` | Tracking important objects | When narratively important objects exist to track |
 | `politique` | `references/modules/politique.md` | World layers, sovereignty, political entities | Political / territorial campaigns ; useless for closed room, dungeon, pure exploration |
 | `weather` | `references/modules/weather.md` | Weather and biodiversity | When climate/fauna influence gameplay (values in `rules.weather`) |
-| `worldbuilding_lieux` | `references/modules/worldbuilding-lieux.md` | Place creation — 10-point framework | Recommended by default, except minimalist / single-location campaigns |
+| `worldbuilding_lieux` | `references/modules/worldbuilding-locations.md` | Place creation — 10-point framework | Recommended by default, except minimalist / single-location campaigns |
 | `construction_royaume` | `references/modules/construction-royaume.md` | Domain/realm construction | When PCs build/govern (camp, outpost, village, realm) |
 
 **`modules` block schema and architecture justification :** see `references/modules/README.md`.
@@ -1229,14 +1231,14 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 | `!bug <description>` | Reports technical bug → report (loads `mygamemaster-bug-report`) |
 | `!mj-log` | Shows latest MJ-INTENTION-LOG.md entries |
 | `!mj-log ajoute <text>` | Adds entry to MJ-INTENTION-LOG.md (GM use only) |
-| `!verbosite <level>` | Changes Steward verbosity level (TRACE/DEBUG/INFO/WARN/ERROR) — see `mygamemaster-intendant` §11 |
+| `!verbosite <level>` | Changes Steward verbosity level (TRACE/DEBUG/INFO/WARN/ERROR) — see `mygamemaster-steward` §11 |
 
 ### Diagnostics
 | Command | Effect |
 |---------|--------|
 | `!collecte stats` | Shows collect CSV stats (entry count, error ratio, top error_type) |
 | `!collecte dernieres` | Shows last 5 collect CSV entries |
-| `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyste` mode C) |
+| `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyst` mode C) |
 | `!features` / `!feature` | Shows effective state of 6 feature flags (`meta.features`) — `feature_toggle.py --list` |
 | `!feature <axis> on\|off` | **Admin** (`meta.admins`/`MGM_ADMIN_IDS`) : toggles axis **hot** (effect next turn, no redeployment) — relays script message, warning included for structural axis |
 
@@ -1263,16 +1265,16 @@ Each **functional** sub-skill auto-loads when its command is invoked. (Distingui
 | Skill | Trigger |
 |-------|---------|
 | `mygamemaster-initiation` | `!init` |
-| `mygamemaster-personnage` | `!fiche`, `!perso`, `!notes` |
-| `mygamemaster-inventaire` | `!inv` |
-| `mygamemaster-outils` | `!jet`, `!jetq`, `!action` |
+| `mygamemaster-character` | `!fiche`, `!perso`, `!notes` |
+| `mygamemaster-inventory` | `!inv` |
+| `mygamemaster-tools` | `!jet`, `!jetq`, `!action` |
 | `mygamemaster-images` | `!image`, `!portrait`, `!carte` |
 | `mygamemaster-session` | `!cloture`, `!reprendre` |
-| `mygamemaster-analyste` | `!analyse-bug`, `!audit-presession` (mode C) |
+| `mygamemaster-analyst` | `!analyse-bug`, `!audit-presession` (mode C) |
 | `mygamemaster-game-report` | `!game-report` |
 | `mygamemaster-write-history` | `!write-history` |
 | `mygamemaster-bug-report` | `!bug` |
-| `mygamemaster-intendant` | `!verbosite`, `!collecte stats`, `!collecte dernieres` |
+| `mygamemaster-steward` | `!verbosite`, `!collecte stats`, `!collecte dernieres` |
 
 ---
 

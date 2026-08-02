@@ -244,7 +244,7 @@ neither style nor pacing, only **clear** violations of the provided rules.
 | Domain | Rule source | Posture |
 |---|---|---|
 | **steward** | resource possession, NPC knowledge, action feasibility, NPC existence | **soft** — tolerates name/format variations, **bias toward VALID** when in doubt (never false rejection) |
-| **conduct** | `SOUL.md` "ABSOLUTE RULE — Agentivity" + preamble + `narrative-erreurs-recurrentes.md` | **strict** — agentivity, NPC emotions, hidden mechanics, possessiveness/spotlight, compartmentalization |
+| **conduct** | `SOUL.md` "ABSOLUTE RULE — Agentivity" + preamble + `narrative-recurring-errors.md` | **strict** — agentivity, NPC emotions, hidden mechanics, possessiveness/spotlight, compartmentalization |
 
 **Normalized verdict**: `{"ok":bool,"violations":[{domain,rule,excerpt,why,correction}]}`.
 `correction` is a **concrete, actionable instruction** → this is what allows the GM to

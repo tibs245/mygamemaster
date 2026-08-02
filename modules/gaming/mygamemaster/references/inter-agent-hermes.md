@@ -1,4 +1,4 @@
-> ⚠️ **« profiles » mechanism OBSOLETE — agent CONCEPT remains valid.** NPC/Faction agents (level 2) are **approved** (activatable/deactivatable per campaign): the conceptual plan below (GM hub, memory/perception isolation, auditable brief, 🎭/🎯/❓/🔒 format) remains relevant. ONLY **provisioning via `hermes profile create`** is dead: the « profiles » functionality in Hermes does not work, replaced by **one container per agent** (see `README.md`, `docs/06-concept-isolation.md`, `specs/profiles-vers-conteneurs.md`). Read the commands `hermes -p <slug>` / `hermes profile create` below as INTENT (one isolated agent per NPC) — the implementation target is a container, not a profile. Do NOT run `hermes profile create`.
+> ⚠️ **« profiles » mechanism OBSOLETE — agent CONCEPT remains valid.** NPC/Faction agents (level 2) are **approved** (activatable/deactivatable per campaign): the conceptual plan below (GM hub, memory/perception isolation, auditable brief, 🎭/🎯/❓/🔒 format) remains relevant. ONLY **provisioning via `hermes profile create`** is dead: the « profiles » functionality in Hermes does not work, replaced by **one container per agent** (see `README.md`, `docs/06-isolation-model.md`, `specs/profiles-to-containers.md`). Read the commands `hermes -p <slug>` / `hermes profile create` below as INTENT (one isolated agent per NPC) — the implementation target is a container, not a profile. Do NOT run `hermes profile create`.
 
 # 🔄 Inter-agent Hermes Communication — Physical Mechanism
 
@@ -105,7 +105,7 @@ needs more space for its durable memories.
 
 The profile's LLM, guided by:
 - Its `SOUL.md` (personality: fears, ambitions)
-- The `mygamemaster-pnj` skill (protocol: golden rule, 🎭/🎯/❓/🔒 format, guardrails)
+- The `mygamemaster-npc` skill (protocol: golden rule, 🎭/🎯/❓/🔒 format, guardrails)
 
 It reads its brief through its motivations and red lines → credible
 and fallible reaction.
@@ -188,7 +188,7 @@ Full pipeline successfully tested on 2 NPCs (Kreevix/Zulka), model `deepseek/dee
 - `-c` works — perfect continuity between turns (NPC remembers)
 - `-Q` works — clean stdout, no banner
 - `memory_char_limit: 8000` (vs 2200 global) — suited for modern models ≥200k tokens
-- Skill `mygamemaster-pnj` loaded via `-s` and applied correctly
+- Skill `mygamemaster-npc` loaded via `-s` and applied correctly
 - Per-profile model — deepseek-v4-flash (free), swappable
 
 **Confirmed trap:** First turn requires `chat -Q -q` WITHOUT `-c` (no existing session).
@@ -218,6 +218,6 @@ Second and subsequent turns use `-c`. The `run_turn.sh` glue documents this case
     └────────────┘   └────────────┘   └────────────┘
 ```
 
-**Golden Rule:** Each NPC profile loads the `mygamemaster-pnj` skill.
+**Golden Rule:** Each NPC profile loads the `mygamemaster-npc` skill.
 No profile has access to `messaging`, `file`, or `terminal` —
 they can only propose, not act.

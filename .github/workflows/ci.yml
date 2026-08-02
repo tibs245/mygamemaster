@@ -56,3 +56,6 @@ jobs:
           cd modules/gaming/mygamemaster-tts/tests
           python3 test_tts.py
           echo "tts tests: exit $?"
+
+      - name: File references (no dangling links)
+        run: python3 scripts/check_references.py
