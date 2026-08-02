@@ -17,7 +17,7 @@ Each faction MUST have the following fields (required):
 
 ```json
 {
-  "nom": "Faction Name",
+  "name": "Faction Name",
   "importance": "🔘 Discrete | 🔵 Local | 🟣 Regional | ⚪ Major — narrative explanation",
   "attitude_actuelle": "Unknown | Neutral | Observant | Hostile | Friendly | Allied",
   "derniere_interaction": "Session X — summary context",
@@ -29,8 +29,8 @@ Each faction MUST have the following fields (required):
     "OtherFaction": "Alliance | Truce | Hostility | Domination | Competition | Distrust | Neutral | Vassalage",
     "OtherFaction2": "..."
   },
-  "objectif_court_terme": "What it does NOW — independent of PCs. Ex: « Stockpile provisions before winter », not « Observe the character's arrival »",
-  "objectif_long_terme": "Its true long-term ambition. Ex: « Remain the undisputed master of the region »",
+  "short_term_goals": "What it does NOW — independent of PCs. Ex: « Stockpile provisions before winter », not « Observe the character's arrival »",
+  "long_term_goals": "Its true long-term ambition. Ex: « Remain the undisputed master of the region »",
   "notes_mj": "Hidden info, real motivations, ongoing plans — including diplomatic intentions toward other factions"
 }
 ```
@@ -51,7 +51,7 @@ Complete structure (with integrated governance):
 ```json
 {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "Each faction ALWAYS has at least 1 short-term action (deadline ≤ 7 days) and 1 long-term action (deadline ≥ 14 days) in its actions_en_cours",
       "Objectives (short and long term in the 'factions' section) are INDEPENDENT of PCs — they exist and evolve even if PCs never intervene",
       "When a short-term objective is achieved, surpassed, or supplanted → renew it immediately with a new objective, consistent with the long term and recent events",
@@ -96,7 +96,7 @@ Complete structure (with integrated governance):
 #### When to Add / Remove Actions
 
 - **Add:** when a faction must act (trigger identified → action created in progress)
-- **Remove:** when the action has occurred (its consequence has taken place) → archived in the faction's `historique` field
+- **Remove:** when the action has occurred (its consequence has taken place) → archived in the faction's `history` field
 - **Modify:** when a `facteur_modificateur` is activated → update the deadline or cancel the action
 
 ### `global_state.pistes_non_assignees` (unlinked clues)
@@ -136,7 +136,7 @@ Example of a bandit faction — **objectives independent of PCs**:
 ```json
 {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "Each faction ALWAYS has at least 1 short-term action and 1 long-term action",
       "Objectives are INDEPENDENT of PCs"
     ],
@@ -145,8 +145,8 @@ Example of a bandit faction — **objectives independent of PCs**:
   "actions": [
     {
       "faction": "[Bandit Faction]",
-      "objectif_court_terme": "Stockpile provisions before winter — ransom travelers at the passage point",
-      "objectif_long_terme": "Remain undisputed masters of the region — control the passages",
+      "short_term_goals": "Stockpile provisions before winter — ransom travelers at the passage point",
+      "long_term_goals": "Remain undisputed masters of the region — control the passages",
       "actions_en_cours": [
         {
           "action": "Scout report and deliberation at camp",

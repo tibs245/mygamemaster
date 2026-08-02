@@ -1,7 +1,7 @@
 # 🎬 Scene Output Template — Show, Don't Tell
 
 > Positive definition of a good in-scene GM response. Read before narrating a scene.
-> Companion to `references/rythme-narratif-concret.md` (one action per moment) and the
+> Companion to `references/narrative-pacing-concrete.md` (one action per moment) and the
 > **Player Channel** rule in `SOUL.md`. This file answers a different question: not *how many*
 > actions, but *what content* is allowed to reach the player.
 
@@ -25,10 +25,13 @@ appears every turn, but **block 4 always closes the response.**
    stated. (*"Berthe sets down the knife and does not meet your eyes"* — never *"Berthe is hiding
    that she is afraid"*.)
 3. **The current situation** — the standing facts of the scene the PCs can read: who is here, what
-   is in reach, what just changed. Open options, not assigned actions (see
-   `rythme-narratif-concret.md`).
-4. **An opening for player action** — a clear handoff that returns control. A question, a visible
-   choice, or a beat that invites a decision. *"What do you do?"*
+   is in reach, what just changed. The perceptible **state of the world** — never assigned actions,
+   never a list of what the player could do (see `narrative-pacing-concrete.md`).
+4. **A stop that hands control back** — describe the state, then **stop**. The silence is the
+   handoff. Prefer a held beat (*"🛑 Drageon looks at you. He waits."*); a bare *"What do you do?"*
+   is at most tolerated. What never works: enumerating the options (*"You can: a) talk to him b) search c) leave"*)
+   or announcing that "the options are visible". An NPC may still make an offer **inside the
+   fiction** (*"I can take you there, if you want"*) — that is dialogue, not a menu.
 
 ## What is OUT of the stream (internal only)
 

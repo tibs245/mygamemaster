@@ -88,15 +88,15 @@ The scripts in `outils/gestion_temps.py` allow :
 {
   "session": 1,
   "date": "2026-05-14",
-  "heure_debut": "20:00",
-  "heure_fin": "23:30",
+  "start_hour": "20:00",
+  "end_hour": "23:30",
   "canal": "Discord #jdr-tonnerre",
   "participants": ["discord_id_1", "discord_id_2"],
   "titre_episode": "",
   "resume": "",
   "actions": [],
-  "pnj_rencontres": [],
-  "lieux_visites": [],
+  "npcs_met": [],
+  "visited_locations": [],
   "etat_fin": {},
   "teaser": ""
 }
@@ -108,15 +108,15 @@ The scripts in `outils/gestion_temps.py` allow :
 |-------|------|-------------|
 | `session` | number | Incremental number (001, 002...) |
 | `date` | string | ISO date (YYYY-MM-DD) |
-| `heure_debut` | string | Start time HH:MM |
-| `heure_fin` | string | Wrap-up time HH:MM (filled at wrap-up) |
+| `start_hour` | string | Start time HH:MM |
+| `end_hour` | string | Wrap-up time HH:MM (filled at wrap-up) |
 | `canal` | string | Discord channel of the session |
 | `participants` | string[] | Discord IDs of present players |
 | `titre_episode` | string | Episode title (set at wrap-up) |
 | `resume` | string | Formatted narrative summary (filled at wrap-up or `!session resume`) |
 | `actions` | object[] | Log of all session actions |
-| `pnj_rencontres` | object[] | NPCs met with date and notes |
-| `lieux_visites` | object[] | Locations visited with date and notes |
+| `npcs_met` | object[] | NPCs met with date and notes |
+| `visited_locations` | object[] | Locations visited with date and notes |
 | `etat_fin` | object | Global state at session end (snapshot) |
 | `teaser` | string | Hook for next session (set at wrap-up) |
 
@@ -137,7 +137,7 @@ The scripts in `outils/gestion_temps.py` allow :
 
 ```json
 {
-  "nom": "Elara",
+  "name": "Elara",
   "role": "Marsh Guardian",
   "attitude": "Wary → Ally",
   "relation_niveau": "Ally",
@@ -150,7 +150,7 @@ The scripts in `outils/gestion_temps.py` allow :
 
 ```json
 {
-  "nom": "The Raven Tavern",
+  "name": "The Raven Tavern",
   "type": "Tavern",
   "region": "Lower City",
   "notes": "Quest starting point"
@@ -166,7 +166,7 @@ Display the current state of the session without wrapping it up.
 ### Workflow
 
 1. Identify active campaign (channel context)
-2. Determine current session number (last `sessions/NNN.json` with empty `heure_fin`, or new file if needed)
+2. Determine current session number (last `sessions/NNN.json` with empty `end_hour`, or new file if needed)
 3. Read session file
 4. Calculate stats
 5. Display
@@ -178,7 +178,7 @@ Display the current state of the session without wrapping it up.
 ║  📊 SESSION {N} — {DATE}               ║
 ╚══════════════════════════════════════════╝
 
-⏱️ Duration : {elapsed since heure_debut}
+⏱️ Duration : {elapsed since start_hour}
 👥 Participants : {count} ({list})
 🎬 Actions : {count}
 👤 NPCs met : {count}
@@ -198,7 +198,7 @@ Generate a formatted summary of what has happened **so far** in the current sess
 
 1. Load active campaign
 2. Read current session file
-3. Iterate through `actions[]`, `pnj_rencontres[]`, `lieux_visites[]`
+3. Iterate through `actions[]`, `npcs_met[]`, `visited_locations[]`
 4. Query group state via `characters/<id>.json` of participants
 5. Generate narrative summary (3-5 immersive sentences covering key events)
 6. Format per **hat convention** (sections `🎭 SUMMARY`, `📍 LOCATIONS VISITED`, `👤 NPCs MET`, `⚔️ KEY ACTIONS`, `💀 GROUP STATE`)
@@ -255,7 +255,7 @@ In all cases, execute the complete wrap-up workflow (Phase 1-6). Don't interrupt
 0. **Campaign path** → The `cwd` IS the campaign. Resolve all files from `./` (see "Campaign path discovery" in *File Architecture* section).
 
 1. **Identify active campaign** (Discord channel context)
-2. **Determine session number** — look for `sessions/NNN.json` file with empty `heure_fin`. If multiple sessions have empty `heure_fin` → alert the GM.
+2. **Determine session number** — look for `sessions/NNN.json` file with empty `end_hour`. If multiple sessions have empty `end_hour` → alert the GM.
 3. **Ask for episode title** if not set :
    ```
    📜 Before wrapping up: what title for this episode?
@@ -292,9 +292,9 @@ In all cases, execute the complete wrap-up workflow (Phase 1-6). Don't interrupt
 ### Phase 2 — Summary Generation
 
 1. **Compile key actions** — iterate through `actions[]`, select most narrative/impactful (not minor rolls)
-2. **List visited locations** from `lieux_visites[]`
-3. **List met NPCs** from `pnj_rencontres[]`
-4. **Collect group state** — read ALL `characters/<id>.json` of participants, extract `sante.pv_actuels`, `sante.pv_max`, `sante.etats`
+2. **List visited locations** from `visited_locations[]`
+3. **List met NPCs** from `npcs_met[]`
+4. **Collect group state** — read ALL `characters/<id>.json` of participants, extract `health.hp_current`, `health.hp_max`, `health.conditions`
 5. **Calculate elapsed session time** — sum `duree_ut` of logged actions. Use `outils/gestion_temps.py` to convert if needed.
 6. **Write narrative summary** (3-5 sentences) — immersive style, MJ Tonnerre tone
 7. **Store complete formatted summary** in `resume` field of session file
@@ -342,21 +342,21 @@ Before any save, verify these critical points. This is the iron rule — no wrap
    → Commit after correction
 
 □ LOCATIONS — Every location visited during session
-   → Read lieux_visites[] in session file
-   → Verify their presence in world.json > universe.regions > lieux
+   → Read visited_locations[] in session file
+   → Verify their presence in world.json > universe.regions > locations
    → If a location is missing → add it with MINIMUM description in living format (conflit_central, questions_vitales, pnjs_cles, ambiance, horloge with evenement/echeance/consequence)
    → Each existing location that changed state in session must have conflit_central or horloge updated to reflect new state (ex: a cabin's lean-to advancing, a bucket cleaned, a road discovered)
    → Locations must be "living" — their state changes with game time and PC actions. Don't leave them in simple static format (description + conflict + ownership). ALL locations, without exception (including minor resources like Wild Privet), must have full format: conflit_central, questions_vitales (governance, reason_existence, critical_need, shameful_secret), pnjs_cles, ambiance, horloge with evenement/echeance/consequence. A location in simple static format is one that will be forgotten during updates.
 
 □ DISTANCES — Every journey narrated during session
-   → Verify world.json > regles.temps.deplacements
+   → Verify world.json > rules.time.movements
    → If journey durations were mentioned in narration
      but not in file → add them
    → Verify indirect ≥ direct rule for any new route
    → Commit after correction
 
 □ NPCs — Every NPC met or mentioned
-   → Verify npcs.json for each pnj_rencontres[] entry
+   → Verify npcs.json for each npcs_met[] entry
    → If NPC already exists → update position/attitude/last interaction
    → If NPC doesn't exist → create sheet (stats, skills, limits, inventory)
    → Commit after correction
@@ -377,6 +377,20 @@ Before any save, verify these critical points. This is the iron rule — no wrap
    → Advance clock: move deadlines closer by session duration
    → If deadline reached → note consequence
    → Verify each faction has ≥ 1 short-term + ≥ 1 long-term objective
+
+□ PLAYER PROFILE — Preferences the player stated or demonstrated this session
+   → Open `<campaign>/player-profile.md` (copied from
+     `mygamemaster/references/player-profile-template.md` at campaign creation)
+   → Add any control signal, pacing dial, standing policy or refusal expressed during the session,
+     one line each, dated and sourced to this session number
+   → Status: `locked` if the player stated it as a rule, `observed` if inferred from repeated
+     reactions, `hypothesis` otherwise
+   → Never delete a line — supersede it, keeping the old one with its replacement
+   → ⚠️ A profile entry may make the GM stricter, never more permissive than
+     `mygamemaster/references/locked-lessons.md`. A request that would relax a catalogue rule is
+     recorded as a declined request (section 7), and the catalogue rule stays in force
+   → If the file does not exist → create it from the template now. `close_session.py` reports its
+     absence as point P11 (non-blocking)
 
 □ CROSS-CHECK CLOCK vs SESSION — NARRATIVE VERIFICATION (⚠️ MANDATORY)
    ⚠️ Don't confuse "valid file" with "consequences played".
@@ -411,12 +425,12 @@ python3 $SCRIPTS/close_session.py $CAMP --titre "<episode title>" --teaser "<tea
 ```
 
 `close_session.py` chains `validate_json.py`, `validator-distances.py`,
-`check_session.py`, `clock.py --dry-run` then ~10-point pipeline check.
+`check_session.py`, `clock.py --json` then a 13-point pipeline check.
 Exit != 0 = wrap-up refused: fix listed points then re-run.
 
-**Available audit scripts (see also `mygamemaster-analyste` for 3 layers) :**
+**Available audit scripts (see also `mygamemaster-analyst` for 3 layers) :**
 - `build_brief.py <campaign> <npc> --cache` : extract NPC brief (MD5 cache)
-- `call_pnj.py <campaign> <npc> <context> --dry-run` : simulate RP response
+- `call_npc.py <campaign> <npc> <context> --dry-run` : simulate RP response
 
 Pipeline report goes to GM, never to players.
 
@@ -427,7 +441,7 @@ an independent, reusable skill.
 
 #### Step 1 — 🐞 Steward Audit (`!analyse-bug`)
 
-Calls `mygamemaster-analyste/SKILL.md` in **wrap-up audit mode**.
+Calls `mygamemaster-analyst/SKILL.md` in **wrap-up audit mode**.
 Verifies ALL points: weather, time, inventories, NPCs, locations, factions,
 clock, artifacts.
 
@@ -468,7 +482,7 @@ Output : `images/scenes/session_{NNN}_recap.png`
 > ℹ️ The timestamped session-end snapshot is **automatic** (hook `on_session_end`, ON by default). Your responsibility is **data propagation** (locations, distances, NPCs) and **commit** below. Don't add any manual snapshot orders.
 
 After Phase 5's 4 steps, GM :
-1. Verify `sessions/NNN.json` has current `heure_fin`, `resume`, `etat_fin`
+1. Verify `sessions/NNN.json` has current `end_hour`, `resume`, `etat_fin`
 2. Update global data (timeline, faction clock, NPC positions)
 3. **Validate JSON** of each modified file (commit is **automatic** — hook `auto_commit` — but doesn't freeze broken JSON)
 4. Prepare `sessions/{NNN+1}.json`
@@ -501,23 +515,23 @@ Load context from last session to resume narration.
 
 0. **Campaign path** → The `cwd` IS the campaign. Resolve all files from `./` (see "Campaign path discovery" in *File Architecture* section).
 
-0bis. **Living World Projection (B3) — if `meta.features.temporalite` != false AND `actors.json` present.** *(Everything ON by default: act on this only if explicitly `false`.)* Before ANY opening narration, project world to now :
+0bis. **Living World Projection (B3) — if `meta.features.temporality` != false AND `actors.json` present.** *(Everything ON by default: act on this only if explicitly `false`.)* Before ANY opening narration, project world to now :
    ```bash
    python3 /opt/modules/gaming/mygamemaster/scripts/world_tick.py pre . --apply
    ```
    - **Read returned LIVING WORLD BRIEFING** (upcoming crossings, actors promoted "hot", LOD distribution) : this is context produced by the world **without you**. It tells you *which clocks chime* and *who crosses the player's path*.
    - **DON'T narrate this briefing as-is** : it's a GM sheet, not player text. Use it to shape the scene.
    - **Respect player agency** : this step projects the **world** (actors, clocks), it **doesn't decide** where the PC is. Player chooses position (next steps / hat section "Default Location at Start"). Write the **scene clue** `.banquier/scene-<session_id>.json` (`{"lieu_id":"lieu:…"}`) **only after** player says where they are.
-   - **FAIL-OPEN** : `world_tick.py` is fail-open and guards itself on `temporalite` (inert without `geo.json`/`actors.json`). If script fails or files missing → **ignore** and start normally. Living world is a bonus, never a requirement.
+   - **FAIL-OPEN** : `world_tick.py` is fail-open and guards itself on `temporality` (inert without `geo.json`/`actors.json`). If script fails or files missing → **ignore** and start normally. Living world is a bonus, never a requirement.
 
 1. **Identify active campaign**
-2. **Find last session** — look for `sessions/NNN.json` with highest number **with filled `heure_fin`** (previous session). Don't take a session with empty `heure_fin` (would be current session, not previous).
+2. **Find last session** — look for `sessions/NNN.json` with highest number **with filled `end_hour`** (previous session). Don't take a session with empty `end_hour` (would be current session, not previous).
 3. **Read session file**
 4. **Load player character sheets** of participants for current state
 5. **Handle time gap between sessions** — if game time elapsed between wrap-up and resumption :
    - **Rations** — recalculate consumed rations if GM announces ellipse (e.g. "you camped one night")
    - **NPCs** — GM decides if important NPCs acted in interval
-   - **Campaign time mechanics** — extra night may advance own mechanic (curse, gauge, cyclic magic defined in `world.json > regles.temps`)
+   - **Campaign time mechanics** — extra night may advance own mechanic (curse, gauge, cyclic magic defined in `world.json > rules.time`)
    - **Rest** — long rest between sessions heals minor wounds
    - **If no game time elapsed** (immediate resumption) → nothing to adjust
    - **⚠️ Critical distinction** : real time between sessions is NOT game time. If players resume next day in same room, 0 minutes passed in game, regardless of 24h real time. Game time only advances if GM explicitly decides.
@@ -535,7 +549,7 @@ Load context from last session to resume narration.
    ⚠️ DON'T confuse "structural verification" (file well-formed)
      and "narrative verification" (promised consequences were played in session).
      Both independent and both MANDATORY.
-6. **Update `world.json > regles.temps.suivi`** if game time advanced
+6. **Update `world.json > rules.time.tracking`** if game time advanced
 
 ### 5.7. **⚠️ STRUCTURAL VERIFICATION PRE-RESUMPTION — PERSISTENCE AUDIT**
 
@@ -544,34 +558,34 @@ Before initializing new session, verify **persistence structures** are in place.
 ```txt
 🛡️ PERSISTENCE AUDIT — PRE-RESUMPTION (short checklist)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ regles.temps.suivi present in world.json (else: create from etat_fin, don't invent date)
+□ rules.time.tracking present in world.json (else: create from etat_fin, don't invent date)
 □ events.json present (else: optional, don't block)
 □ sessions/{NNN+1}.json ready (else: step 7 creates it)
 □ global_state synced with sessions/NNN.json > etat_fin (quete_active, population, phase…)
-□ Character sheet in new format (historique[], connaissances_privees[], notes_privees[], session_id)
+□ Character sheet in new format (history[], connaissances_privees[], notes_privees[], session_id)
 □ Campaign git clean (working tree clean; commit untracked/modified before resumption)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> 📄 **Complete procedure** (minimal structure `regles.temps.suivi`, gentle migration of sheets, parent git handling, documented gaps) : `references/audit-persistance-dry-run.md`.
+> 📄 **Complete procedure** (minimal structure `rules.time.tracking`, gentle migration of sheets, parent git handling, documented gaps) : `references/persistence-audit-dry-run.md`.
 
 **Process :** DON'T block resumption for these gaps. FIX them before sending opening narration (between step 5.7 and 6.5).
 
 ### 6.5. **⚠️ NARRATIVE DETAIL VERIFICATION BEFORE NARRATION — MANDATORY**
 Before writing any opening narrative phrase (the reminder with summary, the scene, the question to player), verify EVERY factual detail mentioned against source files :
-   → **Clock :** `sessions/NNN.json → heure_fin` — don't advance time without explicit ellipse. Resumption picks up exactly where we stopped.
+   → **Clock :** `sessions/NNN.json → end_hour` — don't advance time without explicit ellipse. Resumption picks up exactly where we stopped.
    → **Actions :** `sessions/NNN.json → actions[]` — don't invent, don't mix actions from different sessions
-   → **Locations/Objects :** `sessions/NNN.json → lieux_visites[]` + action logs — verify WHAT happened WHERE. A bouquet isn't in the same bucket as a vial.
+   → **Locations/Objects :** `sessions/NNN.json → visited_locations[]` + action logs — verify WHAT happened WHERE. A bouquet isn't in the same bucket as a vial.
    → **NPCs :** position, attitude, what was said — don't assume unplayed changes
 
    ⚠️ Typical trap : narrative summary feels like we "know" the story. Write fast. Mix things up. THIS is exactly when to slow down, read logs, verify each fact BEFORE writing. 4 bug categories at this weakness moment :
 
-   **a) Time advanced without reason** — open at different time than `heure_fin` without played ellipse.
+   **a) Time advanced without reason** — open at different time than `end_hour` without played ellipse.
    **b) Objects mixed between locations** — assign object to wrong location/scene.
    **c) Words put in NPC mouth** — make NPC say a summary the PC didn't express that way.
    **d) Object/relation characterization minimized** — reduce emotional weight of object played as important.
 
-   (Real cases documented : `references/audit-persistance-dry-run.md`.)
+   (Real cases documented : `references/persistence-audit-dry-run.md`.)
 
    → **Cure :** before writing opening narration, read `sessions/NNN.json → actions[]` + `etat_fin` entirely + `characters/<id>.json` + faction clock. For each factual detail (time, object, location, NPC words), verify trace in logs. No trace = probably invented. Don't start narrative sentence before checking these 4 points.
 
@@ -603,11 +617,11 @@ What do you do?
 1. If `sessions/{NNN+1}.json` doesn't exist → create with :
    - `session: N+1`
    - `date: today`
-   - `heure_debut: now`
+   - `start_hour: now`
    - `canal: current channel`
    - `participants: participants from previous session`
    - Empty fields for rest
-2. If file already exists (created at wrap-up) → update `heure_debut` with current time
+2. If file already exists (created at wrap-up) → update `start_hour` with current time
 3. Ping participants : `@participant1 @participant2 — session resumes!`
 
 ---
@@ -655,9 +669,9 @@ Use `outils/gestion_temps.py` (CLI or Python module) to add and validate events.
 ### 2. `sessions/NNN.json` (detailed narrative log)
 - **Session start** → action type `meta` : `"Start of session {N}"`
 - **Player action** → action type `roll|action|combat|dialogue` with player and description
-- **Sheet modification** → action type `modif_perso` (see `mygamemaster-personnage` skill)
-- **NPC meeting** → add to `pnj_rencontres[]`
-- **Location visit** → add to `lieux_visites[]`
+- **Sheet modification** → action type `modif_perso` (see `mygamemaster-character` skill)
+- **NPC meeting** → add to `npcs_met[]`
+- **Location visit** → add to `visited_locations[]`
 - **Wrap-up** → action type `meta` : `"Session {N} wrapped up"`
 
 **Rule :** `events.json` captures factual truth (what, who, where, when, result). `sessions/NNN.json` captures narrative (how, why, reactions, mood). Both are complementary.
@@ -671,12 +685,12 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 1. WRITE the narration (NPC dialogue + PC reaction)
 2. STOP — before sending, verify :
    - Each speaking NPC → an action in actions[] ?
-   - Each named NPC → an entry in pnj_rencontres[] ?
+   - Each named NPC → an entry in npcs_met[] ?
    - Unknown NPC until now? → sheet in npcs.json (name, role, description, attitude)
    - Did PC respond to NPC? → record response in same action
 3. SEND the response
 
-**⚠️ "Onion" trap :** After `!analyse-bug` flagging missing interaction, don't fix just that point. Reread ENTIRE current session before replying — isolated fix often hides 2-3 other omissions in same scene. After 1st report, read `actions[]` entirely, `pnj_rencontres[]`, ask player if anything else missing. Fix everything in ONE commit, not 4.
+**⚠️ "Onion" trap :** After `!analyse-bug` flagging missing interaction, don't fix just that point. Reread ENTIRE current session before replying — isolated fix often hides 2-3 other omissions in same scene. After 1st report, read `actions[]` entirely, `npcs_met[]`, ask player if anything else missing. Fix everything in ONE commit, not 4.
 
 ---
 
@@ -685,10 +699,10 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | Skill | Interaction |
 |-------|-------------|
 | `mygamemaster` (hat) | This skill auto-loads on `!cloture`, `!reprendre`, `!session` |
-| `mygamemaster-personnage` | `!cloture` reads all sheets for group state; `!reprendre` too |
-| `mygamemaster-inventaire` | `!cloture` saves inventories via character sheets |
-| `mygamemaster-outils` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-outils` |
-| `mygamemaster-intendant` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
+| `mygamemaster-character` | `!cloture` reads all sheets for group state; `!reprendre` too |
+| `mygamemaster-inventory` | `!cloture` saves inventories via character sheets |
+| `mygamemaster-tools` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-tools` |
+| `mygamemaster-steward` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
 | `mygamemaster-initiation` | Campaign first session created after `!init` |
 
 ---
@@ -703,17 +717,17 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | Create duplicate session | Check file existence before incrementing |
 | Display summary in DM | Always in public channel (it's the session end wall, everyone must see) |
 | `!reprendre` without checking current state | Load character sheets for real state (not just `etat_fin`) |
-| Leave `heure_fin` empty indefinitely | Auto wrap-up after 2h inactivity if enabled |
+| Leave `end_hour` empty indefinitely | Auto wrap-up after 2h inactivity if enabled |
 | Log in wrong session file | Always identify correct `NNN.json` via last created file |
 | **Forget to update `events.json` at wrap-up** | **Add session events to `events.json` (key actions, locations, NPCs, session end)** |
 | **Calculate t manually** | **Use `outils/gestion_temps.py` (CLI or module) to avoid calculation errors** |
 | **Log same event differently in both files** | **Keep same factual info (t, participants, location, result) in events.json and session/NNN.json** |
-| **Forget to update time tracking** | **After EVERY session, update `world.json > regles.temps.suivi` : t_current, rations, mission constraint** |
+| **Forget to update time tracking** | **After EVERY session, update `world.json > rules.time.tracking` : t_current, rations, mission constraint** |
 | **Treat real time as game time** | **24h real between sessions ≠ 1 game day. Game time only advances if GM explicitly decides.** |
 | **Invent time jumps or unplayed days in events.json** | **Only add what was ACTUALLY played. If session continues same instant, t doesn't change. Only events traceable to played action are canon.** |
-| **Narrate `!reprendre` opening without checking logs first** | **Before any narrative sentence, check 4 points from step 6.5 (`actions[]`, `lieux_visites[]`, `pnj_rencontres[]`, `etat_fin`, `heure_fin`).** |
+| **Narrate `!reprendre` opening without checking logs first** | **Before any narrative sentence, check 4 points from step 6.5 (`actions[]`, `visited_locations[]`, `npcs_met[]`, `etat_fin`, `end_hour`).** |
 
-> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/audit-persistance-dry-run.md`.
+> **General** anti-patterns (narrating without saving, words put in NPC mouth, minimize played object, forget NPC interaction) are defined in hat `mygamemaster/SKILL.md` §4 and §6 — don't recoppy here. Real cases documented : `references/persistence-audit-dry-run.md`.
 
 ---
 
@@ -725,7 +739,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | User Signal | Action |
 |---|---|
-| "Create a Problem/Solution/Consequence file" | Use `references/template-probleme-solution-consequence.md` |
+| "Create a Problem/Solution/Consequence file" | Use `references/template-problem-solution-consequence.md` |
 | "Did you note our previous points?" + list | Apply checklist below on each listed point |
 | "Fixes to prioritize before resumption" | Treat as post-session checklist, commit before replying |
 
@@ -742,10 +756,10 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 
 | # | Point | Target File | Typical Command |
 |---|-------|--------------|---------------|
-| 1 | Add `regles.temps.suivi` | `world.json` | `patch` / `write_file` |
+| 1 | Add `rules.time.tracking` | `world.json` | `patch` / `write_file` |
 | 2 | Sync `global_state` | `world.json` | `patch` (quete, pop, phase, influence) |
 | 3 | Create next session | `sessions/NNN+1.json` | `write_file` (from last `etat_fin`) |
-| 4 | Migrate character sheet | `characters/<id>.json` | `patch` (historique, connaissances_privees) |
+| 4 | Migrate character sheet | `characters/<id>.json` | `patch` (history, connaissances_privees) |
 | 5 | Create/update NPC | `npcs.json` | `patch` (attitude, position) |
 
 ### Pitfalls
@@ -766,7 +780,7 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 GM: !cloture
 
 1. [Identify campaign] → "Shadows of Valombre"
-2. [Find session] → sessions/003.json (empty heure_fin)
+2. [Find session] → sessions/003.json (empty end_hour)
 3. [GM Questions]
    Bot: 📜 What title for this episode?
    GM: The Guardian's Awakening
@@ -780,7 +794,7 @@ GM: !cloture
    - Group state: Kael 7/12 HP (Poisoned), Lyra 15/15, Thorn 3/10 (Unconscious)
 
 5. [Save]
-   - sessions/003.json → heure_fin, resume, teaser, etat_fin
+   - sessions/003.json → end_hour, resume, teaser, etat_fin
    - world.json → global state saved
    - npcs.json → NPCs saved
    - characters/123.json, characters/456.json, characters/789.json → sheets saved
@@ -802,14 +816,14 @@ GM: !cloture
 GM: !reprendre
 
 1. [Identify campaign] → "Shadows of Valombre"
-2. [Find last session] → sessions/003.json (most recent with filled heure_fin)
+2. [Find last session] → sessions/003.json (most recent with filled end_hour)
 3. [Load context] → resume, teaser, participants
 4. [Load character sheets] → current state of Kael, Lyra, Thorn
 5. [Handle time gap] → rations, NPCs, rest, Mark
 5.5. [CROSS-CHECK CLOCK vs SESSION] → Verify unplayed triggers from previous session.
      Ex: "If [NPC] reaches [key objective] → immediate reaction"
      was triggered but not played → play at opening.
-6. [Init new session] → sessions/004.json, heure_debut = now
+6. [Init new session] → sessions/004.json, start_hour = now
 7. [Display formatted reminder]
 8. [Ping participants] → @Kael @Lyra @Thorn
 ```
@@ -826,23 +840,23 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 
 ## References
 
-- `references/audit-persistance-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
-- `references/template-probleme-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
+- `references/persistence-audit-dry-run.md` — Complete campaign data persistence audit methodology (step-by-step checklist, documented pitfalls, report format). From S7 dry-run audit (2026-05-30). Use for proactive verification.
+- `references/template-problem-solution-consequence.md` — Problem/Solution/Consequence format to document post-session fixes. Includes usage rules and example. Use in corrective maintenance passes.
 
 ## Dependencies
 
 - **Parent skill** : `mygamemaster` (auto-loads in RPG session — provides general time management, coherence checklist, multi-agent turn loop §3.3)
 > All paths below relative to `cwd` (= campaign directory).
 - **Files** : `./sessions/NNN.json`
-- **Files** : `./world.json` (including `regles.temps.suivi` for game time tracking)
+- **Files** : `./world.json` (including `rules.time.tracking` for game time tracking)
 - **Files** : `./events.json` (timeline structured in UT)
 - **Files** : `./npcs.json`
 - **Files** : `./characters/<id>.json`
 - **Scripts** : `./outils/gestion_temps.py` (t calculations, validation, queries)
-- **Required skills** : `mygamemaster-personnage` (sheet reading), `mygamemaster-outils` (action formatting), `mygamemaster-intendant` (Steward — CSV collection)
+- **Required skills** : `mygamemaster-character` (sheet reading), `mygamemaster-tools` (action formatting), `mygamemaster-steward` (Steward — CSV collection)
 - **Files** : `collecte.csv` — diagnostic data (player evaluation written at wrap-up, Phase 1 step 5)
 - **Files** : `world.json > meta.diagnostic` — enable/disable player collection at wrap-up
-- **References** : `references/template-probleme-solution-consequence.md` (post-session fix template)
+- **References** : `references/template-problem-solution-consequence.md` (post-session fix template)
 - **No external tools** needed — everything via JSON files
 
 ---
@@ -853,16 +867,16 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 - [ ] `!session resume` generates formatted mid-session summary
 - [ ] `!cloture` asks title + teaser questions before summary
 - [ ] `!cloture` saves `world.json`, `npcs.json`, and ALL character sheets
-- [ ] **`!cloture` updates `world.json > regles.temps.suivi` (game date/time, t_current, rations, mission constraint)**
+- [ ] **`!cloture` updates `world.json > rules.time.tracking` (game date/time, t_current, rations, mission constraint)**
 - [ ] `!cloture` increments session number and creates next file
 - [ ] **`!cloture` adds session events to `events.json`**
 - [ ] `!cloture` verifies rations consumed passively during session
 - [ ] **`!cloture` verifies spatial data current (routes, locations, NPCs) in world.json and npcs.json**
 - [ ] **`!cloture` advances `faction_actions_horloge`** and verifies reached deadlines
-- [ ] `!reprendre` finds correct session (last with filled `heure_fin`)
-- [ ] `!reprendre` initializes new session (`heure_debut`)
+- [ ] `!reprendre` finds correct session (last with filled `end_hour`)
+- [ ] `!reprendre` initializes new session (`start_hour`)
 - [ ] **`!reprendre` handles time gap between sessions (rations, NPCs, Mark, rest)**
-- [ ] **`!reprendre` performs pre-resumption structural verification (step 5.7) — regles.temps.suivi, events.json, global_state vs etat_fin sync, character sheet, git**
+- [ ] **`!reprendre` performs pre-resumption structural verification (step 5.7) — rules.time.tracking, events.json, global_state vs etat_fin sync, character sheet, git**
 - [ ] **`!reprendre` performs cross-check clock vs session (step 5.5)** to play unplayed consequences from previous session
 - [ ] **`!reprendre` doesn't confuse real time and game time**
 - [ ] **`!reprendre` checks 4 narrative points (step 6.5) before writing opening**

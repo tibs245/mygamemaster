@@ -1,7 +1,7 @@
 ---
 # HYBRID backup of one campaign (or all): game data (data volume) +
 # agent state/memory (HERMES_HOME via `hermes backup`, consistent while running). Integrity
-# (sha256 + archive test) + manifest + rotation. See docs/03-backup-et-restauration.md.
+# (sha256 + archive test) + manifest + rotation. See docs/03-backup-and-restore.md.
 #   ansible-playbook playbooks/backup.yml -e game=mistfall   # -e campagne= still works as a legacy alias
 #   ansible-playbook playbooks/backup.yml                    # all campaigns
 #   ansible-playbook playbooks/backup.yml -e game=<slug> -e backup_label=before-refactor

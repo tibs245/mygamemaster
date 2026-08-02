@@ -100,7 +100,7 @@ Ask:
    - **Free / narrative system** — simple rolls, focus on story. You improvise resolutions.
    - **Adapted existing system** — D&D 5e, FATE, PBTA, Cthulhu, OSR... you draw from their mechanics.
    - **House system** — the group defines its own rules.
-   - **Existing templates** — load `references/systemes/` for complete pre-built systems (ex: `expedition-abime.md` for Made in Abyss / vertical dark fantasy, `pathfinder-d20-simplifie.md` for Kingmaker / kingdom building).
+   - **Existing templates** — load `references/systems/` for complete pre-built systems (ex: `expedition-abyss.md` for Made in Abyss / vertical dark fantasy, `pathfinder-d20-simplified.md` for Kingmaker / kingdom building).
 
 8. **Crunch level** (1 to 5):
    - 1: Almost no dice, everything is narrative
@@ -172,6 +172,36 @@ Ask:
     - **Important:** If this is a different campaign from an existing one on the same server, MAKE CLEAR it's a separate thread/channel.
 
 18. **Frequency** — How often do live sessions happen? (optional — for reference)
+
+#### Block 6: Conduct preferences (fills the player profile)
+
+The corpus of the reference campaign shows these were rediscovered over 34 sessions, one rejected
+session at a time. Ask them once, here, and write the answers into the player profile (Step 4).
+An unanswered question stays blank with status `hypothesis` — it is never guessed.
+
+Ask for **form and vocabulary only**. None of these questions asks for permission to break a rule :
+what the GM may and may not do is already settled by the catalogue.
+
+19. **Control signals** — What do you type to tell me to skip ahead, and what do you type to stop
+    me mid-scene? (fast-forward signal, meta-stop signal, session open/close)
+20. **Agency repair** — I never narrate an action or a line of your character you did not declare ;
+    when I break that rule anyway, what do you want me to do — patch the sentence, roll the turn
+    back, or replay the scene? And who settles purely narrative questions (timing, titles)?
+21. **Ellipse form** — When you give the fast-forward signal, what should the skip look like : a
+    plain summary of the routine, a landing on one meaningful scene, a bare "three days later"?
+    What should it stop on?
+22. **Feedback** — How do you want to tell me a turn was bad, and what do you expect me to do
+    about it?
+
+> These answers are **taste, specific to this table** — they choose the form and the vocabulary,
+> never the rule. The GM conduct rules that apply to every table are catalogued in
+> `mygamemaster/references/locked-lessons.md` and are not negotiated here.
+> **A catalogue rule is a floor : a profile entry may make the GM stricter, never more permissive.**
+> If an answer would relax a catalogued rule — "obvious actions are fine, don't stop for those"
+> (`AGENCY-01`, TIER 0, enforced by code) or "you decide when to skip ahead" (`TURN-02`) — record it
+> as a declined request in section 7 of the profile (status `hypothesis`), tell the player the rule
+> stays in force, and leave it in force. The catalogue exists because those permissions were taken
+> informally before : `AGENCY-01` alone cost one cancelled session (S16) and one full replay (S23).
 
 ---
 
@@ -253,6 +283,17 @@ Create the files:
 4. Create character sheets in `characters/<discord_id>.json`
 5. Create `sessions/` and `images/` folders
 6. Initialize `sessions/001.json` with the preamble
+6bis. **Create the player profile** — copy `mygamemaster/references/player-profile-template.md` to
+   `campaigns/<campaign-name>/player-profile.md` and fill sections 1, 2, 3, 4 and 8 with the answers
+   from Block 6, each line dated and sourced (`locked` when the player stated it as a rule,
+   `hypothesis` when you inferred it). Leave the rest blank — it fills up in play. It is read at the
+   start of every exchange (`mygamemaster/SKILL.md` Invariant, point 4) and updated at close
+   (`mygamemaster-session/SKILL.md` Phase 3, flagged by `close_session.py` point P11). Never delete a
+   line: supersede it. A campaign without this file rediscovers its player's preferences by trial and
+   error.
+   > Taste lives here ; doctrine lives in `mygamemaster/references/locked-lessons.md`. Do not copy a
+   > catalogue rule into the profile, and do not promote one player's taste into the catalogue. A
+   > profile entry may make the GM stricter, never more permissive than the catalogue.
 7. Initialize git: `git init && git add . && git commit -m "🎲 Campaign initialized"`
 8. **Campaign isolation** — No action needed: memory/config isolation is ensured by the **one-container-per-campaign** model (see README). No `hermes profile create` to run.
    > _(History: `references/profiles-multi-campaign.md` described the old Hermes profile mechanism. It's replaced by container-level isolation.)_
@@ -296,11 +337,13 @@ Then send a message in the channel: "The campaign is ready. Type `!sheet` to see
 
 ## References & Templates
 
-Complete and reusable systems are stored in `references/systemes/`. When a player requests a custom system during onboarding, first check if an existing template fits before creating a new one.
+Complete and reusable systems are stored in `references/systems/`. When a player requests a custom system during onboarding, first check if an existing template fits before creating a new one.
 
 | File | Description |
 |------|-------------|
-| `references/systemes/expedition-abime.md` | D20 system — Expedition & Abyss (vertical dark fantasy, Mark of the Abyss, Treasure, Fear). Inspired by *Made in Abyss*. Crunch 3/5. |
-| `references/systemes/pathfinder-d20-simplifie.md` | Simplified D20 Pathfinder (6 stats: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Kingmaker/kingdom building inspiration. Crunch 2-3/5. |
+| `references/systems/expedition-abyss.md` | D20 system — Expedition & Abyss (vertical dark fantasy, Mark of the Abyss, Treasure, Fear). Inspired by *Made in Abyss*. Crunch 3/5. |
+| `references/systems/pathfinder-d20-simplified.md` | Simplified D20 Pathfinder (6 stats: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Kingmaker/kingdom building inspiration. Crunch 2-3/5. |
+| `mygamemaster/references/player-profile-template.md` | Player preference profile — copied into each campaign at Step 4 (6bis) and filled from Block 6. Includes a worked example from a 34-session corpus. |
+| `mygamemaster/references/locked-lessons.md` | The GM conduct catalogue (61 rules, thematic IDs). Universal — never copied into a campaign, never negotiated at onboarding. |
 
-> **Isolation:** Campaign memory isolation is ensured by the dedicated container (one container per campaign, see README) — nothing to configure at onboarding. _(History: `mygamemaster/references/profiles-multi-campagne.md`, old profile mechanism, now replaced.)_
+> **Isolation:** Campaign memory isolation is ensured by the dedicated container (one container per campaign, see README) — nothing to configure at onboarding. _(History: `mygamemaster/references/profiles-multi-campaign.md`, old profile mechanism, now replaced.)_

@@ -1,6 +1,6 @@
 ---
 name: mygamemaster-tts
-description: Qualitative narrative voice for MJ Tonnerre — speech synthesis of ONLY the narration (no mechanics) via Minimax T2A v2 (speech-2.8-turbo, French_Female_Speech_New voice). Two modes: auto (tts axis, in the transform_llm_output hook) and manual (!raconte). Two-stage pipeline that offloads from the GM model: a small model reformats the narration into a voice script (pauses, emotion, tics preserved, ambient), Minimax generates the audio, posted as MEDIA: in Discord.
+description: Qualitative narrative voice for MJ Tonnerre — speech synthesis of ONLY the narration (no mechanics) via Minimax T2A v2 (speech-2.8-turbo, French_Female_Speech_New voice). Two modes: manual (!raconte, default) and auto (tts axis, in the transform_llm_output hook, OPT-IN). Two-stage pipeline that offloads from the GM model: a small model reformats the narration into a voice script (pauses, emotion, tics preserved, ambient), Minimax generates the audio, posted as MEDIA: in Discord.
 category: gaming
 triggers:
   - "!raconte"
@@ -30,22 +30,59 @@ The voice focuses on **immersive storytelling** (French female voice, narrator).
 
 ## Two trigger modes
 
-### A. AUTO — tts axis (in the `transform_llm_output` hook)
-
-When the `tts` axis is **ON** (default) **and** `MINIMAX_API_KEY` is present, the
-`transform_llm_output` hook **automatically** voices sufficiently long **narrations**
-(threshold `MGM_TTS_MIN_CHARS`, default 280 — short turns/mechanics stay silent, to remain **smooth**)
-and **attaches the audio** to the message via `MEDIA:`. You don't have to do **anything**:
-it's wired at runtime. Details: `docs/monde-vivant/10-features.md` (tts axis).
-
-- **Cut auto-voice without breaking anything**: `!feature tts off` (live, next turn) — also disables
-  `!raconte`. To keep `!raconte` but disable auto: `meta.hooks.tts_auto=false`.
-- **Latency**: a long narrative turn gains ~3-8 s (generation). Short turns: no overhead.
-
-### B. MANUAL — `!raconte` command
+### A. MANUAL — `!raconte` command (**the default path**)
 
 Voices the **last narration** on demand (zero latency on normal turns), or a **provided passage**:
-`!raconte <free text>`.
+`!raconte <free text>`. Available as soon as the `tts` axis is ON (default) and
+`MINIMAX_API_KEY` is set.
+
+### B. AUTO — `meta.hooks.tts_auto` (in the `transform_llm_output` hook) — **OPT-IN**
+
+**Off by default.** Enable it with **one** of:
+
+```bash
+MGM_TTS_AUTO=1                      # instance / deployment default
+# ansible deployment: set `mgm_tts_auto: true` in group_vars — the playbook
+# injects the variable into the container unit; exporting it in your own shell
+# does NOT reach the hook subprocess inside the container.
+```
+```json
+"meta": { "hooks": { "tts_auto": true } }   // world.json — campaign, wins over env
+```
+
+Once enabled, the hook voices **narrations** longer than `MGM_TTS_MIN_CHARS`
+(default 280) and attaches the audio via `MEDIA:`. Latency: ~3-8 s on a long
+narrative turn, inside a hook the runtime kills at 45 s.
+
+**Why opt-in.** In 34 sessions of real play the automatic path produced **0 audio
+file** while `!raconte` produced ~40, and it failed **without saying so** — three
+sessions were burned before the player switched voice off for good
+(`docs/10-field-report.md`). The path is repaired and, above all, now **audible when
+it fails**; it ships disabled until a deployment has actually seen it work.
+Nothing about `!raconte` depends on this toggle.
+
+Every auto-voice decision — attached, skipped, or **failed** — is written to
+`.banquier/tts-status.json` in the campaign, and echoed on stderr as `[mj-tts] …`.
+Read it with the doctor (below), never by guessing.
+
+---
+
+## "Why is there no voice?" — one command
+
+```bash
+python3 /opt/modules/gaming/mygamemaster-tts/scripts/tts_doctor.py .          # in the campaign dir
+python3 …/tts_doctor.py . --mock          # no key, no cost, no network
+python3 …/tts_doctor.py . --json          # machine output
+```
+
+One run reports: the `tts` axis and the `tts_auto` opt-in **as the hook resolves
+them**; `MINIMAX_API_KEY` in your shell **and** in the hook's own environment as the
+hook last observed it (they differ — a hook does not inherit your interactive shell,
+which is the most likely reason a voice that "works when I test it" never works in
+play); the thresholds in effect; every outcome the hook recorded, failures kept apart
+from configured silence; who produced the mp3 files sitting in `.banquier/tts/`; and a
+real end-to-end render. Exit `0` = nothing would silence the game, `1` = it names the
+defect.
 
 ---
 
@@ -74,6 +111,12 @@ Voices the **last narration** on demand (zero latency on normal turns), or a **p
    OUT=.banquier/tts/raconte_$(date +%s).mp3
    printf '%s' "$TXT" | python3 "$SCRIPT" --out "$OUT" --json
    ```
+   ⚠️ **Run this script. Never the runtime's built-in `tts_tool`.** It writes into the
+   same directory under the same `raconte_*.mp3` name but synthesises with a different
+   engine (Edge TTS): that substitution went unnoticed for a whole campaign and was
+   reported by the player as "MiniMax sounds degraded, strange diction". Audio produced
+   here always carries a `.json` sidecar with `generator` and `producer`; audio without
+   a sidecar did **not** come from this module (`tts_doctor.py` counts them).
 4. **Check exit code** (see table) before posting.
 5. **Post to Discord**: `MEDIA:<real .mp3 path>` + a short message (*« 🔊 Narration. »*).
    Never hard-code the name: use the `audio` field from `--json` output (or the `OK:` line).
@@ -198,16 +241,18 @@ To add a new language, open `scripts/tts_generate.py` and add one entry to
 | Lever | Where | Effect |
 |---|---|---|
 | `tts` axis | `world.json > meta.features.tts` / `MGM_FEATURE_TTS` / `!feature tts on\|off` | activate/cut **all** voice (auto **and** `!raconte`) — live |
-| `meta.hooks.tts_auto` | `world.json` | cuts **auto-voice** while keeping `!raconte` (default `true`, governed by `tts` axis) |
+| `meta.hooks.tts_auto` | `world.json` | **auto-voice opt-in** — default `false` (see § B), governed by the `tts` axis; `!raconte` is unaffected either way |
+| `MGM_TTS_AUTO` | env | instance-level auto-voice opt-in (default `0`; `world.json` wins). Ansible: `mgm_tts_auto` in `group_vars` — the unit file has no `MGM_TTS_AUTO` line unless that var is defined |
 | `meta.langue` | `world.json` | campaign language code (e.g. `"fr"`, `"en"`) — selects the default voice/boost |
 | `meta.audio.voice` | `world.json` | campaign voice override (takes priority over `meta.langue`) |
 | `meta.audio.language_boost` | `world.json` | campaign language_boost override |
 | `MGM_LANGUAGE` / `MGM_LANGUE` | env | instance-level language code (same effect as `meta.langue`, lower priority) |
-| `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = silent no-op |
+| `MINIMAX_API_KEY` | env (vault) | Minimax key — absent = no audio, recorded as `failed:key_missing` (not as a silence by choice) |
 | `MGM_TTS_MIN_CHARS` | env | auto-voice length threshold (default 280) |
 | `MGM_TTS_FORMAT_MODEL` | env | format step model (default `minimax/minimax-m3`) |
 | `MGM_TTS_SEGMENT` | env | multi-emotion voice by segments (default ON; `0`/`off` = mono-call) |
-| `MGM_TTS_TIMEOUT` | env | auto-voice generation budget in hook (default 40 s) |
+| `MGM_TTS_TIMEOUT` | env | auto-voice **wall-clock** budget in the hook (default 40 s; keep it under the runtime's 45 s hook timeout, otherwise the whole hook is killed and the turn loses its CSV line too). The `--timeout` the hook passes on to the renderer is a **per-call** budget and segmented synthesis applies it once per segment, so only this kill deadline actually bounds the total — an overrun is recorded as `failed:timeout` |
+| `MGM_TTS_PRODUCER` | env | caller tag stamped in the sidecar (`manual`, `hook-auto`, `doctor`) |
 | `MGM_TTS_AMBIANCE_VOLUME` | env | ambient bed volume under voice (default 0.16) |
 
 ---
@@ -216,7 +261,7 @@ To add a new language, open `scripts/tts_generate.py` and add one entry to
 
 | Dependency | Role |
 |---|---|
-| `mygamemaster` (umbrella skill) | persona, conventions, `transform_llm_output` hook (auto-voice + `last_narration` snapshot) |
+| `mygamemaster` (umbrella skill) | persona, conventions, `transform_llm_output` hook (auto-voice + `last_narration` snapshot + `.banquier/tts-status.json` journal) |
 | `scripts/` (Minimax + OpenRouter) | actual generation (`tts_render.py` & modules) |
 | `ffmpeg` (container image) | ambient mixing (fail-open if absent) |
 | `MINIMAX_API_KEY` / `OPENROUTER_API_KEY` | synthesis / format step |
@@ -233,4 +278,6 @@ To add a new language, open `scripts/tts_generate.py` and add one entry to
 
 > Anti-patterns: voice a Steward block or mechanics (narration only); post without checking exit code;
 > hard-code the `.mp3` name (always use the returned path); pass text as a shell argument (always
-> via **stdin**).
+> via **stdin**); **use the runtime's built-in `tts_tool`** instead of `tts_render.py` (different
+> engine, no sidecar, silently degrades the voice — see the `!raconte` flow); answer "the voice
+> doesn't work" from intuition instead of running `tts_doctor.py`.

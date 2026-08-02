@@ -11,19 +11,19 @@
 After each significant narrative action (NPC dialogue, discovery, combat, event), verify:
 
 - [ ] `npcs.json` — every new NPC named, described, with their role, attitude, location
-- [ ] `world.json` — every new location visited or mentioned added to `regions` or `lieux`
-- [ ] **`world.json > regles.temps.suivi`** — elapsed game time? rations consumed? mission constraint advanced?
-- [ ] `characters/<id>.json` — equipment updated, `notes_perso.relations` enriched, `notes_perso.secrets` if new personal info, **rations deducted if the day changed**
-- [ ] `sessions/NNN.json` — action logged in `actions[]`, NPC in `pnj_rencontres[]`, location in `lieux_visites[]`
+- [ ] `world.json` — every new location visited or mentioned added to `regions` or `locations`
+- [ ] **`world.json > rules.time.tracking`** — elapsed game time? rations consumed? mission constraint advanced?
+- [ ] `characters/<id>.json` — equipment updated, `personal_notes.relations` enriched, `personal_notes.secrets` if new personal info, **rations deducted if the day changed**
+- [ ] `sessions/NNN.json` — action logged in `actions[]`, NPC in `npcs_met[]`, location in `visited_locations[]`
 
 ## Common Pitfalls
 
 | ❌ Pitfall | ✅ Fix |
 |----------|--------|
 | Create an NPC in narration without saving it to `npcs.json` | Save immediately after first mention |
-| Grant equipment without updating the character sheet | Patch `equipement[]` right away |
-| Establish a relationship between PC/NPC without writing it in `notes_perso.relations` | Add to the relations in the relevant character sheets |
-| Narrate a flashback/background without adding it to `notes_perso.secrets` | Log in the character's secrets |
+| Grant equipment without updating the character sheet | Patch `equipment[]` right away |
+| Establish a relationship between PC/NPC without writing it in `personal_notes.relations` | Add to the relations in the relevant character sheets |
+| Narrate a flashback/background without adding it to `personal_notes.secrets` | Log in the character's secrets |
 | Forget to log an action in `sessions/NNN.json > actions[]` | Log immediately after resolution |
 
 ## Why This Matters
@@ -136,9 +136,9 @@ Recommended addition to `.gitignore` (see Versioning section):
 
 ---
 
-## Movement Governance — `deplacements.gouvernance`
+## Movement Governance — `movements.gouvernance`
 
-The `regles.temps.deplacements.gouvernance` block is **injected at campaign creation** (do NOT copy it by hand). It encodes the **4 spatial coherence rules** that `validator-distances.py` verifies after each route is added:
+The `rules.time.movements.gouvernance` block is **injected at campaign creation** (do NOT copy it by hand). It encodes the **4 spatial coherence rules** that `validator-distances.py` verifies after each route is added:
 
 1. **Fixed durations** — once set, the duration of a journey does not change without explicit narrative reason.
 2. **Indirect ≥ direct** — a journey passing through an intermediate point takes at least as long as the direct route between the same two endpoints.
@@ -148,9 +148,9 @@ The `regles.temps.deplacements.gouvernance` block is **injected at campaign crea
 ### Template (reference — already injected at creation)
 
 ```json
-"deplacements": {
+"movements": {
   "gouvernance": {
-    "regles": [
+    "rules": [
       "durees_fixes: a fixed duration does not change without narrative justification",
       "indirect_superieur_ou_egal_direct",
       "allers_simples: round trip + work <= 12h (playable day)",
@@ -174,4 +174,4 @@ python3 /opt/modules/gaming/mygamemaster/scripts/validator-distances.py <path/ca
 # → 0 OK, 1 warning (inconsistent route), 2 error
 ```
 
-Run **after every route addition** in `regles.temps.deplacements`. If a route violates one of the 4 rules, correct the duration or document the narrative reason before committing.
+Run **after every route addition** in `rules.time.movements`. If a route violates one of the 4 rules, correct the duration or document the narrative reason before committing.

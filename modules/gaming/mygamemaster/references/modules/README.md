@@ -36,13 +36,13 @@ A module **absent** from the block or with `actif: false` is considered **inacti
 
 | Key `modules.<x>` | File | Covers | Associated GAME source (values) |
 |---|---|---|---|
-| `voyage` | `voyage.md` | Pace, fatigue, encounters, orientation | `regles.temps.deplacements`, `voyage.params` |
+| `voyage` | `travel.md` | Pace, fatigue, encounters, orientation | `regles.temps.deplacements`, `voyage.params` |
 | `factions` | `factions.md` | Faction tracking, proactive clock, PC objectives | `global_state.factions`, `faction_actions_horloge` |
 | `proactivite_pnj` | `proactivite-pnj.md` | 5 pillars of NPC proactivity | `npcs.json > motivations_personnelles` |
 | `artefacts` | `artefacts.md` | Tracking important objects | `global_state.artefacts_connus` |
 | `politique` | `politique.md` | World layers, sovereignty, political entities | `universe.entites_politiques`, `souverainete` |
-| `meteo` | `meteo.md` | Weather and biodiversity | `regles.meteo`, `universe.regions[].biodiversite` |
-| `worldbuilding_lieux` | `worldbuilding-lieux.md` | Framework 10 points of place creation | `universe.regions[].lieux` |
+| `meteo` | `weather.md` | Weather and biodiversity | `regles.meteo`, `universe.regions[].biodiversite` |
+| `worldbuilding_lieux` | `worldbuilding-locations.md` | Framework 10 points of place creation | `universe.regions[].lieux` |
 | `construction_royaume` | `construction-royaume.md` | Domain/kingdom construction | `systeme.construction_royaume`, `regles.construction`, `global_state.royaume` |
 
 ## LOSSLESS migration

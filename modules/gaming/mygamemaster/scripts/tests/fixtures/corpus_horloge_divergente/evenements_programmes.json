@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "campagne": "Corpus — divergent clock",
+    "version": 1,
+    "note": "Living-world clock written by world_tick.py. Its last RESOLVED event sits on day 109, 51 days ahead of the declared clock — and it is marked resolved while dated in the future."
+  },
+  "events": [
+    {
+      "id": "evt:levee-du-camp-15552",
+      "T": 15552,
+      "type": "action",
+      "statut": "resolu",
+      "label": "The Wardens break camp",
+      "cause": "world_tick",
+      "significativite": 0.4,
+      "visible_par_pj": false
+    },
+    {
+      "id": "evt:assaut-du-gue-17280",
+      "T": 17280,
+      "type": "attaque",
+      "statut": "planifie",
+      "label": "Assault on the north ford",
+      "cause": "world_tick",
+      "significativite": 0.7,
+      "visible_par_pj": false
+    }
+  ]
+}

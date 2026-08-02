@@ -143,7 +143,7 @@ pre-commit run --all-files
 - **Stdlib only in hooks.** Runtime hooks (`hooks/*.py`) must use only the Python standard
   library — no third-party imports, as hooks run inside the container without a full venv.
 - **No secrets in code.** Never hard-code API keys, tokens, or passwords. All secrets go
-  through Ansible vault (see `specs/secrets-et-vault.md`).
+  through Ansible vault (see `specs/secrets-and-vault.md`).
 - **Document your module.** Every new skill module must have an entry in `modules/MODULES.md`.
 
 ---
@@ -151,7 +151,7 @@ pre-commit run --all-files
 ## How to Add a Skill Module
 
 1. Create a directory under `modules/gaming/mygamemaster-<your-skill>/`.
-2. Follow the structure of an existing module (e.g. `mygamemaster-inventaire/`) for the
+2. Follow the structure of an existing module (e.g. `mygamemaster-inventory/`) for the
    `skill.yaml` manifest and entry point.
 3. Add your module to the Hermes `skills.external_dirs` path (already configured in the image).
 4. Write at least one test that exercises the happy path.

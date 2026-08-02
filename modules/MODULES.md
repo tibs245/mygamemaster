@@ -3,7 +3,7 @@
 The **modules** are our custom Hermes skills — the core value of the project. They live under
 `modules/gaming/` and are loaded by Hermes via `skills.external_dirs: [/opt/modules]` (see
 `specs/architecture.md`). In the container they are baked into the image (or bind-mounted in
-dev mode, see `docs/04-ameliorer-les-modules.md`).
+dev mode, see `docs/04-improve-the-modules.md`).
 
 ## The umbrella skill
 
@@ -23,16 +23,16 @@ dev mode, see `docs/04-ameliorer-les-modules.md`).
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-outils** | Dice rolls (Python `secrets` + quantum via qrandom.io) and action resolution (`!jet`, `!jetq`, `!action`). |
-| **mygamemaster-intendant** | "The Steward (Banker)": transactional checker for every action (inventory, knowledge, consistency, time). Rules engine. |
-| **mygamemaster-inventaire** | Player inventory: display, add, use, discard, transfer. Evolving YAML item base. |
-| **mygamemaster-personnage** | Character sheets (`!fiche`, `!perso`, `!notes`) with strict per-player compartmentalization. |
+| **mygamemaster-tools** | Dice rolls (Python `secrets` + quantum via qrandom.io) and action resolution (`!jet`, `!jetq`, `!action`). |
+| **mygamemaster-steward** | "The Steward (Banker)": transactional checker for every action (inventory, knowledge, consistency, time). Rules engine. |
+| **mygamemaster-inventory** | Player inventory: display, add, use, discard, transfer. Evolving YAML item base. |
+| **mygamemaster-character** | Character sheets (`!fiche`, `!perso`, `!notes`) with strict per-player compartmentalization. |
 
 ## Living world
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-pnj** | Persistent NPC agent (level 2): embodies ONE non-player character with limited vision, acts like a player toward the GM. |
+| **mygamemaster-npc** | Persistent NPC agent (level 2): embodies ONE non-player character with limited vision, acts like a player toward the GM. |
 | **mygamemaster-faction** | Persistent Faction agent (level 2): embodies ONE faction as collective intelligence with limited vision. |
 | **mygamemaster-emotions** | Character emotions (primarily NPCs): compact model (6 emotions 0..1 + temperament baseline + explainable history) that evolves via deterministic event rules and decays toward temperament; concise summary injected into the GM context (`pre_llm_call`, fail-open) so portrayal stays consistent — shown through behavior, never told as stats. |
 | **mygamemaster-images** | Image generation (scenes, portraits, maps) via pipeline style → templates → instances (OpenRouter / ComfyUI). |
@@ -42,7 +42,7 @@ dev mode, see `docs/04-ameliorer-les-modules.md`).
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-analyste** | Inconsistency diagnosis: mode A (bug), B (wrap-up audit), C (pre-session audit). |
+| **mygamemaster-analyst** | Inconsistency diagnosis: mode A (bug), B (wrap-up audit), C (pre-session audit). |
 | **mygamemaster-bug-report** | Allows the player to report an issue (context / expected / actual), stored for deferred processing. |
 | **mygamemaster-game-report** | Factual session report (actions, locations, NPCs, decisions, inventory) — no spoilers. |
 | **mygamemaster-write-history** | Narrative session summary, novel style — read like a chapter, no mechanics or spoilers. |
@@ -58,7 +58,7 @@ orchestration (`run_turn.sh`, `ensure_agent.sh`). JSON schemas under `scripts/sc
 > **Portability note**: `ensure_agent.sh` contains a fallback `/opt/hermes/bin/hermes`;
 > it prefers `HERMES_BIN`/`$PATH`, so it works in the container (binary under
 > `/opt/hermes/.venv/bin`). NPC/Faction agents ("level 2") will be deployed as additional
-> containers in a later phase (see `specs/profiles-vers-conteneurs.md`).
+> containers in a later phase (see `specs/profiles-to-containers.md`).
 
 ## UI strings localization (runtime i18n)
 
@@ -90,7 +90,7 @@ at **every** exchange (CLI + Discord), wired via the `hooks:` block in `config.y
 (`pre_llm_call`), JSON integrity guard (`pre_tool_call`), the Steward (Banker) "Persisted" report
 computed on real deltas (`post_tool_call` + `transform_llm_output`), verbosity and
 CSV collection. Fail-open (stdlib only). See [`specs/hooks-runtime.md`](../specs/hooks-runtime.md)
-and [`docs/09-hooks-runtime.md`](../docs/09-hooks-runtime.md).
+and [`docs/09-runtime-hooks.md`](../docs/09-runtime-hooks.md).
 
 > Not to be confused with `scripts/install-hooks.sh` (**git** hooks for commit validation).
 

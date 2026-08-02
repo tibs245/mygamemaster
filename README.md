@@ -33,19 +33,19 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - `mygamemaster-help` — in-Discord guide: how to use the GM, available commands
 
 **Game mechanics**
-- `mygamemaster-outils` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
-- `mygamemaster-intendant` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
-- `mygamemaster-inventaire` — player inventories: display, add, use, discard, transfer; extensible YAML item base
-- `mygamemaster-personnage` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
+- `mygamemaster-tools` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
+- `mygamemaster-steward` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
+- `mygamemaster-inventory` — player inventories: display, add, use, discard, transfer; extensible YAML item base
+- `mygamemaster-character` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
 
 **Living world**
-- `mygamemaster-pnj` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
+- `mygamemaster-npc` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
 - `mygamemaster-faction` — persistent Faction agents: each faction runs as a collective intelligence agent
-- `mygamemaster-images` — image generation pipeline: deterministic map layer (`carte_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
-- `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (auto via hook + manual `!raconte`)
+- `mygamemaster-images` — image generation pipeline: deterministic map layer (`map_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
+- `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (manual `!raconte`, plus an opt-in automatic hook mode)
 
 **Quality and output**
-- `mygamemaster-analyste` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
+- `mygamemaster-analyst` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
 - `mygamemaster-bug-report` — players can file structured bug reports (context / expected / got) for deferred review
 - `mygamemaster-game-report` — factual session report: actions, locations, NPCs, decisions, inventory — no spoilers
 - `mygamemaster-write-history` — novelization of the session as a readable chapter, no mechanics, no spoilers
@@ -58,9 +58,9 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - **LLM judge** (`llm_judge.py`): an independent model checks each GM response on two axes — Steward compliance (soft) and conduct rules (strict: agency, NPC emotions, hidden mechanics, compartmentalization). Corrections are feed-forward (next turn), never blocking. Gate mode (`mj_checkpoint.py`) lets the GM validate a draft before delivering; after 2 failures it passes anyway (logged as "forced"), so sessions never hang
 - **Persistent pause mode**: prefix a message with `⏸️` (or be listed in `meta.admins`) to bypass the Steward display for debugging — tracing still runs, marked `bypass`
 
-### Feature Flags (6 axes, all ON by default)
+### Feature Flags (7 axes, all ON by default)
 
-Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice
+Traceability · Verbosity · Living NPCs · Living Factions · Temporality · Images · Voice · Dialogue
 
 All flags fail-open (absent = ON). Toggled live in `world.json > meta.features` — no redeploy needed.
 
@@ -237,16 +237,16 @@ hermesv5/
 │   ├── roles/               # Ansible roles
 │   └── templates/           # config.yaml.j2, SOUL.md.j2, …
 ├── docs/                    # operator documentation
-│   └── monde-vivant/        # living-world engine design docs (English)
+│   └── living-world/        # living-world engine design docs (English)
 ├── specs/                   # architecture and design specs
 │   ├── architecture.md
 │   ├── hooks-runtime.md
-│   ├── secrets-et-vault.md
+│   ├── secrets-and-vault.md
 │   └── ...
 └── harness/                 # local dev harness (mock LLM, test runner)
 ```
 
-Full documentation index: [docs/00-vue-densemble.md](docs/00-vue-densemble.md).
+Full documentation index: [docs/00-overview.md](docs/00-overview.md).
 
 ---
 
@@ -265,7 +265,7 @@ See [ansible/inventory/group_vars/all/vault.example.yml](ansible/inventory/group
 | Key | Purpose |
 |---|---|
 | `openrouter_api_key` | LLM access for the GM + voice formatting |
-| `minimax_api_key` | Optional — narrative TTS; absent = TTS silently disabled (fail-open) |
+| `minimax_api_key` | Optional — narrative TTS; absent = no voice, and the miss is *reported* (hook journal + `tts_doctor.py`), not silently swallowed |
 | `discord_token_<slug>` | One Discord bot token per game instance |
 
 The default GM model is `minimax/minimax-m3` (via OpenRouter). The LLM judge ideally runs on a
@@ -283,7 +283,7 @@ incurred on your OpenRouter and MiniMax accounts.
 
 - The GM makes one LLM call per player message.
 - The LLM judge makes an additional call per turn (configurable `echantillon` to sample 1-in-N turns).
-- TTS generates audio for narration passages above a character threshold (default: 100 chars).
+- TTS costs nothing per turn unless auto-voice is opted in (`MGM_TTS_AUTO=1` / `meta.hooks.tts_auto=true`; **off by default**). Once opted in, it generates audio for every narration above a character threshold (code default: 280 chars; 100 on the reference ansible instance). `!raconte` bills only when someone asks for it.
 - Image generation is triggered per explicit request or scene event.
 
 Use the `echantillon` setting on the judge and the feature flags to control spending.
@@ -295,17 +295,18 @@ The [scoreboard script](modules/gaming/mygamemaster/hooks/scoreboard.py) helps y
 
 | Doc | Topic |
 |---|---|
-| [docs/00-vue-densemble.md](docs/00-vue-densemble.md) | Overview and vocabulary |
-| [docs/01-prerequis-et-installation.md](docs/01-prerequis-et-installation.md) | Prerequisites and installation |
-| [docs/02-deployer-une-campagne.md](docs/02-deployer-une-campagne.md) | Deploy a campaign |
-| [docs/03-backup-et-restauration.md](docs/03-backup-et-restauration.md) | Backup and restore |
-| [docs/05-cycle-de-vie.md](docs/05-cycle-de-vie.md) | Full operational lifecycle |
-| [docs/06-concept-isolation.md](docs/06-concept-isolation.md) | Isolation model (one container per game) |
-| [docs/09-hooks-runtime.md](docs/09-hooks-runtime.md) | Runtime hooks (Steward, judge, verbosity) |
-| [docs/monde-vivant/](docs/monde-vivant/00-vue-densemble.md) | Living-world engine (space, time, causality) |
+| [docs/00-overview.md](docs/00-overview.md) | Overview and vocabulary |
+| [docs/01-prerequisites-and-installation.md](docs/01-prerequisites-and-installation.md) | Prerequisites and installation |
+| [docs/02-deploy-a-campaign.md](docs/02-deploy-a-campaign.md) | Deploy a campaign |
+| [docs/03-backup-and-restore.md](docs/03-backup-and-restore.md) | Backup and restore |
+| [docs/05-lifecycle.md](docs/05-lifecycle.md) | Full operational lifecycle |
+| [docs/06-isolation-model.md](docs/06-isolation-model.md) | Isolation model (one container per game) |
+| [docs/09-runtime-hooks.md](docs/09-runtime-hooks.md) | Runtime hooks (Steward, judge, verbosity) |
+| [docs/living-world/](docs/living-world/00-overview.md) | Living-world engine (space, time, causality) |
+| [docs/10-field-report.md](docs/10-field-report.md) | Field report: what 34 sessions of real play taught us |
 | [specs/architecture.md](specs/architecture.md) | System architecture |
 | [specs/hooks-runtime.md](specs/hooks-runtime.md) | Hook internals |
-| [specs/secrets-et-vault.md](specs/secrets-et-vault.md) | Secrets management |
+| [specs/secrets-and-vault.md](specs/secrets-and-vault.md) | Secrets management |
 
 ---
 

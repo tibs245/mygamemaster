@@ -60,7 +60,7 @@ logging:
 # Scripts baked into the image (COPY modules/), invoked via explicit interpreter.
 # Per-campaign fine-tuning in world.json > meta.{verbosity,diagnostic,admins,hooks}.
 # Global disable: set hooks_enabled: false in the games.yml table.
-# Spec: specs/hooks-runtime.md — Doc: docs/09-hooks-runtime.md
+# Spec: specs/hooks-runtime.md — Doc: docs/09-runtime-hooks.md
 {% if hooks_enabled | default(true) %}
 {% set hooks_py = hooks_python | default('/opt/hermes/venv/bin/python3') %}
 {% set hooks_dir = container_modules ~ '/gaming/mygamemaster/hooks' %}

@@ -12,13 +12,13 @@ triggers:
 
 # 🎭 Character Emotions
 
-> ✅ **Approved — fail-open, opt-in per character.** A character without an `emotions` object behaves exactly as before (no behavior change). Tooling: `mygamemaster/scripts/emotions.py`. Injection: `pre_llm_call` (axis `pnj_faction_vivants`).
+> ✅ **Approved — fail-open, opt-in per character.** A character without an `emotions` object behaves exactly as before (no behavior change). Tooling: `mygamemaster/scripts/emotions.py`. Injection: `pre_llm_call` (axis `living_npcs_factions`).
 
 A recurring NPC who was betrayed in session 2 should still be guarded in session 5 — and the player should FEEL it in how the NPC talks, not be told "his trust is 0.1". This skill tracks each character's emotional state, makes it **evolve logically** in response to events, and surfaces a one-line brief to the GM so portrayal stays consistent. Primarily for NPCs; PCs only ever opt in (see "Sacred agency" below).
 
 ## The model (compact, legible — no over-engineering)
 
-Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `characters/<id>.json` for opt-in PCs). Keys follow the sibling French data keys (`established_facts`, `hypotheses_mj`…):
+Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `characters/<id>.json` for opt-in PCs). Keys follow the sibling sheet keys (`established_facts`, `gm_hypotheses`…); `etat` and `temperament` are the exact names read by `emotions.py`:
 
 ```json
 "emotions": {
@@ -35,7 +35,7 @@ Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `char
 
 - **6 core emotions, intensities 0..1** — `joy`, `trust`, `fear`, `anger`, `sadness`, `surprise`. Plutchik-inspired: `trust` is in the palette because trust drives ally/wary/hostile dynamics at the table; `surprise` captures shocks but is transient (it decays much faster).
 - **`temperament`** — the baseline: who the character is when nothing is happening (a fae lady stays near-flat; an innkeeper who lost her father to the mist has a high `fear` baseline). The current state always drifts back toward it.
-- **`history`** — capped journal (last 20 shifts) with event, effective deltas, in-fiction reason and session number. **Every change is explainable**; an emotional state with no journal trail is suspect, like a `established_facts` with no session reference (cf. `references/pnj-data-governance.md`).
+- **`history`** — capped journal (last 20 shifts) with event, effective deltas, in-fiction reason and session number. **Every change is explainable**; an emotional state with no journal trail is suspect, like a `established_facts` with no session reference (cf. `references/npc-data-governance.md`).
 
 ## Evolution rules (deterministic — never arbitrary)
 
@@ -79,13 +79,13 @@ NEVER state feelings or numbers to players:
 
 ## Wiring & fail-open
 
-- Injection lives in `mygamemaster/hooks/pre_llm_call.py` → `build_emotions_brief()` (subprocess to `emotions.py summary`), gated by the `pnj_faction_vivants` feature axis. Any failure (no `npcs.json`, no emotions data, missing script, timeout) → no block, the turn proceeds untouched.
+- Injection lives in `mygamemaster/hooks/pre_llm_call.py` → `build_emotions_brief()` (subprocess to `emotions.py summary`), gated by the `living_npcs_factions` feature axis. Any failure (no `npcs.json`, no emotions data, missing script, timeout) → no block, the turn proceeds untouched.
 - `emotions.py summary` ALWAYS exits 0 — the fail-open contract of the hooks (`specs/hooks-runtime.md`) extends to this module.
 - Schema: optional `emotions` property in `scripts/schemas/npcs.schema.json` (validated by `validate_schema.py`).
 
 ## Dependencies
 
 - **Parent skill**: `mygamemaster` (umbrella — state injection precedence, show-don't-tell).
-- **Data governance**: `mygamemaster/references/pnj-data-governance.md` (traceable facts ↔ traceable emotional shifts).
-- **Siblings**: `mygamemaster-pnj` (an NPC agent's brief gains consistent affect), `mygamemaster-session` (decay at wrap-up), `mygamemaster-intendant` (the Steward can check a declared NPC reaction against its persisted state).
+- **Data governance**: `mygamemaster/references/npc-data-governance.md` (traceable facts ↔ traceable emotional shifts).
+- **Siblings**: `mygamemaster-npc` (an NPC agent's brief gains consistent affect), `mygamemaster-session` (decay at wrap-up), `mygamemaster-steward` (the Steward can check a declared NPC reaction against its persisted state).
 - **Tools**: `mygamemaster/scripts/emotions.py` (stdlib only, tested in `scripts/tests/test_emotions.py`).

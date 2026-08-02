@@ -7,7 +7,7 @@
 # What it does:
 #   1. Checks whether the profile already exists (hermes profile list)
 #   2. If not → clones default → injects the NPC config (skills, toolsets, memory)
-#   3. Verifies that the mygamemaster-pnj (or -faction) skill is loaded
+#   3. Verifies that the mygamemaster-npc (or -faction) skill is loaded
 #   4. Displays a summary of the created/existing profile
 #
 # Exit codes:
@@ -107,7 +107,7 @@ echo "🧠 Configuring memory (8000 characters)..."
     warn "Unable to set memory_char_limit (may require manual edit of profiles/$PROFILE/config.yaml)"
 
 # ── Configure skills ──────────────────────────────────────────────
-SKILL_NAME="mygamemaster-pnj"
+SKILL_NAME="mygamemaster-npc"
 [[ "$MODE" == "faction" ]] && SKILL_NAME="mygamemaster-faction"
 
 echo "📚 Checking skill $SKILL_NAME..."

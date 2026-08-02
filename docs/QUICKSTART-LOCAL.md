@@ -84,7 +84,7 @@ bash harness/run.sh
 ## What these tests do NOT cover
 
 - A live Discord session (requires a real bot token and the full Ansible deploy — see
-  [docs/02-deployer-une-campagne.md](02-deployer-une-campagne.md)).
+  [docs/02-deploy-a-campaign.md](02-deploy-a-campaign.md)).
 - LLM quality (the judge, the GM persona, the NPC agents) — these require an OpenRouter key
   and are validated during a real session.
 - The image generation pipeline (OpenRouter / ComfyUI access required).
