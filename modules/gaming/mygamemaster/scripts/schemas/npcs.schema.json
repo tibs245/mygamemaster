@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mygamemaster/npcs.schema.json",
   "title": "npcs.json — NPC sheets for a MJ Tonnerre campaign (canonical format)",
-  "description": "Canonical format per references/pnj-data-governance.md. Tolerates both containers: bare array [...] OR {\"pnj\": [...]}. Each sheet distinguishes established_facts (played) and gm_hypotheses (deductions not usable in narration). Two optional private layers (Level 2, audit/06-niveau2-factions.md §4): connaissances_privees (NPC's hidden knowledge, seeded by GM) and notes_privees (agent's inner monologue, appended by the coordinator).",
+  "description": "Canonical format per references/npc-data-governance.md. Tolerates both containers: bare array [...] OR {\"pnj\": [...]}. Each sheet distinguishes established_facts (played) and gm_hypotheses (deductions not usable in narration). Two optional private layers (Level 2, audit/06-niveau2-factions.md §4): connaissances_privees (NPC's hidden knowledge, seeded by GM) and notes_privees (agent's inner monologue, appended by the coordinator). One optional dialogue layer: voix (the character's idiolect, cf. references/dialogue-craft.md).",
   "oneOf": [
     {
       "type": "array",
@@ -21,6 +21,40 @@
     }
   ],
   "$defs": {
+    "voix": {
+      "type": "object",
+      "description": "OPTIONAL (references/dialogue-craft.md §2④). The character's IDIOLECT — how this mouth works, so two NPCs in a scene are not distinguishable by their name tag alone. Every field is a free-text sentence written for a model to imitate, not an enum. FAIL-OPEN: no `voix` block = no behavior change, the GM writes the voice from `description`/`attitude` and is expected to persist it here the first time the NPC holds a real conversation.",
+      "additionalProperties": true,
+      "properties": {
+        "registre": {
+          "type": "string",
+          "description": "Level of language, tone, social distance. Ex.: \"formal, archaic, never familiar with strangers\"."
+        },
+        "lexique": {
+          "type": "array",
+          "description": "Words and images this character reaches for — their metaphor field. Ex.: \"his comparisons are all bookkeeping: weights, debts, ledgers\".",
+          "items": { "type": "string" }
+        },
+        "rythme": {
+          "type": "string",
+          "description": "Sentence length, pauses, interruptions. Ex.: \"short sentences; stops mid-thought and restarts elsewhere\"."
+        },
+        "tics": {
+          "type": "array",
+          "description": "Verbal signatures. Used SPARINGLY (one appearance every few lines): a tic on every line is a parrot, not a person.",
+          "items": { "type": "string" }
+        },
+        "ne_dit_jamais": {
+          "type": "array",
+          "description": "Words and subjects this mouth refuses, and what it substitutes. Ex.: \"never says the word 'fae'; says 'them', or 'the other side'\".",
+          "items": { "type": "string" }
+        },
+        "sous_tension": {
+          "type": "string",
+          "description": "How the voice DEFORMS under stress — the most useful field of the block. Ex.: \"becomes courteous and very precise: politeness is his panic\"."
+        }
+      }
+    },
     "emotions": {
       "type": "object",
       "description": "OPTIONAL (skill mygamemaster-emotions). Character's emotional state: 6 emotions 0..1 (joy, confidence, fear, anger, sadness, surprise). `etat` = current intensities; `temperament` = baseline toward which state decays over time; `history` = capped (20) journal of variations (event, actual deltas, reason, session) — every change is EXPLAINABLE, never arbitrary. Managed by scripts/emotions.py (fail-open: missing object = no behavior change).",
@@ -88,6 +122,7 @@
           "description": "OPTIONAL (Level 2). Agent's inner monologue: reflections, plans, accumulated suspicions turn after turn. Appended by the coordinator (sole writer) via faction_slice.py add-note. Invisible to all others.",
           "items": { "type": "string" }
         },
+        "voix": { "$ref": "#/$defs/voix" },
         "emotions": { "$ref": "#/$defs/emotions" }
       }
     }

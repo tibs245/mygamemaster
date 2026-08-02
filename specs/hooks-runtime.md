@@ -89,7 +89,7 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
 | `pre_llm_call.py` | `pre_llm_call` | injects the **authoritative state** (time/day, PCs present + inventories, NPCs present); memorizes input prompt for traceability |
 | `pre_tool_call.py` | `pre_tool_call` | **snapshot** of counters in the targeted file; **blocks** a `write_file` write whose JSON content is broken/nonconforming (strict mode) |
 | `post_tool_call.py` | `post_tool_call` | reloads written file, calculates **deltas** (actions +N, inventory X→Y, time), stacks them in the **ledger**; reports broken JSON (advisory); **auto-commit** git of the campaign (if JSON valid) |
-| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open) + memorizes `last_narration` (for `!raconte`) |
+| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts` + opt-in `tts_auto`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open, outcome journalled in `.banquier/tts-status.json`) + memorizes `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | **timestamped snapshot** of campaign JSON (safety net) |
 
 ---
@@ -244,7 +244,7 @@ neither style nor pacing, only **clear** violations of the provided rules.
 | Domain | Rule source | Posture |
 |---|---|---|
 | **steward** | resource possession, NPC knowledge, action feasibility, NPC existence | **soft** — tolerates name/format variations, **bias toward VALID** when in doubt (never false rejection) |
-| **conduct** | `SOUL.md` "ABSOLUTE RULE — Agentivity" + preamble + `narrative-erreurs-recurrentes.md` | **strict** — agentivity, NPC emotions, hidden mechanics, possessiveness/spotlight, compartmentalization |
+| **conduct** | `SOUL.md` "ABSOLUTE RULE — Agentivity" + preamble + `narrative-recurring-errors.md` | **strict** — agentivity, NPC emotions, hidden mechanics, possessiveness/spotlight, compartmentalization |
 
 **Normalized verdict**: `{"ok":bool,"violations":[{domain,rule,excerpt,why,correction}]}`.
 `correction` is a **concrete, actionable instruction** → this is what allows the GM to
@@ -299,6 +299,59 @@ API key: `OPENROUTER_API_KEY` (already required by entrypoint) or `MGM_JUDGE_API
 - **Not exposed to player**: judge feedback is internal (feed-forward / log) — aligns with
   "technical transparency" rule. Visible only at DEBUG/TRACE verbosity.
 - **Testable offline**: `MGM_JUDGE_MOCK=<verdict JSON>` short-circuits the network call.
+
+---
+
+## 11. Dialogue grader — quality, and the dry-summary fallback
+
+`llm_judge.py` guards rules and deliberately refuses to grade quality. Nothing was therefore
+watching the failure the field reported: conversations that break no rule and are still flat.
+`dialogue_judge.py` is the answer — a **separate call**, on **turns that contain dialogue only**
+(deterministic `has_dialogue()` detection, so a narration with no spoken line never pays for it).
+
+**Rubric** (`references/dialogue-craft.md` §4), each 0..5: `INTENTION` (the line pursues the NPC's
+own goal), `SOUS_TEXTE` (a gap between said and wanted), `VOIX` (mouths distinguishable, and
+matching the sheet's `voix` block, which is passed in the prompt), `ENJEU` (something costs, moves
+or is refused). **Verdict**: `{"ok",score,seuil,criteres,faibles}` — fails below `seuil` (12/20)
+**or** on any criterion ≤ `plancher` (1).
+
+**Layer 3 of `mj_checkpoint.py`**, after the agency gate and the rule judge, and only on the paths
+that were about to clear the turn (a FORCED pass is already an escape from a loop — it is not made
+harder). Budget `max_tentatives` (default 2 = first draft + one rewrite):
+
+| Attempt | Outcome |
+|---|---|
+| 1st failure | exit 1 + feedback naming the weak criteria and one concrete fix each |
+| 2nd failure | exit 0 + instruction to deliver the **DRY SUMMARY** instead of the dialogue |
+| pass | exit 0, score appended to the checkpoint line |
+
+The fallback is a **narrative register, not an error message**: reported speech, no quoted line,
+the outcome stated (obtained / refused / at what price / what changed), persisted exactly as if
+played, and the player is never told a scene was rejected.
+
+**Configuration** — `world.json > meta.hooks.dialogue`, gated by the `dialogue` feature axis
+(ON by default). Unlike `judge`, it is active as soon as it CAN run — a recurring, reported defect
+does not ship behind a second opt-in:
+
+```jsonc
+"dialogue": {
+  "actif": true,          // axis `dialogue` is the main switch above this
+  "modele": "",           // else env MGM_DIALOGUE_MODEL, else the judge's model
+  "base_url": "",         // else the judge's
+  "timeout": 16,          // grading reads a whole scene, not a rule
+  "seuil": 12,            // out of 20
+  "plancher": 1,          // any criterion ≤ this fails, whatever the total
+  "max_tentatives": 2,    // drafts, not rewrites
+  "min_chars": 120
+}
+```
+
+- **Fail-open**: unconfigured, unreachable or unparseable grader → the turn clears, with the reason
+  stated on the checkpoint line. A grading outage must never degrade a good scene to a summary.
+- **Journalled**: every grading lands in `.banquier/dialogue-scores.json` (capped 100) with its
+  outcome (`passed` / `rewrite` / `summarised`). A campaign summarising half its conversations does
+  not have a grading problem — it has a briefing problem (`modules/gaming/mygamemaster/scripts/dialogue_brief.py`).
+- **Testable offline**: `MGM_DIALOGUE_MOCK=<verdict JSON>`.
 
 ---
 

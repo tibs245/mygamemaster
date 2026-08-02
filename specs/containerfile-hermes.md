@@ -74,7 +74,7 @@ exec hermes gateway start --platform discord
 
 - **Production**: modules baked into the image (`COPY modules/`). Redeploy = rebuild + recreate.
 - **Development** (`-e dev_modules=true`): bind-mount `../modules` to `/opt/modules` in
-  `podman run`, to iterate on a skill without rebuild. Documented in `docs/04-ameliorer-les-modules.md`.
+  `podman run`, to iterate on a skill without rebuild. Documented in `docs/04-improve-the-modules.md`.
 
 ## Tag & versioning
 

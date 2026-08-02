@@ -25,29 +25,84 @@ def checksum_file(path):
     return h.hexdigest()
 
 
+def liste_pnj(pnj_data):
+    """NPC list from either accepted container: bare list, or {"npcs": [...]}."""
+    if isinstance(pnj_data, list):
+        return pnj_data
+    if isinstance(pnj_data, dict) and isinstance(pnj_data.get('npcs'), list):
+        return pnj_data['npcs']
+    return []
+
+
+def nom_pnj(pnj, defaut=''):
+    """NPC display name, tolerant of both schemas.
+
+    Migrated data carries `name`; un-migrated (pre-rename) data still carries
+    `nom`. Reading only `nom` made find_pnj return None for EVERY NPC of a
+    migrated campaign, and `pnj['nom']` raised KeyError. Read both, write `name`.
+    """
+    if not isinstance(pnj, dict):
+        return defaut
+    return pnj.get('name') or pnj.get('nom') or defaut
+
+
 def find_pnj(pnj_list, name):
     """Search for an NPC by name, case-insensitive match."""
     name_lower = name.lower().strip()
     for pnj in pnj_list:
-        if pnj.get('nom', '').lower() == name_lower:
+        if nom_pnj(pnj).lower() == name_lower:
             return pnj
     # Partial match
     for pnj in pnj_list:
-        if name_lower in pnj.get('nom', '').lower():
+        if name_lower and name_lower in nom_pnj(pnj).lower():
             return pnj
     return None
+
+
+def voix_section(pnj):
+    """Renders the optional `voix` block (idiolect) as brief lines.
+
+    Fail-open: absent, empty or malformed block → [] (no section). Cf.
+    references/dialogue-craft.md §2④ and schemas/npcs.schema.json $defs.voix.
+    """
+    voix = pnj.get('voix') if isinstance(pnj, dict) else None
+    if not isinstance(voix, dict):
+        return []
+    champs = [
+        ('registre', 'Register'),
+        ('rythme', 'Rhythm'),
+        ('sous_tension', 'Under stress'),
+        ('lexique', 'Vocabulary / imagery'),
+        ('tics', 'Verbal signatures (use sparingly)'),
+        ('ne_dit_jamais', 'Never says'),
+    ]
+    out = []
+    for cle, label in champs:
+        val = voix.get(cle)
+        if isinstance(val, str) and val.strip():
+            out.append(f"  • {label}: {val.strip()}")
+        elif isinstance(val, list):
+            items = [str(v).strip() for v in val if str(v).strip()]
+            if items:
+                out.append(f"  • {label}: " + " ; ".join(items))
+    if not out:
+        return []
+    return ["--- VOICE (how you speak — this mouth and no other) ---"] + out + [""]
 
 
 def build_brief(pnj):
     """Build the text brief for an NPC from their sheet."""
     lines = []
-    lines.append(f"=== NPC BRIEF : {pnj.get('nom', 'UNKNOWN')} ===")
+    lines.append(f"=== NPC BRIEF : {nom_pnj(pnj, 'UNKNOWN')} ===")
     lines.append(f"Title: {pnj.get('titre', '')}")
     lines.append(f"Description: {pnj.get('description', '')}")
     lines.append(f"Attitude: {pnj.get('attitude', '')}")
     lines.append(f"Relation: {pnj.get('relation_niveau', '')}")
     lines.append(f"Location: {pnj.get('localisation_actuelle', 'Unknown')}")
     lines.append("")
+
+    # Idiolect before the facts: a brief opening on a fact list produces a character who recites.
+    lines.extend(voix_section(pnj))
 
     faits = pnj.get('established_facts', [])
     if faits:
@@ -75,7 +130,7 @@ def build_brief(pnj):
                 lines.append(f"  • {m}")
         lines.append("")
 
-    inv = pnj.get('inventaire', [])
+    inv = pnj.get('inventory') or pnj.get('inventaire') or []
     if inv:
         lines.append("--- INVENTORY ---")
         for item in inv:
@@ -182,14 +237,14 @@ def main():
         sys.exit(1)
 
     with open(pnj_json_path, 'r') as f:
-        pnj_data = json.load(f)
+        pnj_data = liste_pnj(json.load(f))
 
     # --list mode
     if '--list' in sys.argv:
         print("NPCs available in this campaign:")
         for pnj in pnj_data:
             loc = pnj.get('localisation_actuelle', '?')
-            print(f"  • {pnj['nom']:20s} [{loc}]")
+            print(f"  • {nom_pnj(pnj, '?'):20s} [{loc}]")
         sys.exit(0)
 
     if len(sys.argv) < 3:
@@ -214,7 +269,7 @@ def main():
         print(f"❌ NPC '{pnj_nom}' not found in {pnj_json_path}")
         print("Available NPCs:")
         for p in pnj_data:
-            print(f"  • {p['nom']}")
+            print(f"  • {nom_pnj(p, '?')}")
         sys.exit(1)
 
     # Attempt cache lookup

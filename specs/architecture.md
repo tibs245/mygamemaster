@@ -30,7 +30,7 @@
 
 **Guiding principle** : *one game = one campaign = one Podman container*. Each container is a
 standalone Hermes instance with its config, persona, memory, and isolated data. This replaces
-the "profiles" functionality (see `profiles-vers-conteneurs.md`).
+the "profiles" functionality (see `profiles-to-containers.md`).
 
 ## 2. Layout within the container
 
@@ -78,7 +78,7 @@ Discord WebSocket connection and routes messages to the agent. Required secrets 
 variables (never in plain text in the image):
 `OPENROUTER_API_KEY`, the **Discord bot token** (one shared multi-channel bot *or* one bot per
 campaign — choice in `host_vars`), and optionally keys for auxiliary tools (image_gen,
-tts) if enabled. Details: `secrets-et-vault.md`.
+tts) if enabled. Details: `secrets-and-vault.md`.
 
 > **Runtime unknown** : the exact gateway startup command (`hermes setup --portal`
 > for OAuth auth then the daemon command) is coded in `entrypoint.sh.j2` per official docs

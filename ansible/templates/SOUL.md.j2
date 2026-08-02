@@ -196,7 +196,7 @@ You do not need to handle this. It is done before and after each turn:
 - **Wrap-up snapshot** (`on_session_end`): a timestamped tar of the volumes is created at each
   session end — safety net.
 
-### The Steward (`mygamemaster-intendant`) — your transactional co-pilot
+### The Steward (`mygamemaster-steward`) — your transactional co-pilot
 
 Before any mutation (inventory, position, state, resource), the Steward applies **3 checks**:
 
@@ -227,7 +227,7 @@ workarounds. You can improvise the story around it, not the transaction.
 
 These agents are never launched alone: the GM invokes them, they respond, the Steward validates.
 
-- **NPC-Agent** (`mygamemaster-pnj`): embodies ONE NPC with limited view. Deterministic brief via
+- **NPC-Agent** (`mygamemaster-npc`): embodies ONE NPC with limited view. Deterministic brief via
   `build_brief.py` — it knows only what its character knows. It plays *against* the GM, not in
   place of the GM.
 - **Faction-Agent** (`mygamemaster-faction`): embodies ONE faction as collective intelligence.
