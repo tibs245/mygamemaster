@@ -656,8 +656,10 @@ def main():
             "extrait": "fear grips you and you step back",
             "pourquoi": "imposed reaction on the PC", "correction": "describe only what they perceive",
         }]})
-        long_resp = ("Fear grips you and you step back into the shadows as the wind "
-                     "howls between the frozen stones of the forgotten old temple.")
+        # Agency-CLEAN on purpose: these cases measure the mocked judge, and a draft that
+        # also trips the deterministic gate makes the scoreboard counts unattributable.
+        long_resp = ("The wind howls between the frozen stones of the forgotten old temple, "
+                     "and the smell of cold ash drifts across the empty courtyard.")
         # turn 1 : pre_llm_call then transform with mocked violation
         run_hook("pre_llm_call.py", {"cwd": campj, "session_id": sidj,
                                      "message": "I advance carefully", "extra": {"model": "deepseek/x"}})
@@ -1065,6 +1067,119 @@ def main():
         check("MGM_AGENCY_GATE=off unblocks the campaign, loudly",
               c4 == 0 and "AGENCY GATE DISABLED" in out4, out4[:120])
         check("gate default is ON", AG.enabled({}) and not AG.enabled({"MGM_AGENCY_GATE": "off"}))
+
+        # ── 15d. THE UNCONDITIONAL PATH: the gate applies without the prompt ──
+        print("\n[15d] transform_llm_output — AGENCY enforced without the model's cooperation")
+        campun = build_fixture(os.path.join(root, "agencyhook"))
+        sidun = "sess_agency"
+        DIRTY = ("La lanterne vacille sur le seuil et l'odeur de suif emplit la pièce. "
+                 "Tu recules d'un pas, la main sur ton couteau. "
+                 "Berthe pousse la porte de l'appentis — que fais-tu ?")
+        out, err = run_hook("transform_llm_output.py",
+                            {"cwd": campun, "session_id": sidun, "response": DIRTY,
+                             "message": "je regarde autour de moi",
+                             "extra": {"model": "modele/x"}}, env=noj)
+        served = out.get("response", DIRTY)
+        check("PC action never reaches the player (no checkpoint was ever invoked)",
+              "recules" not in served, served[:160])
+        check("the rest of the narration survives the cut",
+              "lanterne vacille" in served and "Berthe pousse la porte" in served, served[:160])
+        check("the handoff question survives the cut", "que fais-tu" in served, served[:160])
+        check("the cut is announced on stderr", "[mj-agency] enforced" in err, err[:160])
+        check("the violation is fed forward to the next turn",
+              _pending_has_text(os.path.join(campun, ".banquier", "pending-%s.json" % sidun)))
+        sbun = json.load(open(os.path.join(campun, ".banquier", "scoreboard.json"),
+                              encoding="utf-8")).get("modele/x", {})
+        check("counted in the scoreboard with the judge OFF",
+              sbun.get("infractions_conduite", 0) >= 1 and "AGENCY-01" in sbun.get("par_regle", {}),
+              json.dumps(sbun)[:160])
+        agj = json.load(open(os.path.join(campun, ".banquier", "agency-gate.json"),
+                             encoding="utf-8"))
+        check("the cut is journalled durably (stderr is not a record)",
+              agj.get("last_enforced", {}).get("rules") == "AGENCY-01", json.dumps(agj)[:200])
+        csvun = open(os.path.join(campun, "collecte.csv"), encoding="utf-8").read()
+        check("the CSV records the DELIVERED text, not the draft", "recules" not in csvun)
+
+        out, err = run_hook("transform_llm_output.py",
+                            {"cwd": campun, "session_id": "sess_ok",
+                             "response": "La lanterne vacille. Un craquement monte de l'escalier.",
+                             "extra": {"model": "modele/x"}}, env=noj)
+        check("a clean narration is delivered untouched", not out.get("response"), str(out)[:120])
+        agj = json.load(open(os.path.join(campun, ".banquier", "agency-gate.json"),
+                             encoding="utf-8"))
+        check("a clean turn is journalled too (silence ≠ success)",
+              agj.get("counts", {}).get("clean:ok") == 1, json.dumps(agj.get("counts")))
+
+        snap = json.load(open(os.path.join(campun, ".banquier", "snap-%s.json" % sidun),
+                              encoding="utf-8"))
+        check("the hook consumes NO budget belonging to another gate",
+              not snap.get("agency_attempts") and not snap.get("checkpoint_attempts"),
+              json.dumps(snap)[:160])
+
+        esc = dict(noj); esc["MGM_AGENCY_GATE"] = "off"
+        out, err = run_hook("transform_llm_output.py",
+                            {"cwd": campun, "session_id": "sess_off", "response": DIRTY,
+                             "extra": {"model": "modele/x"}}, env=esc)
+        check("MGM_AGENCY_GATE=off delivers the turn untouched, and says so",
+              "recules" in out.get("response", DIRTY) and "skipped: gate_off" in err, err[:160])
+        out, err = run_hook("transform_llm_output.py",
+                            {"cwd": campun, "session_id": "sess_pause", "response": DIRTY,
+                             "message": "⏸️", "extra": {"model": "modele/x"}}, env=noj)
+        check("an explicit pause suspends the gate like the judge",
+              "recules" in out.get("response", DIRTY) and "skipped: paused" in err, err[:160])
+
+        ALLBAD = "Tu recules d'un pas."
+        out, _ = run_hook("transform_llm_output.py",
+                          {"cwd": campun, "session_id": "sess_empty", "response": ALLBAD,
+                           "extra": {"model": "modele/x"}}, env=noj)
+        served = out.get("response", ALLBAD)
+        check("a wholly faulty turn is replaced, never delivered and never left empty",
+              "recules" not in served and served.strip(), served[:120])
+
+        import transform_llm_output as TO  # noqa: E402
+        calls = []
+        real = TO.A.analyze
+
+        def _never_ok(*a, **k):
+            calls.append(1)
+            return dict(real(*a, **k), ok=False)
+
+        TO.A.analyze = _never_ok
+        try:
+            txt, viols = TO.enforce_agency(L.campaign_dir({"cwd": campun}),
+                                           {"session_id": "loop"}, DIRTY, False, "fr")
+        finally:
+            TO.A.analyze = real
+        check("a gate that never says yes is bounded, not an infinite rewrite loop",
+              len(calls) <= TO.A.max_attempts() + 1, "%d analyse calls" % len(calls))
+        check("and the turn it could not clear is still not the faulty one",
+              "recules" not in txt and bool(viols), txt[:120])
+
+        TO.A.analyze = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+        try:
+            txt, viols = TO.enforce_agency(L.campaign_dir({"cwd": campun}),
+                                           {"session_id": "blind"}, DIRTY, False, "fr")
+        finally:
+            TO.A.analyze = real
+        check("an analyser CRASH is infrastructure: the turn ships, unguarded and named",
+              txt == DIRTY and not viols)
+        agj = json.load(open(os.path.join(campun, ".banquier", "agency-gate.json"),
+                             encoding="utf-8"))
+        check("and 'blind' is journalled apart from 'skipped' (defect ≠ decision)",
+              agj.get("last_blind", {}).get("reason") == "gate_error", json.dumps(agj)[:200])
+
+        rec = L.agency_record
+        L.agency_record = lambda *a, **k: (_ for _ in ()).throw(OSError("read-only"))
+        try:
+            txt, viols = TO.enforce_agency(L.campaign_dir({"cwd": campun}),
+                                           {"session_id": "nojournal"}, DIRTY, False, "fr")
+        finally:
+            L.agency_record = rec
+        check("an unwritable journal costs a log line, never the turn",
+              "recules" not in txt and bool(viols), txt[:120])
+
+        check("redact() on a report with no span is a no-op", AG.redact(DIRTY, {}) == (DIRTY, 0))
+        check("redact() tolerates a garbage report", AG.redact(DIRTY, None)[0] == DIRTY)
 
         # ── 16. dialogue grading (layer 3) + dry-summary fallback ────────────
         print("\n[16] dialogue_judge — rubric, budget and fallback")

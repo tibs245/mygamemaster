@@ -2,6 +2,13 @@
 """
 mj_checkpoint.py — in-turn GATE (called by the GM before delivering narration).
 
+NOT the guarantee. This script only runs if the model chooses to run it, and the corpus
+showed it does not: AGENCY-01/02/03 are enforced UNCONDITIONALLY by the runtime hook
+`transform_llm_output.py`, which calls the same `agency_gate.analyze()` on the finished
+text and cuts what it flags. What this script adds is the chance to fix a draft BEFORE
+delivery — a rewrite is always better than a cut — plus the two layers the delivery path
+cannot afford (a network judge and a dialogue grader, one LLM call each).
+
 Three layers, in this order:
 
   1. DETERMINISTIC AGENCY GATE (`agency_gate.py`) — local, stdlib, no model. Owns the TIER 0
@@ -54,16 +61,6 @@ def _agency_attempts(camp, payload, inc=False):
         n += 1
         L.snap_set(camp, payload, AGENCY_ATTEMPTS_KEY, n)
     return n
-
-
-def _pc_names(camp):
-    """PC proper names, so the gate also catches third-person narration ("Rubis s'agenouille")."""
-    out = []
-    for _, fiche in L.iter_characters(camp):
-        nom = (fiche.get("meta") or {}).get("character_name")
-        if nom:
-            out.append(str(nom))
-    return out
 
 
 def _dialogue_attempts(camp, payload, inc=False):
@@ -136,7 +133,7 @@ def run_agency_gate(draft, declared, camp, payload, modele):
         return None, None
 
     try:
-        report = A.analyze(draft, declared, _pc_names(camp))
+        report = A.analyze(draft, declared, L.pc_names(camp))
     except Exception as exc:
         # A gate that cannot run does not get to approve: refuse, and name the escape hatch.
         _trace("internal error: %r" % exc)

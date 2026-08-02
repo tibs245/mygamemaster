@@ -250,6 +250,43 @@ neither style nor pacing, only **clear** violations of the provided rules.
 `correction` is a **concrete, actionable instruction** → this is what allows the GM to
 self-correct.
 
+### 10.0 Layer 0 — deterministic agency (AGENCY-01/02/03), enforced unconditionally
+
+Everything in §10 is fail-open by design and therefore cannot own the rules whose violation
+costs the most. `agency_gate.py` owns those: stdlib, local, no network, no config to enable.
+
+**Call site is the whole point.** The judge and the checkpoint are invoked by the model reading
+`SKILL.md`; the field report measured what that is worth (8 violations in one hour). The
+enforcing call is therefore `transform_llm_output.enforce_agency()`, on the hook the runtime
+runs on the finished text of every turn. No prompt participates.
+
+**Remedy at that call site is a CUT, not a refusal.** Nothing downstream of inference can request
+a new narration (see the reminder under §10.1), so `agency_gate.redact()` removes the flagged
+sentences — spans come back from `analyze()` in `_spans` — the remainder of the turn is delivered,
+and `set_pending()` feeds the correction forward exactly as the judge's. A narration reduced to
+nothing is replaced by the localized `agency.emptied` hand-back: never empty, never an error
+message, and the player is never told (same posture as the dialogue fallback, §11).
+
+| Situation | Behaviour | Journal (`.banquier/agency-gate.json`) |
+|---|---|---|
+| no violation | delivered unchanged | `clean:ok` |
+| violation detected | flagged sentences cut, feedback fed forward, counted in `scoreboard.json` | `enforced:redacted` |
+| whole narration flagged | replaced by `agency.emptied` | `enforced:emptied` |
+| `MGM_AGENCY_GATE=off`, or explicit ⏸️ pause | delivered unchanged, announced on stderr | `skipped:gate_off` / `skipped:paused` |
+| analyser crash | **delivered unchanged** — infrastructure failure, not a verdict | `blind:gate_error` |
+| journal unwritable | announced on stderr, turn proceeds | — |
+
+The last two rows are the fail-open boundary: a **detected violation** never passes, an **outage of
+ours** never costs every campaign its turn. An admin bypass does **not** suspend the gate (only an
+explicit pause does), like the judge.
+
+**Anti-loop is structural, not budgeted**: one pass per turn, no re-inference requested, and the
+cut/re-check rounds are bounded by `MGM_AGENCY_MAX_ATTEMPTS` (default 3). It reads and writes
+**none** of `agency_attempts`, `checkpoint_attempts` or `turn_gate_attempts` — a gate that consumes
+another gate's budget disarms it silently (cf. `turn_state.py`).
+
+Measured added cost: ~0.5 ms of analysis + ~0.1 ms of journal per turn.
+
 ### 10.1 Two correction mechanisms (neither loops)
 
 1. **Feed-forward (always active, no re-inference).** `transform_llm_output` judges the
@@ -264,7 +301,8 @@ self-correct.
 
 > Reminder: a hook **cannot** regenerate a finished narration. Feed-forward corrects on the
 > **next turn**; gate corrects **in the turn** but assumes the GM calls the checkpoint (instruction
-> in the preamble SKILL). Both are complementary.
+> in the preamble SKILL). Both are complementary. Layer 0 (§10.0) is what covers the case where
+> that assumption fails: it cannot regenerate either, so it **cuts** instead.
 
 ### 10.2 Per-model metrics (`scoreboard.json` + `scoreboard.py`)
 

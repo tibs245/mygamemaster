@@ -149,6 +149,23 @@ def iter_characters(camp):
             yield p, fiche
 
 
+def pc_names(camp):
+    """Proper names of the player characters — so a gate also catches third-person narration.
+
+    Fail-open to []: a campaign whose sheets are missing or broken still gets the `tu`/`you`
+    anchors checked, which is most of the corpus. Refusing to run for lack of a name would
+    trade the whole guard for its widest case."""
+    out = []
+    try:
+        for _, fiche in iter_characters(camp):
+            nom = (fiche.get("meta") or {}).get("character_name")
+            if nom:
+                out.append(str(nom))
+    except Exception:
+        pass
+    return out
+
+
 def meta(monde):
     m = monde.get("meta") if isinstance(monde, dict) else None
     return m if isinstance(m, dict) else {}
@@ -503,6 +520,56 @@ def tts_record(camp, payload, outcome, reason, **fields):
 def tts_status(camp):
     """Reads the auto-voice journal ({} if the hook never recorded anything)."""
     return load_json(Path(camp) / ".banquier" / TTS_STATUS_FILE) or {}
+
+
+# ─── Deterministic agency gate outcome journal ───────────────────────────────
+
+AGENCY_STATUS_FILE = "agency-gate.json"
+AGENCY_EVENTS_KEPT = 20
+
+
+def agency_record(camp, payload, outcome, reason, **fields):
+    """Persists ONE deterministic AGENCY verdict in .banquier/agency-gate.json. NOT fail-open.
+
+    Raises if the journal cannot be written, for the reason spelled out in `tts_record`:
+    this gate now runs on the delivery path, where it CUTS text out of what the player
+    reads. A silent cut is worse than no cut — the audit that follows a disputed turn has
+    to be able to tell "the gate removed a sentence" from "the model wrote it that way".
+    The caller announces the failure and keeps playing.
+
+    `outcome` is one of:
+      'clean'    — the turn violated nothing (the overwhelmingly common case);
+      'enforced' — a violation was found and cut out of the delivered text;
+      'skipped'  — CONFIGURED silence (gate switched off, explicit pause);
+      'blind'    — the gate could not run (analyser crash): the turn shipped UNGUARDED.
+    'blind' is kept apart from 'skipped' on purpose: one is a decision, the other a defect.
+    """
+    event = {"ts": now_iso(), "outcome": outcome, "reason": reason,
+             "session": active_session_number(camp), "sid": _sid(payload)}
+    event.update({k: v for k, v in fields.items() if v is not None})
+
+    def mut(data):
+        d = data if isinstance(data, dict) else {}
+        d["last"] = event
+        if outcome in ("enforced", "blind"):
+            d["last_" + outcome] = event
+        counts = d.get("counts") if isinstance(d.get("counts"), dict) else {}
+        key = "%s:%s" % (outcome, reason)
+        counts[key] = int(counts.get(key, 0)) + 1
+        d["counts"] = counts
+        if outcome != "clean":
+            recent = d.get("recent") if isinstance(d.get("recent"), list) else []
+            recent.append(event)
+            d["recent"] = recent[-AGENCY_EVENTS_KEPT:]
+        return d
+
+    _locked_rw(_bq_dir(camp) / AGENCY_STATUS_FILE, mut, strict=True)
+    return event
+
+
+def agency_status(camp):
+    """Reads the agency-gate journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / AGENCY_STATUS_FILE) or {}
 
 
 def snap_get(camp, payload, key):
