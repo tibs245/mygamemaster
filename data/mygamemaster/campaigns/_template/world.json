@@ -45,13 +45,17 @@
       }
     },
     "features": {
-      "_schema": "Six main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/living-world/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill. tts: automatic narrative voice (mygamemaster-tts skill) — see meta.audio for voice selection.",
+      "_schema": "Six main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/living-world/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill. tts: narrative voice available at all — with this axis ON, `!raconte` voices the last narration on demand (see meta.audio for voice selection); the AUTOMATIC per-turn voice is a separate opt-in, meta.hooks.tts_auto, false by default.",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,
       "temporality": true,
       "images": true,
       "tts": true
+    },
+    "hooks": {
+      "_schema": "Fine-grained runtime toggles, each governed by the axis above it (axis OFF forces the toggle OFF). Only the non-default ones need to appear here. — tts_auto: AUTOMATIC narrative voice, one synthesis per narration above MGM_TTS_MIN_CHARS. Default FALSE: over 34 sessions of real play this path produced 0 audio file while `!raconte` produced ~40 (docs/10-field-report.md), and it spends 3-8 s inside a hook the runtime kills at 45 s. Set it to true to opt in (this key wins over the env MGM_TTS_AUTO); every outcome, including a refusal, is then journalled in .banquier/tts-status.json and explained by mygamemaster-tts/scripts/tts_doctor.py.",
+      "tts_auto": false
     },
     "_pj_ids": "actor ids of PCs, e.g. [\"acteur:name\"] ; the engine links 'towards-player' relationships to these ids. Keep [] until PCs are created.",
     "pj_ids": [],

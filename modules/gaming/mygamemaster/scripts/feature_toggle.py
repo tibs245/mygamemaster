@@ -114,15 +114,40 @@ def _admins(monde) -> set:
     return ids
 
 
-def _afficher_etat(nom: str, feat: dict, as_json: bool) -> None:
+def _tts_auto(monde, feat: dict) -> bool:
+    """Resolved state of the AUTOMATIC voice, as hooks/_lib.hooks_cfg resolves it:
+    axis `tts` gates it, then meta.hooks.tts_auto, then env MGM_TTS_AUTO, then False.
+
+    Replicated rather than imported: this script must keep running when the hooks
+    package is not on the path (same fail-open contract as _features_eff above)."""
+    if not feat.get("tts"):
+        return False
+    h = ((monde or {}).get("meta") or {}).get("hooks") or {}
+    v = h.get("tts_auto", os.environ.get("MGM_TTS_AUTO"))
+    if v is None:
+        return False
+    return bool(v) if isinstance(v, bool) else str(v).strip().lower() not in _FALSY
+
+
+def _afficher_etat(nom: str, feat: dict, as_json: bool, monde=None) -> None:
+    auto = _tts_auto(monde, feat)
     if as_json:
-        print(json.dumps({"features": feat}, ensure_ascii=False))
+        print(json.dumps({"features": feat, "tts_auto": auto}, ensure_ascii=False))
         return
     print("⚙ Features — %s" % nom)
     for ax in _FEATURES:
         famille = "soft" if ax in HOT else "structural"
-        print("   %s %-22s : %-3s  (%s)" % (
-            "🟢" if feat[ax] else "⚪", ax, "ON" if feat[ax] else "OFF", famille))
+        # The `tts` row alone is not an answer to "why is there no voice?": the axis
+        # can be ON with the per-turn voice opted out, which is the default.
+        extra = ""
+        if ax == "tts" and feat[ax]:
+            extra = ("  — auto-voice: ON" if auto
+                     else "  — auto-voice: OFF (opt-in; !raconte works)")
+        print("   %s %-22s : %-3s  (%s)%s" % (
+            "🟢" if feat[ax] else "⚪", ax, "ON" if feat[ax] else "OFF", famille, extra))
+    if feat.get("tts") and not auto:
+        print("   ↳ no automatic voice per turn: MGM_TTS_AUTO=1 or meta.hooks.tts_auto=true "
+              "to opt in. Silent while opted in? mygamemaster-tts/scripts/tts_doctor.py")
 
 
 def main() -> int:
@@ -152,7 +177,7 @@ def main() -> int:
 
     # No axis or --list → display effective state.
     if a.list or not a.axe:
-        _afficher_etat(campagne.name, feat, a.json)
+        _afficher_etat(campagne.name, feat, a.json, monde)
         return 0
 
     axe = a.axe.strip().lower()

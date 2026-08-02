@@ -337,12 +337,34 @@ def main():
         os.remove(os.path.join(d, ".banquier", "tts", "raconte_1.mp3"))
         rc, so, se = run("tts_doctor.py", [d, "--mock", "--json"], env=env_ok)
         rep = json.loads(so) if so.strip().startswith("{") else {}
-        total += 3
+        total += 4
         check("opt-in honoured (exit 0)", rc == 0, json.dumps(rep.get("verdict"))[:200])
         check("MGM_TTS_AUTO=1 turns auto-voice ON",
               rep.get("axis", {}).get("tts_auto") is True, json.dumps(rep.get("axis")))
         check("thresholds in effect reported",
               "MGM_TTS_MIN_CHARS" in rep.get("thresholds", {}), json.dumps(rep.get("thresholds")))
+        check("an empty but WRITABLE journal is only a note, not a defect",
+              rep.get("journal_writable") is True
+              and any("never recorded" in n for n in rep.get("verdict", {}).get("notes", [])),
+              json.dumps(rep.get("verdict"))[:250])
+
+        # Same empty journal, unwritable .banquier: the doctor must NOT conclude
+        # "the hook never ran here" — that answers a live failure with exit 0.
+        if os.geteuid() != 0:
+            bq = os.path.join(d, ".banquier")
+            os.chmod(bq, 0o500)
+            try:
+                rc, so, se = run("tts_doctor.py", [d, "--mock", "--json"], env=env_ok)
+            finally:
+                os.chmod(bq, 0o700)
+            rep = json.loads(so) if so.strip().startswith("{") else {}
+            total += 2
+            check("an unwritable journal is a DEFECT (exit 1), not 'the hook never ran'",
+                  rc == 1 and rep.get("journal_writable") is False,
+                  json.dumps(rep.get("verdict"))[:250])
+            check("and the verdict names the lost-record problem",
+                  any("CANNOT record" in p for p in rep.get("verdict", {}).get("problems", [])),
+                  json.dumps(rep.get("verdict", {}).get("problems"))[:250])
 
     print("\n" + "=" * 56)
     print("RESULT: %d/%d tests OK" % (_OK, total))
