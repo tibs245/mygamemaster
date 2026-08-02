@@ -39,7 +39,7 @@ Keys expected (see [`../specs/secrets-and-vault.md`](../specs/secrets-and-vault.
 
 ```yaml
 openrouter_api_key: "sk-or-v1-…"         # model access (required)
-minimax_api_key: "…"                      # voice/TTS — optional, fail-open if absent
+minimax_api_key: "…"                      # voice/TTS — optional; absent = no voice, reported
 discord_token_mistfall: "…"              # one Discord bot token per game (key name must match
                                           # the discord_secret_key field in games.yml)
 ```

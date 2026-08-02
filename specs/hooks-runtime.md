@@ -89,7 +89,7 @@ Discord message →│ pre_llm_call → [loop: pre_tool_call → tool → post_t
 | `pre_llm_call.py` | `pre_llm_call` | injects the **authoritative state** (time/day, PCs present + inventories, NPCs present); memorizes input prompt for traceability |
 | `pre_tool_call.py` | `pre_tool_call` | **snapshot** of counters in the targeted file; **blocks** a `write_file` write whose JSON content is broken/nonconforming (strict mode) |
 | `post_tool_call.py` | `post_tool_call` | reloads written file, calculates **deltas** (actions +N, inventory X→Y, time), stacks them in the **ledger**; reports broken JSON (advisory); **auto-commit** git of the campaign (if JSON valid) |
-| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open) + memorizes `last_narration` (for `!raconte`) |
+| `transform_llm_output.py` | `transform_llm_output` | builds the **"Persisted" Steward block** from ledger, applies **verbosity**, **augments** response, writes **CSV line** (in+out); **auto narrative voice** (axis `tts` + opt-in `tts_auto`: generates narration audio via `mygamemaster-tts` and attaches as `MEDIA:`, best-effort fail-open, outcome journalled in `.banquier/tts-status.json`) + memorizes `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | **timestamped snapshot** of campaign JSON (safety net) |
 
 ---

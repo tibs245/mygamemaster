@@ -24,6 +24,7 @@ Chained steps (reuses neighbouring scripts via subprocess):
   P8  session log complete: resume not empty
   P9  session log complete: etat_fin present
   P10 timeline (UT regime): events.json present and valid
+  P11 player profile: player-profile.md present and sourced to this session (non-blocking)
 
 Usage:
   python3 close_session.py <campaign> [--session N]
@@ -199,6 +200,27 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
     else:
         add("P10", "UT timeline: N/A (narrative regime)", True, False,
             "narrative regime — events.json not required")
+
+    # P11 is NON-blocking: a stale profile is a writing lapse, not corrupt data,
+    # and campaigns created before the template existed have no file at all.
+    profil = campagne / "player-profile.md"
+    m_num = re.match(r"0*(\d+)", session_path.stem)
+    n_sess = int(m_num.group(1)) if m_num else None
+    if not profil.exists():
+        add("P11", "Player profile updated (player-profile.md)", False, False,
+            "player-profile.md absent — copy references/player-profile-template.md "
+            "into the campaign and fill it from this session")
+    elif n_sess is None:
+        add("P11", "Player profile updated (player-profile.md)", True, False,
+            "profile present (session number unreadable, freshness not checked)")
+    else:
+        texte = profil.read_text(encoding="utf-8", errors="replace")
+        frais = re.search(rf"\b[Ss]0*{n_sess}\b", texte) or \
+            re.search(rf"session\s*0*{n_sess}\b", texte, re.IGNORECASE)
+        add("P11", "Player profile updated (player-profile.md)", bool(frais), False,
+            "" if frais else f"no line sourced to session {n_sess} — record what this "
+            "session taught about the player's signals and preferences (or note "
+            "explicitly that it taught nothing new)")
 
     return points
 
