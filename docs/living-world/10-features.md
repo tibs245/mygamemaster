@@ -18,7 +18,7 @@
 | `pnj_faction_vivants` | autonomous actors | modules `factions` / `proactivite_pnj` + actors that **think** (feeds `world_tick`) | `npcs.json` / `actors.json` (else inert) |
 | `temporalite` | **living world** | `world_tick` engine **pre/post**, **scene brief** per turn, **causal propagation** | `geo.json` + `actors.json` (else no-op) |
 | `images` | illustration | skill `mygamemaster-images` | none (API key at deployment) |
-| `tts` | **narrative voice** | skill `mygamemaster-tts` (`!raconte`) + **auto-voice** of narration (Minimax `speech-2.8-turbo`, voice `French_Female_Speech_New`) attached as `MEDIA:` | none (key `MINIMAX_API_KEY` at deployment; else no-op) |
+| `tts` | **narrative voice** | skill `mygamemaster-tts` (`!raconte`) + **auto-voice** of narration (Minimax `speech-2.8-turbo`, voice `French_Female_Speech_New`) attached as `MEDIA:` — auto-voice is **opt-in**, see `meta.hooks.tts_auto` below | none (key `MINIMAX_API_KEY` at deployment; else no-op) |
 
 > Axis names are frozen in `_lib.FEATURES`:
 > `("tracabilite", "verbosite", "pnj_faction_vivants", "temporalite", "images", "tts")`.
@@ -111,7 +111,9 @@ Two combined guarantees make "everything ON" **safe**:
    - `pnj_faction_vivants=true` without actor sheets → the "thinking" hooks have nothing to
      animate, empty output.
    - `images=true` without API key → generation fails gracefully, narration continues.
-   - `tts=true` without `MINIMAX_API_KEY` → no voice generated, written message goes out normally.
+   - `tts=true` without `MINIMAX_API_KEY` → no voice generated, written message goes out
+     normally — but the miss is **announced** (recorded as a failure, not as silence by
+     choice): an unconfigured feature says so, it does not mime being disabled.
 
 Consequence: you can **leave everything ON everywhere**. Campaigns that don't yet have their
 spatial graph pay no price; those that do (`geo.json` + `actors.json` present)
@@ -129,11 +131,16 @@ all fine toggles it oversees**. Otherwise, the fine toggle decides (default ON).
 | `verbosite` | `banquier_persiste` |
 | `temporalite` | `tick_pre`, `tick_post`, `brief_scene` |
 | `pnj_faction_vivants` | exposed to `world_tick` (actors that think) |
-| `tts` | `tts_auto` (auto-voice in `transform_llm_output`) |
+| `tts` | `tts_auto` (auto-voice in `transform_llm_output`) — **the one fine toggle that defaults to `false`** |
 
-> So `tts=false` cuts **everything** (auto-voice **and** `!raconte`). To keep the
-> manual `!raconte` command but **cut auto-voice** (zero latency on turns), leave
-> `tts=true` and set `meta.hooks.tts_auto=false` (surgical cut).
+> So `tts=false` cuts **everything** (auto-voice **and** `!raconte`). Conversely,
+> `tts=true` alone gives you `!raconte` **only**: `tts_auto` is the single fine toggle
+> whose default is `false`, because the automatic path produced 0 file in 34 sessions
+> of real play while failing silently (`docs/10-field-report.md`). Turn it on with
+> `MGM_TTS_AUTO=1` (instance) or `meta.hooks.tts_auto=true` (campaign, wins), and check
+> the result with `modules/gaming/mygamemaster-tts/scripts/tts_doctor.py`. Its outcome
+> — attached, configured skip, or failure — is recorded per turn in
+> `.banquier/tts-status.json`.
 
 > So `temporalite=false` is enough to neutralize `tick_pre/tick_post/brief_scene` even if they are
 > `true` further down — no need to set them to `false` one by one. Conversely, for a
