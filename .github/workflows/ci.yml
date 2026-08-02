@@ -57,5 +57,16 @@ jobs:
           python3 test_tts.py
           echo "tts tests: exit $?"
 
+      - name: Test suite — repo scripts (unittest discover)
+        run: |
+          cd scripts
+          python3 -m unittest discover -s tests
+          echo "repo scripts tests: exit $?"
+
       - name: File references (no dangling links)
         run: python3 scripts/check_references.py
+
+      # Escape hatch for a live campaign: set MGM_SKILL_SIZE_SKIP=1 in the job
+      # environment — it waives a budget failure, not an unreadable SKILL.md.
+      - name: Skill character budget (no skill near the freeze limit)
+        run: python3 scripts/check_skill_size.py --verbose
