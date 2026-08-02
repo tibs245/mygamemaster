@@ -23,6 +23,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -591,6 +592,87 @@ class TestFailOpen(unittest.TestCase):
             avant = ev_path.read_bytes()
             WT.pre(camp, t_session=3960, cone=None, apply=True)
             self.assertEqual(ev_path.read_bytes(), avant)   # unchanged
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Temporal coherence — fail-open is NOT coherence (TIME-04)
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestCoherenceTemporelle(unittest.TestCase):
+    """Reading game time used to be guarded by `except: T = 0`, so a campaign
+    whose files became unreadable kept ticking at day 1 and exited 0."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.camp = _ecrire_campagne_temp(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _cli(self, argv, **env_sup) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(SCRIPTS_DIR / "world_tick.py"), *argv],
+            capture_output=True, text=True,
+            env={**os.environ, WT.ENV_ALLOW_DERIVE: "", **env_sup})
+
+    def test_temps_illisible_leve_au_lieu_de_valoir_zero(self):
+        def _casse(_camp):
+            raise OSError("disk gone")
+        origine = W.t_courant
+        W.t_courant = _casse
+        try:
+            with self.assertRaises(WT.IncoherenceTemporelle):
+                WT._t_courant(self.camp)
+        finally:
+            W.t_courant = origine
+
+    def test_fenetre_qui_recule_est_une_incoherence(self):
+        res = WT.pre(self.camp, t_session=100, cone=None, apply=False)
+        codes = [i["code"] for i in res["incoherences"]]
+        self.assertEqual(codes, ["t_session_anterieur"])
+        self.assertEqual(res["t_a"], res["t_de"])   # still clamped, never backwards
+
+    def test_fenetre_vide_est_visible_sans_etre_bloquante(self):
+        res = WT.pre(self.camp, t_session=None, cone=None, apply=False)
+        self.assertEqual(res["incoherences"], [])
+        self.assertEqual([a["code"] for a in res["avertissements"]], ["fenetre_vide"])
+
+    def test_cli_pre_sort_en_3_sur_incoherence(self):
+        proc = self._cli(["pre", str(self.camp), "--t-session", "100"])
+        self.assertEqual(proc.returncode, WT.CODE_INCOHERENCE_TEMPORELLE, proc.stderr)
+        self.assertIn("TEMPORAL INCOHERENCE", proc.stderr)
+
+    def test_echappatoire_rend_l_incoherence_non_fatale(self):
+        proc = self._cli(["pre", str(self.camp), "--t-session", "100"],
+                         **{WT.ENV_ALLOW_DERIVE: "1"})
+        self.assertNotEqual(proc.returncode, WT.CODE_INCOHERENCE_TEMPORELLE)
+        self.assertIn("TEMPORAL INCOHERENCE", proc.stderr)    # still reported
+        self.assertIn(WT.ENV_ALLOW_DERIVE, proc.stderr)       # override traced
+
+    def test_session_introuvable_ne_passe_plus_pour_un_succes(self):
+        res = WT.post(self.camp, session="404", apply=False)
+        self.assertEqual([i["code"] for i in res["incoherences"]],
+                         ["session_introuvable"])
+        proc = self._cli(["post", str(self.camp), "--session", "404"])
+        self.assertEqual(proc.returncode, WT.CODE_INCOHERENCE_TEMPORELLE, proc.stderr)
+
+    def test_cone_illisible_refuse_au_lieu_de_projeter_sur_rien(self):
+        proc = self._cli(["pre", str(self.camp), "--cone",
+                          str(self.camp / "absent.json")])
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+
+    def test_noop_de_feature_reste_un_noop_mais_s_annonce(self):
+        """A deliberately cut temporality axis is legitimate — and must be said."""
+        W.sauver_json_atomique(self.camp / "world.json", {
+            "meta": {"name": "Fixture", "features": {"temporality": False}},
+            "global_state": {"timeline": "Day 7: the campaign begins."},
+        })
+        res = WT.pre(self.camp, t_session=3960, cone=None, apply=False)
+        self.assertEqual(res["noop"], WT._MSG_TEMPORALITY_OFF)
+        self.assertEqual(res["ecritures"], [])
+        proc = self._cli(["pre", str(self.camp), "--t-session", "3960"])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("NO-OP (configured)", proc.stderr)
 
 
 # ════════════════════════════════════════════════════════════════════════════
