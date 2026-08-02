@@ -27,6 +27,15 @@ ansible/.vault_pass
 # Real campaign data (local only, git-ignored)
 data/mygamemaster/campaigns/la-naissance-dun-roi/
 data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/
+# Legacy pre-rename campaign tree — git-ignored, but `COPY . .` would still bake it in.
+data/mj-tonnerre/
+
+# Legacy pre-rename module tree. Only local runtime artefacts survive there (Steward ledgers,
+# __pycache__, jets.log) — no source. They are git-ignored, so `COPY . .` would bake stale
+# ledgers and caches into the image while contributing nothing.
+modules/gaming/mj-tonnerre/
+modules/gaming/mj-tonnerre-images/
+modules/gaming/mj-tonnerre-tts/
 
 # Python cache
 __pycache__/
