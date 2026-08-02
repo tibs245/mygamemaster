@@ -8,11 +8,33 @@
     "description": "A lean man in his sixties, or so he appears. His hair is white as chalk, his eyes a pale, unsettling green. He walks without a cane but moves too smoothly for his age. He is the last person in Thornwick who remembers what the founding charter actually said — because he was there when it was signed. He is far older than anyone knows.",
     "attitude": "Wary ally — will help the players but withholds the truth about himself until cornered",
     "relation_niveau": "Neutral at first meeting; potential ally if players earn his trust",
+    "voix": {
+      "registre": "Careful, old-fashioned, deliberately plain. Uses the vocabulary of a village elder, never that of a scholar — he has spent a century hiding how much he knows.",
+      "rythme": "Long sentences that arrive somewhere other than where they started. He answers the question next to the one he was asked.",
+      "sous_tension": "Goes quiet and asks a question back. Under real pressure his sentences shorten and the old cadence surfaces — a way of speaking nobody in Thornwick has used for eighty years.",
+      "lexique": [
+        "Charters, names, signatures, what is written and what is owed — his images all come from binding agreements",
+        "Speaks of the village as a household: doors, hearths, thresholds"
+      ],
+      "tics": [
+        "Calls people 'child' regardless of their age",
+        "Says 'as it happens' before a piece of information he has in fact prepared"
+      ],
+      "ne_dit_jamais": [
+        "Never says 'fae' or 'the Court' — says 'them', 'the other side', 'our neighbours'",
+        "Never says 'I remember' about anything older than forty years, even when he does"
+      ]
+    },
     "established_facts": [
       "Is the last active Warden and holds the cold-iron bell",
       "Knows the Veil is fae-caused and connected to the founding charter",
       "Has begun sending people out of Thornwick to warn newcomers",
       "Claims the charter was signed 'long before his time' — this is a lie"
+    ],
+    "connaissances_privees": [
+      "Knows the bell only works three more times — he has counted, and he has told no one",
+      "Knows the name of the villager who let the mist in eighty years ago; it was his brother",
+      "Knows exactly what the charter demands, having watched it signed — and knows the players will ask him to read it aloud eventually"
     ],
     "gm_hypotheses": [
       "He is the third soul the Pale Court seeks — the charter bears his true name, not his current one",
@@ -112,11 +134,31 @@
     "description": "Tall, pale, dressed in layered grey silk that moves without wind. Her face is too symmetrical. She speaks in a measured, unhurried tone as though every word is being inscribed somewhere. She is neither cruel nor kind — she is contractual. A bargain is a bargain. She will honour hers to the letter and expect the same.",
     "attitude": "Neutral — bound by her own laws as much as anyone else",
     "relation_niveau": "Antagonist by circumstance; potential negotiating partner if approached correctly",
+    "voix": {
+      "registre": "Court formality, absolute precision. Addresses everyone by title or by what they have done, never by an assumed name. Contractions do not exist in her mouth.",
+      "rythme": "Even, unhurried, each clause complete. She never interrupts and never repeats herself — repetition would imply the first statement was insufficient.",
+      "sous_tension": "Becomes shorter and more exact, and starts naming prices unprompted. Her courtesy does not slip; it narrows.",
+      "lexique": [
+        "Debts, terms, tallies, what was promised and what remains outstanding",
+        "Speaks of people as parties to an agreement, of deaths as settlements"
+      ],
+      "tics": [
+        "Restates an offer in exact terms before accepting it, as if reading it aloud for a witness"
+      ],
+      "ne_dit_jamais": [
+        "Never says 'please', never threatens — she states consequences as scheduled facts",
+        "Never lies outright: she is bound by her own laws. She omits, and lets an incomplete truth do the work"
+      ]
+    },
     "established_facts": [
       "Is the voice and authority of the Pale Court in the mortal world",
       "Seeks three souls to complete the century-old debt — has two; needs one more",
       "Cannot enter a chalk circle drawn with iron filings",
       "Will accept a counter-bargain if its weight is equal"
+    ],
+    "connaissances_privees": [
+      "Knows the charter carries a flaw her own Court has never been able to exploit, and has never been asked about it",
+      "Knows Elder Mosswick's true name, and that speaking it aloud would settle his debt on the spot"
     ],
     "gm_hypotheses": [
       "She is genuinely bound by fae law and cannot take what was not offered — the players can use this",
@@ -203,6 +245,22 @@
     "description": "A stout woman in her forties, red-cheeked and pragmatic. She has lived at Ashveil Crossing her whole life and has seen the Veil before — once, when she was a girl. That time, it took her father. She has not spoken of it since, but she kept the cold-iron horseshoe above the inn door and knows exactly what it means.",
     "attitude": "Cautious ally — will help if the players seem competent and not reckless",
     "relation_niveau": "Friendly from the start; potential information source about local lore",
+    "voix": {
+      "registre": "Blunt, warm, familiar within a minute of meeting you. Swears comfortably. Talks to customers while doing something else with her hands.",
+      "rythme": "Quick, clipped, often finishes other people's sentences. Interrupts herself to deal with the room, then picks the thread back up exactly where she dropped it.",
+      "sous_tension": "Talks more, and about smaller things — the price of lamp oil, whose roof needs work. Cheerful noise is how she keeps a room from panicking, and how she keeps herself from thinking about her father.",
+      "lexique": [
+        "Prices, portions, weather, road conditions — she measures the world in what it costs and how long it takes",
+        "Her comparisons come from the inn: full rooms, spoiled stock, a fire that will not catch"
+      ],
+      "tics": [
+        "Calls regulars 'love', strangers 'friend' — the switch is audible when she decides she trusts you"
+      ],
+      "ne_dit_jamais": [
+        "Never says her father's name, and changes the subject if someone else does",
+        "Never says the mist 'took' anyone — says they 'went out and did not come back'"
+      ]
+    },
     "established_facts": [
       "Runs The Amber Toll inn at Ashveil Crossing",
       "Has seen the Veil before (childhood) and lost her father to it",
@@ -308,11 +366,31 @@
     "description": "Appears to be a broad-shouldered man in his thirties named Carro, Thornwick's miller. He is almost perfectly convincing. He blinks at the right moments, laughs at the right things, and asks after people's families. But he never initiates a personal memory — only mirrors what he has heard others say. Cold iron within arm's reach makes him flinch almost imperceptibly.",
     "attitude": "Deceptive — will pretend to be a frightened villager and attempt to lead players into the Veil",
     "relation_niveau": "Appears friendly; secretly hostile",
+    "voix": {
+      "registre": "The miller's own: rural, friendly, slightly too eager to be liked. It is a very good copy, assembled from memories that are not his.",
+      "rythme": "Fluent, warm — and a beat too fast on questions about the mill, a beat too slow on questions about people. He is retrieving, not remembering.",
+      "sous_tension": "The copy thins. He repeats the last three words said to him before answering, and his sentences lose their contractions.",
+      "lexique": [
+        "Grain, weather, the state of the road — the miller's own small talk, deployed a little too often",
+        "Reaches for 'we' and 'us' constantly: he is establishing that he belongs here"
+      ],
+      "tics": [
+        "Asks after people by name, warmly, including at least one who has been dead for a year"
+      ],
+      "ne_dit_jamais": [
+        "Never refuses an invitation and never says he is tired — the copy has no needs to reference",
+        "Never speaks about the mist in the first person; he describes it the way one describes weather"
+      ]
+    },
     "established_facts": [
       "Is a fog-wraith wearing the shape of the real Carro (now a collected soul)",
       "Cannot know secrets the real Carro never spoke aloud",
       "Flinches near cold iron but can suppress the reaction with a DC 14 Wisdom save",
       "Has been instructed to report player movements to the Lady of Sighs"
+    ],
+    "connaissances_privees": [
+      "Knows where the real Carro's soul-vessel is kept, and that the copy ends when the vessel breaks",
+      "Knows the mist cannot cross cold iron, and will steer any conversation away from what the players are carrying"
     ],
     "gm_hypotheses": [
       "Players who ask Carro a question only the real person could answer will get a blank pause, then a deflection",

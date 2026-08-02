@@ -9,7 +9,7 @@
 > Source of truth for the resolver: `modules/gaming/mygamemaster/hooks/_lib.py` → `features()` /
 > `hooks_cfg()`. This document describes the contract; the code is authoritative.
 
-## 1. The six axes
+## 1. The seven axes
 
 | Axis | Enables… | Concrete effect | Required data |
 |---|---|---|---|
@@ -18,10 +18,11 @@
 | `pnj_faction_vivants` | autonomous actors | modules `factions` / `proactivite_pnj` + actors that **think** (feeds `world_tick`) | `npcs.json` / `actors.json` (else inert) |
 | `temporalite` | **living world** | `world_tick` engine **pre/post**, **scene brief** per turn, **causal propagation** | `geo.json` + `actors.json` (else no-op) |
 | `images` | illustration | skill `mygamemaster-images` | none (API key at deployment) |
+| `dialogue` | **dialogue quality** | grades any narration containing spoken lines at the checkpoint (`dialogue_judge.py`, 4-criteria rubric); a flat scene is sent back once, then switched to a **dry summary** (`references/dialogue-craft.md`) | a grader model (`meta.hooks.dialogue.modele`, `MGM_DIALOGUE_MODEL`, else the judge's) — else inert |
 | `tts` | **narrative voice** | skill `mygamemaster-tts` (`!raconte`) + **auto-voice** of narration (Minimax `speech-2.8-turbo`, voice `French_Female_Speech_New`) attached as `MEDIA:` — auto-voice is **opt-in**, see `meta.hooks.tts_auto` below | none (key `MINIMAX_API_KEY` at deployment; else no-op) |
 
 > Axis names are frozen in `_lib.FEATURES`:
-> `("tracabilite", "verbosite", "pnj_faction_vivants", "temporalite", "images", "tts")`.
+> `("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts", "dialogue")`.
 
 ## 2. Resolution cascade
 
@@ -75,11 +76,11 @@ command `!feature <axe> on|off` (skill header `mygamemaster`). It relies on the 
 `modules/gaming/mygamemaster/scripts/feature_toggle.py`, which rewrites `meta.features.<axe>`
 atomically. Since this is a write to `world.json`, the effect is **hot**: next
 turn, no redeployment. Without arguments, `!features` / `!feature` **displays** the effective state
-of the 6 axes (read, open to all); the `on|off` toggle is **reserved for admins**
+of the 7 axes (read, open to all); the `on|off` toggle is **reserved for admins**
 (`meta.admins` / `MGM_ADMIN_IDS`).
 
 ```bash
-# Check the effective state of the 6 axes
+# Check the effective state of the 7 axes
 python3 modules/gaming/mygamemaster/scripts/feature_toggle.py <campaign> --list
 # Toggle an axis hot (admin) — effect at next turn
 python3 modules/gaming/mygamemaster/scripts/feature_toggle.py <campaign> images off
@@ -103,7 +104,7 @@ no warning: toggle peacefully, even mid-turn.
 Two combined guarantees make "everything ON" **safe**:
 
 1. **ON by default.** A campaign with **no** `meta.features` block behaves as if
-   the six axes were `true`. You never forget to enable a feature; you optionally choose to **disable** it.
+   the seven axes were `true`. You never forget to enable a feature; you optionally choose to **disable** it.
 2. **Systematic fail-open.** An ON axis with **missing data** breaks nothing: it
    becomes a **silent no-op**. Examples:
    - `temporalite=true` but **no** `geo.json` / `actors.json` → `world_tick` and the scene

@@ -13,7 +13,7 @@ Empty list → allowed, with a note "gate inactive". `--list` remains open to al
 The calling skill/hook also verifies identity upstream and passes `--author`.
 
 Two axis families:
-  • "soft" (traceability, verbosite, images, tts) — no direct impact on game state:
+  • "soft" (traceability, verbosite, images, tts, dialogue) — no direct impact on game state:
     safe to toggle at any time.
   • "structural" (temporality, living_npcs_factions) — affect the simulation:
     hot toggle is possible, but RECOMMENDED at session boundaries (a change
@@ -49,7 +49,8 @@ try:
     _features_eff = W.features
     _ecrire = W.sauver_json_atomique  # race-safe atomic write (mkstemp+fsync+replace)
 except Exception:  # fail-open: full autonomy if worldlib is unavailable
-    _FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts")
+    _FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts",
+                 "dialogue")
 
     def _charger(path):
         try:
@@ -94,7 +95,7 @@ except Exception:  # fail-open: full autonomy if worldlib is unavailable
                 pass
             raise
 
-HOT = ("traceability", "verbosity", "images", "tts")   # safe to toggle hot
+HOT = ("traceability", "verbosity", "images", "tts", "dialogue")   # safe to toggle hot
 STRUCTURAL = ("temporality", "living_npcs_factions")   # preferably toggled between sessions
 
 _ON = ("on", "1", "true", "oui", "yes", "actif")
@@ -154,9 +155,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Enables/disables a feature flag (meta.features) at runtime (hot).")
     ap.add_argument("campagne", help="campaign folder (contains world.json)")
-    ap.add_argument("axe", nargs="?", help="one of the 6 axes: %s" % ", ".join(_FEATURES))
+    ap.add_argument("axe", nargs="?", help="one of the 7 axes: %s" % ", ".join(_FEATURES))
     ap.add_argument("valeur", nargs="?", help="on | off")
-    ap.add_argument("--list", action="store_true", help="display the effective state of all 6 axes")
+    ap.add_argument("--list", action="store_true", help="display the effective state of all 7 axes")
     ap.add_argument("--author", default=None,
                     help="id of the command author (admin gate for a mutation; "
                          "compared against meta.admins / MGM_ADMIN_IDS)")

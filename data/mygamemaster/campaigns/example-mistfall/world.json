@@ -49,13 +49,14 @@
       }
     },
     "features": {
-      "_schema": "Six main ON/OFF axes, ALL true by default. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > true. See docs/living-world/10-features.md.",
+      "_schema": "Seven main ON/OFF axes, ALL true by default. Cascade: meta.features.<axis> > env MGM_FEATURE_<AXIS> > true. See docs/living-world/10-features.md.",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,
       "temporality": true,
       "images": true,
-      "tts": true
+      "tts": true,
+      "dialogue": true
     },
     "pj_ids": [
       "acteur:oryn-ashveil",

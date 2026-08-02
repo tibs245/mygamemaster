@@ -169,13 +169,14 @@ def slug(texte: str) -> str:
 # hooks (separate layers): we copy the contract rather than importing _lib.
 # KEEP IN SYNC with _lib.py if axes or cascade logic evolve.
 #
-# Six main axes, ALL enabled by default. Cascade, from most specific to most general:
+# Seven main axes, ALL enabled by default. Cascade, from most specific to most general:
 #     meta.features.<axe> (world.json)  >  env MGM_FEATURE_<AXE>  >  default True
 # The world (world.json) has the final say; the env sets the instance default.
 # FAIL-OPEN: an ON axis whose data is missing is a simple no-op, not an error;
 # and an absent world.json → "all ON" (features_campagne).
 
-FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts")
+FEATURES = ("traceability", "verbosity", "living_npcs_factions", "temporality", "images", "tts",
+            "dialogue")
 
 
 def as_bool(val, default: bool) -> bool:
@@ -197,7 +198,7 @@ def as_bool(val, default: bool) -> bool:
 
 
 def features(monde) -> dict:
-    """Resolve the 5 feature flags. Cascade: meta.features.<axe> > env MGM_FEATURE_<AXE> > True.
+    """Resolve the 7 feature flags. Cascade: meta.features.<axe> > env MGM_FEATURE_<AXE> > True.
 
     IDENTICAL behavior to hooks/_lib.features (duplicated logic, keep in sync).
     All enabled by default: a world without a meta.features block behaves as
@@ -215,7 +216,7 @@ def features(monde) -> dict:
 
 
 def features_campagne(campagne: str | Path) -> dict:
-    """Load world.json from a campaign and return the dict of 6 feature flags.
+    """Load world.json from a campaign and return the dict of 7 feature flags.
 
     FAIL-OPEN: absent/unreadable world.json → charger_json returns {} → all ON
     (each axis falls back to its env/True default). Used as tick entry point.
