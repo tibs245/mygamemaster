@@ -34,9 +34,9 @@ Before any roll, load the active campaign file:
 **Path:** `~/.hermes/mygamemaster/campaigns/<campaign-name>/world.json`
 
 **Useful fields for rolls:**
-- `systeme` — rule system (top-level: `systeme.nom`, `systeme.stats`, `systeme.resolution`, `systeme.nat20`, `systeme.nat1`)
-- `regles` — campaign rules (top-level: `regles.temps`, `regles.meteo`; house rules live under `regles.*`)
-- `systeme.crunch` — 1 to 5 (influences roll frequency and detail level)
+- `system` — rule system (top-level: `system.name`, `system.stats`, `system.resolution`, `system.nat20`, `system.nat1`)
+- `rules` — campaign rules (top-level: `rules.time`, `rules.weather`; house rules live under `rules.*`)
+- `system.crunch` — 1 to 5 (influences roll frequency and detail level)
 
 **To identify the active campaign:** MJ Tonnerre (umbrella skill) maintains the active campaign for the Discord channel. Consult memory or session context.
 
@@ -101,11 +101,11 @@ Regardless of bonus or DC, these two results **override everything**:
 
 On a **d20** (standard D&D-like):
 - 🎯 **Critical**: raw value = 20 (die faces)
-- ✅ **Success**: total ≥ threshold (default 10, or defined by `systeme.resolution` / `regles`)
+- ✅ **Success**: total ≥ threshold (default 10, or defined by `system.resolution` / `rules`)
 - ❌ **Failure**: total < threshold
 - 💀 **Fumble**: raw value = 1
 
-For other dice (2d6, 3d8, d100, etc.): no automatic critical unless `regles` specifies it. Display just the total.
+For other dice (2d6, 3d8, d100, etc.): no automatic critical unless `rules` specifies it. Display just the total.
 
 ---
 
@@ -135,10 +135,10 @@ python3 /opt/modules/gaming/mygamemaster/scripts/roll.py "<formula>" --dc <DC> -
    - Trivial action (talk, walk, pick up object) → no roll, direct narrative
    - Risky/uncertain action (pick lock, climb, persuade) → roll required
    - Impossible action → say so, no roll
-3. **Choose the formula** based on the system (`systeme.nom` / `systeme.resolution`):
+3. **Choose the formula** based on the system (`system.name` / `system.resolution`):
    - **D20 / D&D-like system**: `d20` + ability modifier
    - **2d6 / PbtA system**: `2d6` + modifier
-   - **3d8 / house system**: per `regles`
+   - **3d8 / house system**: per `rules`
    - **Free system (crunch 1)**: no roll, just narrative interpretation + possibly a % chance
 4. **Determine the modifier** from the character sheet:
    - `characters/<discord_id>.json` — stats, skills, bonuses
@@ -189,12 +189,12 @@ All content after `🎲` is wrapped in `|| ... ||`.
 
 | Type | Display | Condition (d20) |
 |------|---------|-----------------|
-| Critical | `✨ CRITICAL!` | die = 20, OR extended range if `regles.critique_etendu` |
+| Critical | `✨ CRITICAL!` | die = 20, OR extended range if `rules.critique_etendu` |
 | Success | `✅ SUCCESS (≥ {DC})` | total ≥ threshold, comfortable margin |
 | Partial Success | `⚠️ PARTIAL SUCCESS` | total ≥ threshold but margin < 3, OR partial info |
 | Success (perception) | `✅ SUCCESS — you notice obvious elements and some details` | Perception/Intuition: gradation by margin |
 | Failure | `❌ FAILURE (< {DC})` | total < threshold |
-| Fumble | `💀 FUMBLE...` | die = 1, OR extended range if `regles.fumble_etendu` |
+| Fumble | `💀 FUMBLE...` | die = 1, OR extended range if `rules.fumble_etendu` |
 | Simple | *(no result line)* | other dice (2d6, etc.) |
 
 **Nuances by roll type:**
@@ -233,7 +233,7 @@ All content after `🎲` is wrapped in `|| ... ||`.
 
 ## Step 6 — House Rules
 
-Before applying critical/fumble/thresholds, **always check** the system and house rules of the campaign in `world.json`: `systeme` (`systeme.resolution`, `systeme.nat20`, `systeme.nat1`) and `regles` (house rules under `regles.*`). Possible keys depending on campaign:
+Before applying critical/fumble/thresholds, **always check** the system and house rules of the campaign in `world.json`: `system` (`system.resolution`, `system.nat20`, `system.nat1`) and `rules` (house rules under `rules.*`). Possible keys depending on campaign:
 
 - `seuil_defaut` — default DC (e.g.: 10, 12, 15)
 - `critique_etendu` — extended critical range (e.g.: 18-20 instead of 20)

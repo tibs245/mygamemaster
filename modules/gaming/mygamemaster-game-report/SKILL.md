@@ -116,15 +116,15 @@ The report is generated in `sessions/NNN-rapport.md`.
 
 The report is compiled from:
 - `sessions/NNN.json > actions[]` — actions played
-- `sessions/NNN.json > pnj_rencontres[]` — NPCs encountered
-- `sessions/NNN.json > lieux_visites[]` — locations explored
+- `sessions/NNN.json > npcs_met[]` — NPCs encountered
+- `sessions/NNN.json > visited_locations[]` — locations explored
 - `sessions/NNN.json > etat_fin` — final party status
 - `world.json > global_state.quete_active` — active quest
-- `characters/<id>.json > inventaire[]` — PC inventory
+- `characters/<id>.json > inventory[]` — PC inventory
 
 ### What is EXCLUDED
 
-- ❌ GM secrets (`hypotheses_mj`, world secrets)
+- ❌ GM secrets (`gm_hypotheses`, world secrets)
 - ❌ NPC thoughts (`notes_privees`)
 - ❌ Information the PC has not perceived
 - ❌ Internal game mechanics (dice rolls, DCs, rules)

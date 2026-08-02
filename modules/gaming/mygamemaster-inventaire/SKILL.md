@@ -17,18 +17,18 @@ triggers:
 ```txt
 ~/.hermes/mygamemaster/
 ├── base_items.yaml              ← Evolving item base (all campaigns)
-├── campaigns/<nom>/
-│   ├── characters/<id>.json    ← PC character sheet → "inventaire" field (free strings)
-│   ├── npcs.json                ← Allied NPCs → "inventaire" field (free strings)
-│   │                               Key locations → "inventaire_<lieu>" field {description, contenu[]}
-│   └── world.json              ← Locations/resources → regles.ressources
+├── campaigns/<name>/
+│   ├── characters/<id>.json    ← PC character sheet → "inventory" field (free strings)
+│   ├── npcs.json                ← Allied NPCs → "inventory" field (free strings)
+│   │                               Key locations → "inventory_<lieu>" field {description, contenu[]}
+│   └── world.json              ← Locations/resources → rules.ressources
 ```
 
 ### Who has an inventory?
 
-- **PC** → `characters/<discord_id>.json > inventaire` (objects carried)
-- **Allied NPC** (2+ sessions or companion) → `npcs.json > inventaire` (what they carry)
-- **Key inhabited location** (cabin, base, camp) → associated NPC's `npcs.json` > `inventaire_<lieu>` (e.g. `inventaire_cabane`) = `{description, contenu[]}`
+- **PC** → `characters/<discord_id>.json > inventory` (objects carried)
+- **Allied NPC** (2+ sessions or companion) → `npcs.json > inventory` (what they carry)
+- **Key inhabited location** (cabin, base, camp) → associated NPC's `npcs.json` > `inventory_<lieu>` (e.g. `inventory_cabane`) = `{description, contenu[]}`
 
 > **The GM READS these inventories.** **Mutations** (add / use / transfer) are VERIFIED by the Steward (3 checks — see `mygamemaster-intendant`), and the actual persisted delta is reported **automatically by the `transform_llm_output` hook**. You do NOT need to produce the persistence report manually.
 
@@ -38,7 +38,7 @@ triggers:
 
 ```json
 {
-  "inventaire": [
+  "inventory": [
     "15 silver crowns",
     "Rations (~1 day)",
     "Leather notebook",
@@ -107,7 +107,7 @@ If inventory is empty:
 
 1. Search for `<item>` in `base_items.yaml` (fuzzy match: exact name or keyword containing)
 2. If found in base → copy complete fields (nom, desc, poids, valeur, effet)
-3. If not found → create minimal entry: `{"nom": "<item>", "qte": n, "desc": "", "poids": 0, "valeur": 0, "effet": ""}`
+3. If not found → create minimal entry: `{"name": "<item>", "qte": n, "desc": "", "poids": 0, "valeur": 0, "effet": ""}`
 4. If item already exists in inventory → increment `qte`, do not duplicate
 5. Check total weight — warn if exceeded
 6. Update `characters/<discord_id>.json`
@@ -207,7 +207,7 @@ potions:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `nom` | string | Display name |
+| `name` | string | Display name |
 | `description` | string | Descriptive text (1 sentence) |
 | `valeur_or` | number | Price in gold pieces |
 | `poids` | number | Weight in kg |
@@ -310,8 +310,8 @@ Player A: !inv give long sword @PlayerB
 
 To find an item, try in order:
 
-1. **Exact match** — identical `nom`
-2. **Contains** — item whose `nom` contains search string (ex: "heal" → "Healing potion", "Superior healing potion")
+1. **Exact match** — identical `name`
+2. **Contains** — item whose `name` contains search string (ex: "heal" → "Healing potion", "Superior healing potion")
 3. **Keyword** — search in `description` (ex: "red" → Healing potion)
 4. If multiple matches → ask player to clarify
 5. If none → create item on the fly (mode "unknown item")
@@ -327,7 +327,7 @@ To find an item, try in order:
 | Leave entry with `qty: 0` | Delete entry |
 | Forget to check weight | Calculate total weight on each modification |
 | Search only in base, not in existing inventory | Search inventory first for modifications |
-| **Forget NPC and location inventories** — hold only PC inventory | Check EVERY entity: PC + companion NPC + location used. An item left in a cabin is not "lost" — it is in the location's inventory (`inventaire_<lieu>.contenu`). |
+| **Forget NPC and location inventories** — hold only PC inventory | Check EVERY entity: PC + companion NPC + location used. An item left in a cabin is not "lost" — it is in the location's inventory (`inventory_<lieu>.contenu`). |
 | **Invent item** (PC, NPC or location) not listed | Rule "invented item": single source = header `mygamemaster/SKILL.md §8` (and §2 compartmentalization). Before any item mention, check entity's inventory; if absent, character does not have it. |
 
 ---
@@ -335,7 +335,7 @@ To find an item, try in order:
 ## Dependencies
 
 - Parent skill: `mygamemaster` (loaded automatically in RPG session)
-- Files: `~/.hermes/mygamemaster/campaigns/<nom>/characters/<discord_id>.json`
+- Files: `~/.hermes/mygamemaster/campaigns/<name>/characters/<discord_id>.json`
 - Files: `~/.hermes/mygamemaster/base_items.yaml`
 - Tools: native JSON read/write (no external scripts needed)
-- **Emoji convention:** `references/verbosity/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard items, ⚔️ for weapons/combat equipment in all inventory change notifications.
+- **Emoji convention:** `references/verbosite/README.md` (in `mygamemaster`) — use 🥦 for consumables, 🎒 for standard items, ⚔️ for weapons/combat equipment in all inventory change notifications.

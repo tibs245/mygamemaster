@@ -12,13 +12,13 @@ triggers:
 
 # 🎭 Character Emotions
 
-> ✅ **Approved — fail-open, opt-in per character.** A character without an `emotions` object behaves exactly as before (no behavior change). Tooling: `mygamemaster/scripts/emotions.py`. Injection: `pre_llm_call` (axis `pnj_faction_vivants`).
+> ✅ **Approved — fail-open, opt-in per character.** A character without an `emotions` object behaves exactly as before (no behavior change). Tooling: `mygamemaster/scripts/emotions.py`. Injection: `pre_llm_call` (axis `living_npcs_factions`).
 
 A recurring NPC who was betrayed in session 2 should still be guarded in session 5 — and the player should FEEL it in how the NPC talks, not be told "his trust is 0.1". This skill tracks each character's emotional state, makes it **evolve logically** in response to events, and surfaces a one-line brief to the GM so portrayal stays consistent. Primarily for NPCs; PCs only ever opt in (see "Sacred agency" below).
 
 ## The model (compact, legible — no over-engineering)
 
-Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `characters/<id>.json` for opt-in PCs). Keys follow the sibling French data keys (`established_facts`, `hypotheses_mj`…):
+Per character, one `emotions` object in their sheet (`npcs.json` for NPCs; `characters/<id>.json` for opt-in PCs). Keys follow the sibling sheet keys (`established_facts`, `gm_hypotheses`…); `etat` and `temperament` are the exact names read by `emotions.py`:
 
 ```json
 "emotions": {
@@ -79,7 +79,7 @@ NEVER state feelings or numbers to players:
 
 ## Wiring & fail-open
 
-- Injection lives in `mygamemaster/hooks/pre_llm_call.py` → `build_emotions_brief()` (subprocess to `emotions.py summary`), gated by the `pnj_faction_vivants` feature axis. Any failure (no `npcs.json`, no emotions data, missing script, timeout) → no block, the turn proceeds untouched.
+- Injection lives in `mygamemaster/hooks/pre_llm_call.py` → `build_emotions_brief()` (subprocess to `emotions.py summary`), gated by the `living_npcs_factions` feature axis. Any failure (no `npcs.json`, no emotions data, missing script, timeout) → no block, the turn proceeds untouched.
 - `emotions.py summary` ALWAYS exits 0 — the fail-open contract of the hooks (`specs/hooks-runtime.md`) extends to this module.
 - Schema: optional `emotions` property in `scripts/schemas/npcs.schema.json` (validated by `validate_schema.py`).
 

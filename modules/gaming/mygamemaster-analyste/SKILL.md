@@ -81,7 +81,7 @@ Does the entity have what it claims to have?
 
 ### Control 2 — TRANSFER
 Is the action mechanically valid?
-- Route documented? (check `regles.temps.deplacements`)
+- Route documented? (check `rules.time.movements`)
 - Time available? (check temporal tracking)
 - Recipient exists? (check target entity)
 ### Control 3 — COHERENCE
@@ -242,11 +242,11 @@ Write to `sessions/NNN-audit.md`:
 When `!cloture` invokes the audit, the Analyst verifies ALL these points:
 
 ### 5.1 — Weather
-- `world.json > regles.meteo > regions[].conditions_actuelles` coherent with elapsed time?
+- `world.json > rules.weather > regions[].conditions_actuelles` coherent with elapsed time?
 - `prochain_changement` reached? Played?
 
 ### 5.2 — Time
-- `regles.temps.suivi.jour_courant` and `heure_courante` up to date?
+- `rules.time.tracking.current_day` and `current_hour` up to date?
 - Does each session action have an estimated duration?
 - Are temporal milestones updated?
 
@@ -256,13 +256,13 @@ When `!cloture` invokes the audit, the Analyst verifies ALL these points:
 - No objects in "limbo" (neither with a PC nor NPC)?
 
 ### 5.4 — NPCs
-- Does each NPC from `pnj_rencontres[]` have a sheet in `npcs.json`?
+- Does each NPC from `npcs_met[]` have a sheet in `npcs.json`?
 - `established_facts` up to date? (what was played and said is promoted)
 - `localisation_actuelle` coherent with session end?
 - Do NPCs in transit/mission have a documented deadline?
 
 ### 5.5 — Locations
-- Does each location from `lieux_visites[]` exist in `world.json`?
+- Does each location from `visited_locations[]` exist in `world.json`?
 - If new location → added?
 
 ### 5.6 — Factions
@@ -275,7 +275,7 @@ When `!cloture` invokes the audit, the Analyst verifies ALL these points:
 - Are any agent sessions orphaned?
 
 ### 5.8 — Session
-- `heure_fin` filled in?
+- `end_hour` filled in?
 - `resume` present?
 - `etat_fin` coherent with final actions?
 
@@ -300,11 +300,11 @@ Verify fundamental data structures:
 ```
 🛡️ PERSISTENCE AUDIT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ regles.temps.suivi — exists in world.json?
+□ rules.time.tracking — exists in world.json?
 □ events.json — structured timeline exists?
 □ sessions/{N+1}.json — next file ready?
 □ global_state synced with sessions/NNN.json > etat_fin?
-□ Character sheets: historique[] + connaissances_privees[]?
+□ Character sheets: history[] + connaissances_privees[]?
 □ Git — working tree clean?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -333,7 +333,7 @@ Before writing an opening sentence, verify against logs:
 ```
 📜 NARRATIVE VERIFICATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ 1. TIME — resumes exactly at heure_fin (no jump)
+□ 1. TIME — resumes exactly at end_hour (no jump)
 □ 2. OBJECTS/LOCATIONS — each object is in the right place
 □ 3. NPCs — their words reflect WHAT THE PC SAID, not GM interpretation;
        presence/position EXACTLY matching files (see box §3.1)

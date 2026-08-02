@@ -42,7 +42,7 @@
 |---|---|
 | *"for a few months, a stranger has been cleaning them"* | *"for a few days, a stranger has been cleaning them"* |
 
-**Principle:** The timeline of Rubis in the March is **~6 game days**. Every time reference in NPC dialogue must be consistent with this timeline. **Read `world.json > global_state.chronologie` before writing a duration indication in dialogue.**
+**Principle:** The timeline of Rubis in the March is **~6 game days**. Every time reference in NPC dialogue must be consistent with this timeline. **Read `world.json > global_state.timeline` before writing a duration indication in dialogue.**
 
 ---
 
@@ -52,7 +52,7 @@
 |---|---|
 | *"Firmin sits by the window, **the journal open on his knees**"* | *"Firmin sits by the window, **hands empty** — the journal is beside you, on your pallet"* |
 
-**Principle:** The journal was given by Firmin to Rubis the previous day ("I entrust it to you"). **Always verify object ownership in the PC or NPC inventory before describing it.** (See `characters/<id>.json > inventaire`)
+**Principle:** The journal was given by Firmin to Rubis the previous day ("I entrust it to you"). **Always verify object ownership in the PC or NPC inventory before describing it.** (See `characters/<id>.json > inventory`)
 
 ---
 
@@ -66,8 +66,8 @@ Systematic oversights observed after Session 6 wrap-up:
 | New NPCs not filed | Esterlin + Karel missing from `npcs.json` |
 | New artifacts not listed | Heart-of-Shards missing from `artefacts_connus` |
 | Rations not deducted | Shared with 8 people → deduct 2-3 days of rations |
-| Timeline not enriched | Session 6 missing from `global_state.chronologie` |
-| Locations not added | Beech Path missing from `universe.regions[].lieux` |
+| Timeline not enriched | Session 6 missing from `global_state.timeline` |
+| Locations not added | Beech Path missing from `universe.regions[].locations` |
 | Cabin activities not persisted | Turnips harvested, shed advanced — not in Berthe's file |
 
 **Principle:** Files do not update themselves. Every RP data point (object used, NPC moved, location discovered, time elapsed) must be **written to the files in the same response** that reveals it. Not at session end. Not at wrap-up. Immediately.
