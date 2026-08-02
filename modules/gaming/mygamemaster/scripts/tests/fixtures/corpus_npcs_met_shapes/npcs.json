@@ -1,0 +1,24 @@
+[
+  {
+    "name": "NPC_ALLY",
+    "id": "npc:ally",
+    "description": "DESC_01",
+    "established_facts": [
+      "FACT_01"
+    ],
+    "gm_hypotheses": [
+      "HYP_01"
+    ]
+  },
+  {
+    "name": "NPC_RIVAL",
+    "id": "npc:rival",
+    "description": "DESC_02",
+    "established_facts": [
+      "FACT_02"
+    ],
+    "gm_hypotheses": [
+      "HYP_02"
+    ]
+  }
+]

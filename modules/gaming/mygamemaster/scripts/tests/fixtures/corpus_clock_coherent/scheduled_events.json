@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "campagne": "CORPUS_CLOCK",
+    "version": 1
+  },
+  "events": [
+    {
+      "id": "evt:anchor-d32-01",
+      "T": 4500,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D032",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d38-01",
+      "T": 5364,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D038",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d50-01",
+      "T": 7056,
+      "type": "consequence",
+      "cible": "loc:village",
+      "statut": "programme",
+      "label": "EVENT_D050",
+      "significativite": "majeur",
+      "visible_par_pj": true
+    }
+  ]
+}

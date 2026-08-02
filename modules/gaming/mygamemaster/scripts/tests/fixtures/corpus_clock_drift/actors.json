@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "campagne": "CORPUS_CLOCK",
+    "version": 1,
+    "t_reference": 19000,
+    "note": "T=19000 = day 81"
+  },
+  "actors": [
+    {
+      "id": "acteur:npc_ally",
+      "name": "NPC_ALLY",
+      "lod": "froid",
+      "localisation_id": "loc:village",
+      "plan": [
+        {
+          "id": "int:i01",
+          "intention": "INTENTION_01",
+          "echeance": 3636,
+          "statut": "en_cours"
+        },
+        {
+          "id": "int:i02",
+          "intention": "INTENTION_02",
+          "echeance": null,
+          "statut": "en_cours"
+        }
+      ]
+    }
+  ]
+}
