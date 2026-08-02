@@ -303,6 +303,7 @@ The [scoreboard script](modules/gaming/mygamemaster/hooks/scoreboard.py) helps y
 | [docs/06-concept-isolation.md](docs/06-concept-isolation.md) | Isolation model (one container per game) |
 | [docs/09-hooks-runtime.md](docs/09-hooks-runtime.md) | Runtime hooks (Steward, judge, verbosity) |
 | [docs/monde-vivant/](docs/monde-vivant/00-vue-densemble.md) | Living-world engine (space, time, causality) |
+| [docs/10-field-report.md](docs/10-field-report.md) | Field report: what 34 sessions of real play taught us |
 | [specs/architecture.md](specs/architecture.md) | System architecture |
 | [specs/hooks-runtime.md](specs/hooks-runtime.md) | Hook internals |
 | [specs/secrets-et-vault.md](specs/secrets-et-vault.md) | Secrets management |
