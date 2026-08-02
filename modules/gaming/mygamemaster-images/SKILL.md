@@ -524,7 +524,7 @@ After generation :
 | Dependency | Role |
 |-----------|------|
 | `mygamemaster` (parent skill) | Campaign context, GM persona |
-| `mygamemaster-personnage` | Character sheet reading for `!portrait` |
+| `mygamemaster-character` | Character sheet reading for `!portrait` |
 | `scripts/` (OpenRouter) | Actual image generation (`generate_reviewed.py` & co.) |
 | `comfyui` (creative skill, **archived**) | Historic fallback unavailable by default |
 | `world.json` | Visual style + world data |

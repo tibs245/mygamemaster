@@ -87,5 +87,5 @@ NEVER state feelings or numbers to players:
 
 - **Parent skill**: `mygamemaster` (umbrella — state injection precedence, show-don't-tell).
 - **Data governance**: `mygamemaster/references/npc-data-governance.md` (traceable facts ↔ traceable emotional shifts).
-- **Siblings**: `mygamemaster-pnj` (an NPC agent's brief gains consistent affect), `mygamemaster-session` (decay at wrap-up), `mygamemaster-intendant` (the Steward can check a declared NPC reaction against its persisted state).
+- **Siblings**: `mygamemaster-npc` (an NPC agent's brief gains consistent affect), `mygamemaster-session` (decay at wrap-up), `mygamemaster-steward` (the Steward can check a declared NPC reaction against its persisted state).
 - **Tools**: `mygamemaster/scripts/emotions.py` (stdlib only, tested in `scripts/tests/test_emotions.py`).

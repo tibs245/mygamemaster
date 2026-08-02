@@ -5,7 +5,7 @@ Modules (`modules/gaming/mygamemaster*`) are the GM's intelligence. Here is how 
 
 ## Standard loop (production)
 
-1. **Edit** a skill, e.g. `modules/gaming/mygamemaster-outils/SKILL.md` or a script such as
+1. **Edit** a skill, e.g. `modules/gaming/mygamemaster-tools/SKILL.md` or a script such as
    `modules/gaming/mygamemaster/scripts/clock.py`.
 2. **Back up** as a precaution (recommended before any redeploy):
    ```bash

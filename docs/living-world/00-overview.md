@@ -20,7 +20,7 @@
 
 ## The Unifying Principle: The Steward of Space-Time
 
-The **Steward (Banker)** (`mygamemaster-intendant`) already conserves **resources**: an object leaves
+The **Steward (Banker)** (`mygamemaster-steward`) already conserves **resources**: an object leaves
 one inventory and appears in another, nothing is created or destroyed without reason. We
 **apply exactly this discipline** to three other dimensions:
 
@@ -104,7 +104,7 @@ already exists vs what is missing** ». Here it is.
 | **LOD Tick Engine (pre/post)** | 🔨 | heart of « living world » → [`03`](03-tick-engine.md) |
 | **Causal Propagation** | 🔨 | relationship graph + dated cascade → [`04`](04-causal-propagation.md) |
 | State Injection to GM | ✅ partial | `hooks/pre_llm_call.py` ; to **spatialize** → [`05`](05-context-assembler.md) |
-| Isolated Actor Agents | ✅ started | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-pnj` / `-faction` |
+| Isolated Actor Agents | ✅ started | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-npc` / `-faction` |
 | Coherence Judge | ✅ | `hooks/llm_judge.py` (reused as anti-drift safeguard) |
 | Snapshot/Timeline | ✅ | `outils/gestion_temps.py` (snapshot of world at instant T) |
 

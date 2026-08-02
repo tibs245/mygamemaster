@@ -1,5 +1,5 @@
 ---
-name: mygamemaster-intendant
+name: mygamemaster-steward
 description: THE STEWARD — transactional verifier of every game action. Verifies inventory, knowledge, coherence, time. Applies transfers (objects, info, states). Refuses with reason if invalid. Rules engine, not an agent.
 category: gaming
 triggers:

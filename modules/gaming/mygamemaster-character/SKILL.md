@@ -1,5 +1,5 @@
 ---
-name: mygamemaster-personnage
+name: mygamemaster-character
 description: Manages character sheet display and editing — !sheet, !char, !notes. Strict per-player compartmentalization.
 category: gaming
 triggers:
@@ -383,4 +383,4 @@ This skill is a sub-skill of `mygamemaster`. It loads automatically when the tri
 | Creating a sheet under the wrong ID then needing to move/delete it | Check: *"Your Discord ID is really XXXXX?"* before writing the file |
 | **❗ Making up stats for an existing character** — The GM creates a sheet for an already-played character without checking if stats already exist (agent memory, player messages, prior conversation). Ex.: creating [the PC] with [stats A] when the player had defined it with [stats B] earlier. Critical error. | **BEFORE creating or modifying a PC sheet, check IN ORDER:** (1) Agent memory — are stats recorded there? (2) Player messages in history — have they already mentioned stats, class, or inventory? (3) File on disk — does `characters/<discord_id>.json` exist? If yes → read it, don't recreate it. (4) Campaign repo git logs (`git log --all --diff-filter=A -- 'characters/*.json'`) — did a sheet exist then get deleted? If nothing found → ASK the player: "What are your character's stats?" NEVER start from an empty template. NEVER make up stats. |
 | **❗ Using the sheet without player confirmation** — The GM narrates actions assuming PC stats without validating them with the player. | After creating or updating a sheet, confirm the stats with the player BEFORE using them in narration. A simple "Here's your sheet, is this right?" is enough. |
-| **❗ NPC and location inventory not documented** — The GM tracks the PC's inventory but forgets that of accompanying NPCs and inhabited locations. Inconsistency guaranteed. | **Requirement:** Each recurring NPC (2+ sessions) has an `inventory` field (free strings) in npc.json. Each key location (cabin, camp, base) has an `inventory_<location>` field (ex. `inventory_cabane`) = `{description, contenu[]}`. Update with each transfer (via Steward). See `mygamemaster-inventaire`. |
+| **❗ NPC and location inventory not documented** — The GM tracks the PC's inventory but forgets that of accompanying NPCs and inhabited locations. Inconsistency guaranteed. | **Requirement:** Each recurring NPC (2+ sessions) has an `inventory` field (free strings) in npc.json. Each key location (cabin, camp, base) has an `inventory_<location>` field (ex. `inventory_cabane`) = `{description, contenu[]}`. Update with each transfer (via Steward). See `mygamemaster-inventory`. |

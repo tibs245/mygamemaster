@@ -150,7 +150,7 @@ profiles/pnj-firmin/
 
 ## Dependencies
 
-- **Transactional Steward** : `mygamemaster-intendant` — validation of 3 checks (source, transfer, coherence)
+- **Transactional Steward** : `mygamemaster-steward` — validation of 3 checks (source, transfer, coherence)
 - **Brief cache** : `scripts/build_brief.py` — MD5-cached extraction from npcs.json
 - **N1 call** : `scripts/call_npc.py` — prompt construction + LLM call (dry-run/live)
 - **N2 profile** : `profiles/pnj-<slug>/` — minimal structure with linked skills (not copied)

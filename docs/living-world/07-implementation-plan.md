@@ -11,7 +11,7 @@
 | Clock | `events.json` (`t`), `gestion_temps.py` | Unified `T` integer from 0; centralized `T↔day/hour` conversion |
 | Space | `regles.temps.deplacements`, `validator-distances.py` | `geo.json` (graph), `geo_query.py`, MDS anchoring, extended validator |
 | Actors | `npcs.json`, `global_state.factions`, `faction_actions_horloge` | Unified **plan** schema, `lod`, trajectories, promotion/demotion |
-| Agents | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-pnj`/`-faction` | Tick orchestration loop, **intention output** schema |
+| Agents | `build_brief.py`, `call_npc.py`, `faction_slice.py`, skills `-npc`/`-faction` | Tick orchestration loop, **intention output** schema |
 | Tick | `clock.py` | `world_tick.py` (PRE/POST), LOD, lazy generation |
 | Causality | — | Typed `relations`, `causal_propagate.py`, scheduled events |
 | GM Context | `pre_llm_call.py` | `scene_brief.py` (spatial/temporal/relational filtering) |

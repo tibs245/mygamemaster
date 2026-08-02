@@ -151,7 +151,7 @@ pre-commit run --all-files
 ## How to Add a Skill Module
 
 1. Create a directory under `modules/gaming/mygamemaster-<your-skill>/`.
-2. Follow the structure of an existing module (e.g. `mygamemaster-inventaire/`) for the
+2. Follow the structure of an existing module (e.g. `mygamemaster-inventory/`) for the
    `skill.yaml` manifest and entry point.
 3. Add your module to the Hermes `skills.external_dirs` path (already configured in the image).
 4. Write at least one test that exercises the happy path.

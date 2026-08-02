@@ -414,7 +414,7 @@ python3 $SCRIPTS/close_session.py $CAMP --titre "<episode title>" --teaser "<tea
 `check_session.py`, `clock.py --dry-run` then ~10-point pipeline check.
 Exit != 0 = wrap-up refused: fix listed points then re-run.
 
-**Available audit scripts (see also `mygamemaster-analyste` for 3 layers) :**
+**Available audit scripts (see also `mygamemaster-analyst` for 3 layers) :**
 - `build_brief.py <campaign> <npc> --cache` : extract NPC brief (MD5 cache)
 - `call_npc.py <campaign> <npc> <context> --dry-run` : simulate RP response
 
@@ -427,7 +427,7 @@ an independent, reusable skill.
 
 #### Step 1 — 🐞 Steward Audit (`!analyse-bug`)
 
-Calls `mygamemaster-analyste/SKILL.md` in **wrap-up audit mode**.
+Calls `mygamemaster-analyst/SKILL.md` in **wrap-up audit mode**.
 Verifies ALL points: weather, time, inventories, NPCs, locations, factions,
 clock, artifacts.
 
@@ -655,7 +655,7 @@ Use `outils/gestion_temps.py` (CLI or Python module) to add and validate events.
 ### 2. `sessions/NNN.json` (detailed narrative log)
 - **Session start** → action type `meta` : `"Start of session {N}"`
 - **Player action** → action type `roll|action|combat|dialogue` with player and description
-- **Sheet modification** → action type `modif_perso` (see `mygamemaster-personnage` skill)
+- **Sheet modification** → action type `modif_perso` (see `mygamemaster-character` skill)
 - **NPC meeting** → add to `npcs_met[]`
 - **Location visit** → add to `visited_locations[]`
 - **Wrap-up** → action type `meta` : `"Session {N} wrapped up"`
@@ -685,10 +685,10 @@ When a scene involves **multiple NPCs speaking in turn**, risk of forgetting is 
 | Skill | Interaction |
 |-------|-------------|
 | `mygamemaster` (hat) | This skill auto-loads on `!cloture`, `!reprendre`, `!session` |
-| `mygamemaster-personnage` | `!cloture` reads all sheets for group state; `!reprendre` too |
-| `mygamemaster-inventaire` | `!cloture` saves inventories via character sheets |
-| `mygamemaster-outils` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-outils` |
-| `mygamemaster-intendant` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
+| `mygamemaster-character` | `!cloture` reads all sheets for group state; `!reprendre` too |
+| `mygamemaster-inventory` | `!cloture` saves inventories via character sheets |
+| `mygamemaster-tools` | Rolls/actions logged in `actions[]` formatted by `mygamemaster-tools` |
+| `mygamemaster-steward` | `!cloture` writes player evaluation to `collecte.csv` (Phase 1 step 5) |
 | `mygamemaster-initiation` | Campaign first session created after `!init` |
 
 ---
@@ -839,7 +839,7 @@ Minimal reminder : Steward applies its 3 transactional controls (SOURCE → TRAN
 - **Files** : `./npcs.json`
 - **Files** : `./characters/<id>.json`
 - **Scripts** : `./outils/gestion_temps.py` (t calculations, validation, queries)
-- **Required skills** : `mygamemaster-personnage` (sheet reading), `mygamemaster-outils` (action formatting), `mygamemaster-intendant` (Steward — CSV collection)
+- **Required skills** : `mygamemaster-character` (sheet reading), `mygamemaster-tools` (action formatting), `mygamemaster-steward` (Steward — CSV collection)
 - **Files** : `collecte.csv` — diagnostic data (player evaluation written at wrap-up, Phase 1 step 5)
 - **Files** : `world.json > meta.diagnostic` — enable/disable player collection at wrap-up
 - **References** : `references/template-problem-solution-consequence.md` (post-session fix template)

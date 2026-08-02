@@ -33,19 +33,19 @@ Your own instance's personality is fully configurable per game via `soul_extra` 
 - `mygamemaster-help` — in-Discord guide: how to use the GM, available commands
 
 **Game mechanics**
-- `mygamemaster-outils` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
-- `mygamemaster-intendant` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
-- `mygamemaster-inventaire` — player inventories: display, add, use, discard, transfer; extensible YAML item base
-- `mygamemaster-personnage` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
+- `mygamemaster-tools` — dice rolls (`!jet`, `!jetq`, `!action`) using Python `secrets` + optional quantum entropy via qrandom.io
+- `mygamemaster-steward` — **the Steward**: a transactional rules verifier ("Banker") that checks every action against the canonical state (inventory, knowledge, time, coherence). Fail-soft: tolerates name variations, never false-refuses
+- `mygamemaster-inventory` — player inventories: display, add, use, discard, transfer; extensible YAML item base
+- `mygamemaster-character` — per-player character sheets (`!fiche`, `!perso`, `!notes`) with strict compartmentalization
 
 **Living world**
-- `mygamemaster-pnj` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
+- `mygamemaster-npc` — persistent NPC agents: each key NPC runs as an isolated agent with its own limited viewpoint, goals, and plans
 - `mygamemaster-faction` — persistent Faction agents: each faction runs as a collective intelligence agent
 - `mygamemaster-images` — image generation pipeline: deterministic map layer (`map_schema.py`) + image-model embellishment via OpenRouter / ComfyUI
 - `mygamemaster-tts` — narrative TTS: MiniMax `speech-2.8-turbo` synthesizes narration only (auto via hook + manual `!raconte`)
 
 **Quality and output**
-- `mygamemaster-analyste` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
+- `mygamemaster-analyst` — consistency auditor: mode A (bug), B (session-close audit), C (pre-session audit)
 - `mygamemaster-bug-report` — players can file structured bug reports (context / expected / got) for deferred review
 - `mygamemaster-game-report` — factual session report: actions, locations, NPCs, decisions, inventory — no spoilers
 - `mygamemaster-write-history` — novelization of the session as a readable chapter, no mechanics, no spoilers

@@ -82,7 +82,7 @@ and becomes a reactive sheet again (simulation economy).
 ## 3. Orchestration by Separated Agents
 
 Each major actor is driven by an **isolated agent** — exactly the **level 2** already started
-in the project (skills [`mygamemaster-pnj`](../../modules/gaming/mygamemaster-pnj/SKILL.md) and
+in the project (skills [`mygamemaster-npc`](../../modules/gaming/mygamemaster-npc/SKILL.md) and
 [`mygamemaster-faction`](../../modules/gaming/mygamemaster-faction/SKILL.md)).
 
 ```

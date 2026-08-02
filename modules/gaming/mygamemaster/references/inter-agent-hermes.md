@@ -105,7 +105,7 @@ needs more space for its durable memories.
 
 The profile's LLM, guided by:
 - Its `SOUL.md` (personality: fears, ambitions)
-- The `mygamemaster-pnj` skill (protocol: golden rule, 🎭/🎯/❓/🔒 format, guardrails)
+- The `mygamemaster-npc` skill (protocol: golden rule, 🎭/🎯/❓/🔒 format, guardrails)
 
 It reads its brief through its motivations and red lines → credible
 and fallible reaction.
@@ -188,7 +188,7 @@ Full pipeline successfully tested on 2 NPCs (Kreevix/Zulka), model `deepseek/dee
 - `-c` works — perfect continuity between turns (NPC remembers)
 - `-Q` works — clean stdout, no banner
 - `memory_char_limit: 8000` (vs 2200 global) — suited for modern models ≥200k tokens
-- Skill `mygamemaster-pnj` loaded via `-s` and applied correctly
+- Skill `mygamemaster-npc` loaded via `-s` and applied correctly
 - Per-profile model — deepseek-v4-flash (free), swappable
 
 **Confirmed trap:** First turn requires `chat -Q -q` WITHOUT `-c` (no existing session).
@@ -218,6 +218,6 @@ Second and subsequent turns use `-c`. The `run_turn.sh` glue documents this case
     └────────────┘   └────────────┘   └────────────┘
 ```
 
-**Golden Rule:** Each NPC profile loads the `mygamemaster-pnj` skill.
+**Golden Rule:** Each NPC profile loads the `mygamemaster-npc` skill.
 No profile has access to `messaging`, `file`, or `terminal` —
 they can only propose, not act.

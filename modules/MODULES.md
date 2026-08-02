@@ -23,16 +23,16 @@ dev mode, see `docs/04-improve-the-modules.md`).
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-outils** | Dice rolls (Python `secrets` + quantum via qrandom.io) and action resolution (`!jet`, `!jetq`, `!action`). |
-| **mygamemaster-intendant** | "The Steward (Banker)": transactional checker for every action (inventory, knowledge, consistency, time). Rules engine. |
-| **mygamemaster-inventaire** | Player inventory: display, add, use, discard, transfer. Evolving YAML item base. |
-| **mygamemaster-personnage** | Character sheets (`!fiche`, `!perso`, `!notes`) with strict per-player compartmentalization. |
+| **mygamemaster-tools** | Dice rolls (Python `secrets` + quantum via qrandom.io) and action resolution (`!jet`, `!jetq`, `!action`). |
+| **mygamemaster-steward** | "The Steward (Banker)": transactional checker for every action (inventory, knowledge, consistency, time). Rules engine. |
+| **mygamemaster-inventory** | Player inventory: display, add, use, discard, transfer. Evolving YAML item base. |
+| **mygamemaster-character** | Character sheets (`!fiche`, `!perso`, `!notes`) with strict per-player compartmentalization. |
 
 ## Living world
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-pnj** | Persistent NPC agent (level 2): embodies ONE non-player character with limited vision, acts like a player toward the GM. |
+| **mygamemaster-npc** | Persistent NPC agent (level 2): embodies ONE non-player character with limited vision, acts like a player toward the GM. |
 | **mygamemaster-faction** | Persistent Faction agent (level 2): embodies ONE faction as collective intelligence with limited vision. |
 | **mygamemaster-emotions** | Character emotions (primarily NPCs): compact model (6 emotions 0..1 + temperament baseline + explainable history) that evolves via deterministic event rules and decays toward temperament; concise summary injected into the GM context (`pre_llm_call`, fail-open) so portrayal stays consistent — shown through behavior, never told as stats. |
 | **mygamemaster-images** | Image generation (scenes, portraits, maps) via pipeline style → templates → instances (OpenRouter / ComfyUI). |
@@ -42,7 +42,7 @@ dev mode, see `docs/04-improve-the-modules.md`).
 
 | Skill | Role |
 |---|---|
-| **mygamemaster-analyste** | Inconsistency diagnosis: mode A (bug), B (wrap-up audit), C (pre-session audit). |
+| **mygamemaster-analyst** | Inconsistency diagnosis: mode A (bug), B (wrap-up audit), C (pre-session audit). |
 | **mygamemaster-bug-report** | Allows the player to report an issue (context / expected / actual), stored for deferred processing. |
 | **mygamemaster-game-report** | Factual session report (actions, locations, NPCs, decisions, inventory) — no spoilers. |
 | **mygamemaster-write-history** | Narrative session summary, novel style — read like a chapter, no mechanics or spoilers. |

@@ -1,5 +1,5 @@
 ---
-name: mygamemaster-outils
+name: mygamemaster-tools
 description: Dice rolls (classic via Python secrets and quantum via qrandom.io) and action resolution for MJ Tonnerre. Parses !jet/!jetq formulas and orchestrates !action.
 category: gaming
 triggers:

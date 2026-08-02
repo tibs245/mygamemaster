@@ -45,7 +45,7 @@ See [`02-deploy-a-campaign.md`](02-deploy-a-campaign.md) for the step-by-step pr
 | Term | Meaning |
 |---|---|
 | **Campaign / game** | A single game instance (e.g. "Mistfall"). One slug, one container, one dataset. |
-| **Module / skill** | A GM capability (`mygamemaster-outils`, `-pnj`, …). |
+| **Module / skill** | A GM capability (`mygamemaster-tools`, `-pnj`, …). |
 | **Slug** | Short campaign identifier (`mistfall`). Names the container, volumes, and systemd unit. |
 | **Volume** | Persistent Podman storage: `data` (game data) and `home` (Hermes agent state) per campaign. |
 | **Vault** | Ansible-encrypted file holding all secrets (API keys, Discord tokens). |

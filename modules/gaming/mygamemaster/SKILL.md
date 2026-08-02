@@ -84,7 +84,7 @@ Mechanics are my tools, not the show. The player sees the world, not the rules.
 
 ## Formatting Conventions
 
-**Absolute visual consistency** — each element has a fixed format that players recognize instantly. **These templates are the single source of truth** : sub-skills (`mygamemaster-session`, `-personnage`) *refer to them* without recopying the formatting.
+**Absolute visual consistency** — each element has a fixed format that players recognize instantly. **These templates are the single source of truth** : sub-skills (`mygamemaster-session`, `-character`) *refer to them* without recopying the formatting.
 
 ### Session Summary
 ```
@@ -251,7 +251,7 @@ The `/opt/modules/gaming/mygamemaster/scripts/` folder provides machine guards (
 | `ensure_agent.sh` | Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
 | `run_turn.sh` | Runs NPC/Faction turn: `build_brief.py` → agent response. Provisioning for NPC/Faction agents (legacy profiles path → migration to per-campaign container ongoing, see specs) |
 
-Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mygamemaster-intendant/SKILL.md §2`).
+Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mygamemaster-steward/SKILL.md §2`).
 
 ### 1. COHERENCE ABOVE ALL
 Before each narrative response in a TTRPG session, verify the **campaign notes** (`world.json`, `npcs.json`, `current session`). Long-term coherence is sacred.
@@ -270,7 +270,7 @@ Before each narrative response in a TTRPG session, verify the **campaign notes**
 - NPC thoughts, hidden traps, scenario secrets are for YOU ALONE
 - If a player asks for info belonging to another: "*Only [X] knows that. Ask them in-game.*"
 
-*(Compartmentalization is detailed in §9 "The GM Keeps Secrets". The `mygamemaster-personnage` sub-skill refers to it without recopying.)*
+*(Compartmentalization is detailed in §9 "The GM Keeps Secrets". The `mygamemaster-character` sub-skill refers to it without recopying.)*
 
 ### 3. SYSTEMATIC NOTES
 
@@ -321,7 +321,7 @@ Whenever you describe an action that changes world state (travel, discovery, com
 
 **🧮 STEWARD CHECKPOINT — fast transactional verification :**
 At key moments (scene end, combat end, major world state change, before player disconnect), apply **the 3 Steward controls
-(SOURCE / TRANSFER / COHERENCE)** to recent scene actions — canonical formulation and detail in `mygamemaster-intendant/SKILL.md §2`.
+(SOURCE / TRANSFER / COHERENCE)** to recent scene actions — canonical formulation and detail in `mygamemaster-steward/SKILL.md §2`.
 
 The Steward is NOT a sub-agent — it is a verification process the GM applies. In practice:
 - Mentally check the 3 controls before closing a scene
@@ -338,13 +338,13 @@ Pace, fatigue, encounters, orientation, getting lost. Campaign travel durations 
 
 ### 3.3. Multi-agent loop (NPC/Faction agents — approved, per-campaign toggleable)
 
-> **Level 2 NPC/Faction agents are an approved feature, toggleable per campaign.** Their design lives in skills `mygamemaster-pnj` (NPC-agent) and
+> **Level 2 NPC/Faction agents are an approved feature, toggleable per campaign.** Their design lives in skills `mygamemaster-npc` (NPC-agent) and
 > `mygamemaster-faction` (Faction-agent), and reference `references/inter-agent-hermes.md`.
-> The Steward (`mygamemaster-intendant`) remains the transactional verification standard,
+> The Steward (`mygamemaster-steward`) remains the transactional verification standard,
 > regardless of action source.
 
 **The Steward applies the 3 transactional controls** (canonical formulation:
-`mygamemaster-intendant/SKILL.md §2`) regardless of action source — player, NPC played by GM, or faction. The Steward verifies the transaction, not the source.
+`mygamemaster-steward/SKILL.md §2`) regardless of action source — player, NPC played by GM, or faction. The Steward verifies the transaction, not the source.
 
 **Flow :**
 1. GM narrates scene to a decision point
@@ -748,7 +748,7 @@ If EVEN ONE test fails → **stop, correct, then respond.**
 **🔁 NARRATIVE PRE-VALIDATION BY STEWARD — Before sending narrative response :**
 Before any response that changes world state (travel, discovery, dialogue, combat, consumption),
 apply **the 3 Steward controls SOURCE / TRANSFER / COHERENCE** (canonical formulation:
-`mygamemaster-intendant/SKILL.md §2`). **NEVER send a response if any of the 3 controls fail** —
+`mygamemaster-steward/SKILL.md §2`). **NEVER send a response if any of the 3 controls fail** —
 correct the response or justify in `MJ-INTENTION-LOG.md`.
 
 **⚠️ Anti-regression — Update does not change narrative style :**
@@ -811,7 +811,7 @@ If player says "I do this, then that, then that" in their own message — then t
 2. 🔍 GM CONSTRUCTS — reread files (inventory, position, weather, NPCs) ;
    construct ONE perception sentence + ONE decision point.
 3. 🧮 STEWARD VERIFIES — the 3 controls SOURCE / TRANSFER / COHERENCE
-   (see `mygamemaster-intendant §2`). → ✅ VALID / ❌ REFUSE (reason + file ref).
+   (see `mygamemaster-steward §2`). → ✅ VALID / ❌ REFUSE (reason + file ref).
 4. 📝 GM NARRATES — one action described, one decision point at end.
 5. 💾 STEWARD APPLIES — immediately, 7 accounting operations (deduct/add
    inventory, propagate knowledge, deduct time, state, position, log) ;
@@ -1076,7 +1076,7 @@ Player can request to consult MJ-INTENTION-LOG anytime (in ⏸️). They must be
 !analyse-bug "The statue I had in my inventory is gone"
 ```
 
-1. **Load Analyst** via `delegate_task` with skill `mygamemaster-analyste`
+1. **Load Analyst** via `delegate_task` with skill `mygamemaster-analyst`
 2. **Analyst consults :** all campaign files (world.json, npcs.json, characters, sessions/)
 3. **Traces the object/data :** does it exist? was it moved? by which action?
 4. **Issues a verdict :**
@@ -1229,14 +1229,14 @@ Two uses, backed by deterministic `scripts/feature_toggle.py` script (stdlib, at
 | `!bug <description>` | Reports technical bug → report (loads `mygamemaster-bug-report`) |
 | `!mj-log` | Shows latest MJ-INTENTION-LOG.md entries |
 | `!mj-log ajoute <text>` | Adds entry to MJ-INTENTION-LOG.md (GM use only) |
-| `!verbosite <level>` | Changes Steward verbosity level (TRACE/DEBUG/INFO/WARN/ERROR) — see `mygamemaster-intendant` §11 |
+| `!verbosite <level>` | Changes Steward verbosity level (TRACE/DEBUG/INFO/WARN/ERROR) — see `mygamemaster-steward` §11 |
 
 ### Diagnostics
 | Command | Effect |
 |---------|--------|
 | `!collecte stats` | Shows collect CSV stats (entry count, error ratio, top error_type) |
 | `!collecte dernieres` | Shows last 5 collect CSV entries |
-| `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyste` mode C) |
+| `!audit-presession` | Pre-session coherence audit (loads `mygamemaster-analyst` mode C) |
 | `!features` / `!feature` | Shows effective state of 6 feature flags (`meta.features`) — `feature_toggle.py --list` |
 | `!feature <axis> on\|off` | **Admin** (`meta.admins`/`MGM_ADMIN_IDS`) : toggles axis **hot** (effect next turn, no redeployment) — relays script message, warning included for structural axis |
 
@@ -1263,16 +1263,16 @@ Each **functional** sub-skill auto-loads when its command is invoked. (Distingui
 | Skill | Trigger |
 |-------|---------|
 | `mygamemaster-initiation` | `!init` |
-| `mygamemaster-personnage` | `!fiche`, `!perso`, `!notes` |
-| `mygamemaster-inventaire` | `!inv` |
-| `mygamemaster-outils` | `!jet`, `!jetq`, `!action` |
+| `mygamemaster-character` | `!fiche`, `!perso`, `!notes` |
+| `mygamemaster-inventory` | `!inv` |
+| `mygamemaster-tools` | `!jet`, `!jetq`, `!action` |
 | `mygamemaster-images` | `!image`, `!portrait`, `!carte` |
 | `mygamemaster-session` | `!cloture`, `!reprendre` |
-| `mygamemaster-analyste` | `!analyse-bug`, `!audit-presession` (mode C) |
+| `mygamemaster-analyst` | `!analyse-bug`, `!audit-presession` (mode C) |
 | `mygamemaster-game-report` | `!game-report` |
 | `mygamemaster-write-history` | `!write-history` |
 | `mygamemaster-bug-report` | `!bug` |
-| `mygamemaster-intendant` | `!verbosite`, `!collecte stats`, `!collecte dernieres` |
+| `mygamemaster-steward` | `!verbosite`, `!collecte stats`, `!collecte dernieres` |
 
 ---
 

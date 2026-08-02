@@ -192,5 +192,5 @@ issue and link the analysis report to the bug report.
 
 ## References
 
-- `mygamemaster-analyste/SKILL.md` — Technical analysis after report
+- `mygamemaster-analyst/SKILL.md` — Technical analysis after report
 - `mygamemaster-session/SKILL.md` — Session wrap-up (ideal time to process bugs)

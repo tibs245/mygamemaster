@@ -3,7 +3,7 @@
 > ℹ️ **Verbosity is now managed automatically by the `transform_llm_output` hook** (Persisted block + label per `meta.verbosite`). The canonical emoji table lives in `modules/gaming/mygamemaster/hooks/_lib.py`. The GM does NOT need to produce this block by hand. What follows is only a format reference (maintainers) and a fallback if hooks are disabled (`meta.hooks.banquier_persiste=false`) or in bypass mode `⏸️`.
 
 > **Index + shared emoji table.** One file per verbosity level.
-> The active level lives in `world.json > meta.verbosite` ; the player changes it with `!verbosite <niveau>` (command / `mygamemaster-intendant`).
+> The active level lives in `world.json > meta.verbosite` ; the player changes it with `!verbosite <niveau>` (command / `mygamemaster-steward`).
 
 ---
 
@@ -64,9 +64,9 @@
 
 | Skill | Data Types Reported | Levels Affected |
 |-------|---------------------------|-------------------|
-| `mygamemaster-intendant` | All (Steward) | TRACE → ERROR |
-| `mygamemaster-personnage` | ❤️ HP, 📚 skills, 🔋 states | INFO (change notifications) |
-| `mygamemaster-inventaire` | 🥦, 🎒, ⚔️ objects | INFO (change notifications) |
+| `mygamemaster-steward` | All (Steward) | TRACE → ERROR |
+| `mygamemaster-character` | ❤️ HP, 📚 skills, 🔋 states | INFO (change notifications) |
+| `mygamemaster-inventory` | 🥦, 🎒, ⚔️ objects | INFO (change notifications) |
 | `mygamemaster-session` | 🕒 time, 🗺️ positions | INFO |
-| `mygamemaster-outils` | Dice rolls (no persistence) | — |
+| `mygamemaster-tools` | Dice rolls (no persistence) | — |
 | `mygamemaster-images` | None (no persistence) | — |

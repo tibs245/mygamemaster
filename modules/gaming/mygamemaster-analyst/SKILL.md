@@ -1,5 +1,5 @@
 ---
-name: mygamemaster-analyste
+name: mygamemaster-analyst
 description: "Diagnoses inconsistencies (analyze-bug), audits coherence at wrap-up, and audits state before a session. 3 modes: A (bug), B (wrap-up), C (pre-session)."
 category: gaming
 triggers:
@@ -119,7 +119,7 @@ Read ALL relevant files:
 - `characters/<id>.json` — PC sheets (inventory, HP, states)
 - `sessions/NNN.json` — detailed action logs
 
-**Priority source — the Steward's ledger.** The `transform_llm_output` hook (Steward `mygamemaster-intendant`) already writes, for each validated turn, a "Persisted" report / ledger of applied transactions. **Read this ledger as source of truth** rather than recalculating everything yourself: it says what was actually debited/transferred/promoted. You compare the files to this ledger, you do not redo its work.
+**Priority source — the Steward's ledger.** The `transform_llm_output` hook (Steward `mygamemaster-steward`) already writes, for each validated turn, a "Persisted" report / ledger of applied transactions. **Read this ledger as source of truth** rather than recalculating everything yourself: it says what was actually debited/transferred/promoted. You compare the files to this ledger, you do not redo its work.
 
 ### Step 2 — Applying the 3 controls
 
@@ -403,7 +403,7 @@ Mode C produces no file unless a blocking gap is detected.
 
 ## References
 
-- `mygamemaster-intendant/SKILL.md` — The Steward (3 controls)
+- `mygamemaster-steward/SKILL.md` — The Steward (3 controls)
 - `mygamemaster-session/SKILL.md` — Orchestrator !cloture
 - `world.json` — Campaign data
 - `npcs.json` — NPC sheets

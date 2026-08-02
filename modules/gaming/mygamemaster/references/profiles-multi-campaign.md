@@ -161,18 +161,18 @@ MJ Tonnerre skills are cloned in each profile from `admin-mj`. They are therefor
 List of cloned skills:
 - `mygamemaster` (umbrella)
 - `mygamemaster-initiation`
-- `mygamemaster-personnage`
-- `mygamemaster-inventaire`
-- `mygamemaster-outils`
+- `mygamemaster-character`
+- `mygamemaster-inventory`
+- `mygamemaster-tools`
 - `mygamemaster-images`
 - `mygamemaster-session`
-- `mygamemaster-intendant`
-- `mygamemaster-analyste`
+- `mygamemaster-steward`
+- `mygamemaster-analyst`
 - `mygamemaster-bug-report`
 - `mygamemaster-game-report`
 - `mygamemaster-write-history`
 - `mygamemaster-help`
-- `mygamemaster-pnj`
+- `mygamemaster-npc`
 - `mygamemaster-faction`
 
 ---

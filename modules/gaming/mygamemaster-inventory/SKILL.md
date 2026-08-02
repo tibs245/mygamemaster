@@ -1,5 +1,5 @@
 ---
-name: mygamemaster-inventaire
+name: mygamemaster-inventory
 description: Manages player inventory in MJ Tonnerre — display, add, use, discard, transfer between players. Evolving YAML item base.
 category: gaming
 triggers:
@@ -30,7 +30,7 @@ triggers:
 - **Allied NPC** (2+ sessions or companion) → `npcs.json > inventory` (what they carry)
 - **Key inhabited location** (cabin, base, camp) → associated NPC's `npcs.json` > `inventory_<lieu>` (e.g. `inventory_cabane`) = `{description, contenu[]}`
 
-> **The GM READS these inventories.** **Mutations** (add / use / transfer) are VERIFIED by the Steward (3 checks — see `mygamemaster-intendant`), and the actual persisted delta is reported **automatically by the `transform_llm_output` hook**. You do NOT need to produce the persistence report manually.
+> **The GM READS these inventories.** **Mutations** (add / use / transfer) are VERIFIED by the Steward (3 checks — see `mygamemaster-steward`), and the actual persisted delta is reported **automatically by the `transform_llm_output` hook**. You do NOT need to produce the persistence report manually.
 
 ### Inventory format in character sheet
 

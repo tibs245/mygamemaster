@@ -42,7 +42,7 @@ agent is ever needed, it is simply another game entry.
 
 ## What about NPC / faction "agents"?
 
-The `mygamemaster-pnj` and `mygamemaster-faction` skills describe **secondary agents** (an NPC or
+The `mygamemaster-npc` and `mygamemaster-faction` skills describe **secondary agents** (an NPC or
 faction embodied by their own instance). In the container architecture, these are **future
 additional containers** — out of scope for the current phase, but trivially pluggable into the
 same Ansible suite.
