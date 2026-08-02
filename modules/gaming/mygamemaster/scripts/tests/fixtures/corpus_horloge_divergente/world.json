@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "name": "Corpus — divergent clock",
+    "_note": "Regression fixture distilled from 34 sessions of 'La naissance d'un roi' (docs/10-field-report.md §3.2). Four writers of game time disagree: the declared clock says day 58, events.json says day 63 (+5, the S31 divergence), and the living-world clock says day 109 (+51, the divergence measured at t_reference). meta.time deliberately omits units_per_day: the campaign that produced this pathology never declared it, and the scale must still be readable from the code.",
+    "features": {
+      "temporality": true
+    },
+    "time": {
+      "regime": "UT"
+    }
+  },
+  "rules": {
+    "time": {
+      "tracking": {
+        "current_day": 58,
+        "current_hour": "afternoon",
+        "jalons_temporels": ["Day 58 — the frost count reaches its 28th night"]
+      }
+    }
+  },
+  "global_state": {
+    "timeline": "Day 58: the column reaches the north ford; the frost has not broken.",
+    "factions": [
+      {
+        "name": "The Frost Wardens",
+        "short_term_goals": "Hold the north ford until the thaw.",
+        "long_term_goals": "Outlast the winter without losing the valley.",
+        "attitude_actuelle": "wary"
+      }
+    ],
+    "faction_actions_horloge": {
+      "actions": [
+        {
+          "faction": "The Frost Wardens",
+          "actions_en_cours": [
+            {
+              "action": "Send a runner to the valley to call for the levy",
+              "consequence": "Without the levy, the ford falls at the next assault.",
+              "echeance": {
+                "texte": "within five days of the council",
+                "unite": "jour",
+                "min": 5,
+                "max": 5,
+                "ancre": 10,
+                "statut": "en_cours"
+              }
+            },
+            {
+              "action": "Rebuild the palisade before the thaw",
+              "consequence": "A broken palisade means an open ford.",
+              "echeance": "as soon as the frost breaks"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

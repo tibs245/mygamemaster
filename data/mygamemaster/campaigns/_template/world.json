@@ -9,12 +9,8 @@
     "langue": "",
     "inspirations": [],
     "time": {
-      "_note": "regime = type of time tracking. 'Narrative' (GM estimates durations) OR 'UT' (strict Time Units, e.g. 1 UT = 10 min, 144 UT/day). 'tracking' holds the start point (day/hour) — see also rules.time.tracking.",
-      "regime": "Narrative",
-      "tracking": {
-        "day": 1,
-        "hour": "morning"
-      }
+      "_note": "regime = type of time tracking. 'Narrative' (GM estimates durations) OR 'UT' (strict Time Units, e.g. 1 UT = 10 min, 144 UT/day). The in-game clock lives in rules.time.tracking (current_day/current_hour) — that is the SINGLE source of truth read by clock.py and the hooks. Do NOT add a second 'tracking' block here: a duplicate silently diverges and the engine would keep reading the other one.",
+      "regime": "Narrative"
     },
     "verbosity": "INFO",
     "cloture_auto": true,
@@ -49,12 +45,18 @@
       }
     },
     "features": {
-      "_schema": "Five main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/monde-vivant/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill.",
+      "_schema": "Seven main ON/OFF axes of the game engine, ALL true by default. Resolution cascade: meta.features.<axis> (here) > env MGM_FEATURE_<AXIS> (instance default at deployment) > true. world.json has the final word. All effects are fail-open: an ON axis whose data is missing (e.g. temporality without geo.json/actors.json) is a no-op, never an error. Details: docs/living-world/10-features.md. — traceability: CSV journal collecte.csv + git auto-commit + session snapshots. verbosity: \"Persisted\" block from the Steward + meta.verbosity level. living_npcs_factions: factions/npc_proactivity modules + actors that \"think\" (world_tick). temporality: living world engine (world_tick pre/post, scene brief, causal propagation). images: mygamemaster-images skill. tts: narrative voice available at all — with this axis ON, `!raconte` voices the last narration on demand (see meta.audio for voice selection); the AUTOMATIC per-turn voice is a separate opt-in, meta.hooks.tts_auto, false by default. dialogue: NPC dialogue quality — the checkpoint grades any narration containing spoken lines, sends a flat scene back once, then switches to a dry summary rather than shipping it (needs a grader model; see references/dialogue-craft.md).",
       "traceability": true,
       "verbosity": true,
       "living_npcs_factions": true,
       "temporality": true,
-      "images": true
+      "images": true,
+      "tts": true,
+      "dialogue": true
+    },
+    "hooks": {
+      "_schema": "Fine-grained runtime toggles, each governed by the axis above it (axis OFF forces the toggle OFF). Only the non-default ones need to appear here. — tts_auto: AUTOMATIC narrative voice, one synthesis per narration above MGM_TTS_MIN_CHARS. Default FALSE: over 34 sessions of real play this path produced 0 audio file while `!raconte` produced ~40 (docs/10-field-report.md), and it spends 3-8 s inside a hook the runtime kills at 45 s. Set it to true to opt in (this key wins over the env MGM_TTS_AUTO); every outcome, including a refusal, is then journalled in .banquier/tts-status.json and explained by mygamemaster-tts/scripts/tts_doctor.py.",
+      "tts_auto": false
     },
     "_pj_ids": "actor ids of PCs, e.g. [\"acteur:name\"] ; the engine links 'towards-player' relationships to these ids. Keep [] until PCs are created.",
     "pj_ids": [],
@@ -125,6 +127,16 @@
         "current_hour": "morning",
         "jalons_temporels": []
       }
+    },
+    "weather": {
+      "_note": "Required as soon as modules.weather.actif is true (load_campaign.py checks rules.weather). Replace the example conditions with your own; keep the block even if minimal.",
+      "principe": "The GM picks or rolls a condition when the party travels or when an outdoor scene opens.",
+      "conditions": [
+        {"label": "Clear", "effet": "No mechanical effect"},
+        {"label": "Rain", "effet": "-2 to sight-based checks at range"},
+        {"label": "Storm", "effet": "Travel times ×1.5; outdoor fires impossible"}
+      ],
+      "saison": ""
     }
   },
   "global_state": {

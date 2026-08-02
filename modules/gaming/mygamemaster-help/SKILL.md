@@ -283,16 +283,16 @@ At the end of the game:
 |-------|------|
 | `mygamemaster` | The GM themselves — persona and rules |
 | `mygamemaster-session` | Manages sessions (wrap-up, resumption) |
-| `mygamemaster-analyste` | Technical data audit |
+| `mygamemaster-analyst` | Technical data audit |
 | `mygamemaster-bug-report` | Bug reporting by the player |
 | `mygamemaster-game-report` | Factual session report |
 | `mygamemaster-write-history` | Narrative session account |
 | `mygamemaster-images` | Image generation |
-| `mygamemaster-personnage` | Character sheets |
-| `mygamemaster-inventaire` | Inventory management |
-| `mygamemaster-outils` | Dice rolls and actions |
+| `mygamemaster-character` | Character sheets |
+| `mygamemaster-inventory` | Inventory management |
+| `mygamemaster-tools` | Dice rolls and actions |
 | `mygamemaster-initiation` | Campaign creation |
-| `mygamemaster-intendant` | Steward (consistency verification) |
+| `mygamemaster-steward` | Steward (consistency verification) |
 
 ---
 

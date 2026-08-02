@@ -44,7 +44,8 @@ see [`AI-ONBOARDING-PROMPT.md`](AI-ONBOARDING-PROMPT.md).
 
 1. Create an account at <https://www.minimax.io>.
 2. Go to **API Keys** and generate one.
-3. Copy the key. If absent, the voice axis is silently disabled — nothing breaks.
+3. Copy the key. Without it there is no voice; nothing breaks, and the missing key is
+   reported rather than mimed as "the feature is off" (`tts_doctor.py`).
 
 ---
 
@@ -151,6 +152,34 @@ interactively.
 For AI help building the world content, paste the prompt from
 [`AI-ONBOARDING-PROMPT.md`](AI-ONBOARDING-PROMPT.md) into Claude or ChatGPT.
 
+### Both paths: capture the player profile
+
+Copy the template into the campaign folder and fill it from the first session:
+
+```bash
+cp modules/gaming/mygamemaster/references/player-profile-template.md \
+   data/mygamemaster/campaigns/<slug>/player-profile.md
+```
+
+It records the player's control signals, agency contract, pacing dials, standing policies and
+feedback protocol — the things a table otherwise rediscovers by trial and error, one rejected
+session at a time. Option B asks for them directly (Block 6 of the questionnaire) and writes the
+file for you. Each line is dated, sourced to a session, and marked `locked` / `observed` /
+`hypothesis`; entries are superseded, never deleted.
+
+The file is not decorative: the GM skill loads it at the start of every exchange (Invariant, point
+4), the wrap-up procedure has a dedicated verification block for it, and `close_session.py` reports
+it as point `P11` (non-blocking) when it is missing or older than the session being closed.
+
+**Taste here, doctrine there.** What is specific to *this* player goes in the campaign's own
+`<slug>/player-profile.md`. The GM conduct rules that apply to every table live in
+[`modules/gaming/mygamemaster/references/locked-lessons.md`](../modules/gaming/mygamemaster/references/locked-lessons.md)
+— 61 rules with stable IDs, loaded by the GM skill at every session. Do not copy rules between the
+two files. **A catalogue rule is a floor: a profile entry may make the GM stricter, never more
+permissive.** If a player asks for something that would relax a catalogued rule, it is recorded as a
+request and the catalogue rule stays in force — those rules exist because the permission was taken
+informally before, and it cost cancelled and replayed sessions.
+
 ---
 
 ## Step 6 — Deploy
@@ -188,8 +217,8 @@ everything is green, your bot is live in Discord.
 
 ## What's next?
 
-- Daily operations and command cheatsheet → [`05-cycle-de-vie.md`](05-cycle-de-vie.md)
-- Backups and rollbacks → [`03-backup-et-restauration.md`](03-backup-et-restauration.md)
-- Improving the GM's skills → [`04-ameliorer-les-modules.md`](04-ameliorer-les-modules.md)
-- Runtime hooks (LLM judge, verbosity) → [`09-hooks-runtime.md`](09-hooks-runtime.md)
-- Test instances (try changes without risking the live game) → [`08-instances-de-test.md`](08-instances-de-test.md)
+- Daily operations and command cheatsheet → [`05-lifecycle.md`](05-lifecycle.md)
+- Backups and rollbacks → [`03-backup-and-restore.md`](03-backup-and-restore.md)
+- Improving the GM's skills → [`04-improve-the-modules.md`](04-improve-the-modules.md)
+- Runtime hooks (LLM judge, verbosity) → [`09-runtime-hooks.md`](09-runtime-hooks.md)
+- Test instances (try changes without risking the live game) → [`08-test-instances.md`](08-test-instances.md)

@@ -28,6 +28,6 @@ ignore = [
 known-first-party = ["worldlib", "tts_format", "tts_generate", "tts_render"]
 
 [format]
-# carte_schema.py contains hand-aligned dict tables (_SEM) that are intentionally
+# map_schema.py contains hand-aligned dict tables (_SEM) that are intentionally
 # formatted for readability. Excluding it preserves the table alignment.
-exclude = ["modules/gaming/mygamemaster/scripts/carte_schema.py"]
+exclude = ["modules/gaming/mygamemaster/scripts/map_schema.py"]

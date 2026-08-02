@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "version": "1.0",
+    "regime": "UT",
+    "last_t_recorded": 8928,
+    "note": "Temporal canon. Its last t lands on day 63 while the declared clock still reads day 58 — the +5 day divergence first measurable at S31."
+  },
+  "events": [
+    {
+      "t": 8280,
+      "type": "meta",
+      "label": "START — Session 31",
+      "desc": "The column leaves the winter camp.",
+      "source": "session_031"
+    },
+    {
+      "t": 8928,
+      "type": "global",
+      "label": "The north ford freezes over",
+      "desc": "The ford can be crossed on foot; the Wardens lose their moat.",
+      "source": "session_031",
+      "session_end": true
+    }
+  ]
+}

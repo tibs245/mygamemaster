@@ -1,0 +1,40 @@
+{
+  "_schema": "modules/gaming/mygamemaster/scripts/schemas/npcs.schema.json — see references/npc-data-governance.md",
+  "_howto": [
+    "One entry per NPC the players can meet. Delete the example below and write your own.",
+    "established_facts = what was actually PLAYED and is now canon. The GM may narrate it freely.",
+    "gm_hypotheses = deductions, intentions and plans. The GM may NOT narrate these as facts,",
+    "and an NPC may not act on them until they have been established in play. Keeping the two",
+    "apart is what prevents an NPC from 'knowing' something no scene ever taught them — the",
+    "single most frequent bug class observed over 34 sessions of real play",
+    "(see docs/10-field-report.md and references/locked-lessons.md, rules KNOW-01/KNOW-02).",
+    "connaissances_privees = what this NPC knows and the players do not. Seeded by the GM.",
+    "motivations_personnelles = what this NPC wants on their own account; it is what lets them",
+    "act between sessions instead of waiting for the players.",
+    "voix = how this mouth works (register, rhythm, what it never says, how it deforms under",
+    "stress). Optional, but it is what stops two NPCs in a scene from sounding like the same",
+    "person with different name tags. Write it the first time the NPC holds a real",
+    "conversation, then keep it — a voice that drifts between sessions reads as a new character",
+    "(see references/dialogue-craft.md)."
+  ],
+  "npcs": [
+    {
+      "name": "EXAMPLE — rename or delete",
+      "description": "One or two concrete sentences. Prefer what is perceptible (voice, hands, a habit) over biography.",
+      "attitude": "neutre",
+      "relation_niveau": "inconnu",
+      "established_facts": [],
+      "gm_hypotheses": [],
+      "connaissances_privees": [],
+      "motivations_personnelles": [],
+      "voix": {
+        "registre": "Level of language, tone, social distance.",
+        "rythme": "Sentence length, pauses, interruptions.",
+        "sous_tension": "How the voice deforms under stress — the most useful field of the block.",
+        "lexique": [],
+        "tics": [],
+        "ne_dit_jamais": []
+      }
+    }
+  ]
+}

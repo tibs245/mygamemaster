@@ -7,7 +7,7 @@ discrepancies against the closing checklist, WITHOUT correcting anything. Turns
 the "mental consistency checklist" (forgettable by design) into a factual report.
 
 Discrepancies detected:
-  1. Location in sessions[].lieux_visites absent from universe.regions[].lieux
+  1. Location in sessions[].lieux_visites absent from universe.regions[].locations
   2. NPC in sessions[].pnj_rencontres with no entry in npcs.json
   3. Faction (global_state.factions) without objectif_court_terme OR objectif_long_terme
   4. Faction without an entry in global_state.faction_actions_horloge
@@ -108,7 +108,7 @@ def extraire_liste_pnj(pnj_data) -> list[dict]:
 
 
 def collecter_lieux_universe(monde: dict) -> list[str]:
-    """All location names (normalized) from universe.regions[].lieux[]."""
+    """All location names (normalized) from universe.regions[].locations[]."""
     noms = []
     for region in monde.get("universe", {}).get("regions", []):
         if not isinstance(region, dict):
@@ -123,9 +123,9 @@ def collecter_lieux_universe(monde: dict) -> list[str]:
 
 
 def nom_de(item):
-    """Extracts a name from an entry (dict with 'nom' or string)."""
+    """Extracts a name from an entry (dict with 'name'/'nom', or a bare string)."""
     if isinstance(item, dict):
-        return item.get("name") or item.get("name") or ""
+        return item.get("name") or item.get("nom") or ""
     if isinstance(item, str):
         return item
     return ""
@@ -260,7 +260,7 @@ def analyser(campagne: Path, num_session: int | None) -> dict:
         nom = nom_de(lv)
         if nom and not lieu_present(nom, lieux_connus_norm):
             ajouter("bloquant", "lieu_absent",
-                    f"Visited location « {nom} » absent from universe.regions[].lieux")
+                    f"Visited location « {nom} » absent from universe.regions[].locations")
 
     # 2. NPCs encountered with no entry
     for pr in session.get("npcs_met", []):

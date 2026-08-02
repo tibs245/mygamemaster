@@ -80,7 +80,7 @@ done
 [[ -z "$CONTEXTE" ]] && die "Scene context is required (last argument, in quotes)"
 
 PROFILE="pnj-${SLUG}"
-SKILL="mygamemaster-pnj"
+SKILL="mygamemaster-npc"
 [[ "$MODE" == "faction" ]] && PROFILE="faction-${SLUG}" && SKILL="mygamemaster-faction"
 
 # ── Checks ──────────────────────────────────────────────────────────────

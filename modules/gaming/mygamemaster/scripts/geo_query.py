@@ -43,7 +43,7 @@ Cross-cutting conventions (contract §0):
 
 Targets: Python 3.11, PURE STDLIB (no external dependencies). Imports `worldlib`
 (never the reverse); imports NO other script from the contract (parallel
-development). See contract `docs/monde-vivant/08-contrat-implementation.md` §4, §5,
+development). See contract `docs/living-world/08-implementation-contract.md` §4, §5,
 §13, §14.
 """
 
@@ -172,7 +172,7 @@ _TYPES_GEO_VALIDES = {
     "region", "habitation", "campement", "site-ancien", "menhir", "ruine",
     "foret", "clairiere", "grotte", "colline", "riviere", "sentier", "crypte",
     "edifice", "zone-naturelle", "lieu",
-    # Additional types (rendered by carte_schema; extensible per campaign).
+    # Additional types (rendered by map_schema; extensible per campaign).
     "montagne", "gouffre", "desert", "lieu-interet",
 }
 
@@ -1093,7 +1093,8 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
     # Reciprocal edge depuis <-> nouvel_id.
     arete_aller = {
         "vers": nouvel_id, "dir": direction, "distance_m": dm,
-        "temps_ut": ut_estime, "voie": f"{nom} (declared from {idx[depuis].get('nom', depuis)})",
+        "temps_ut": ut_estime,
+        "voie": f"{nom} (declared from {idx[depuis].get('name') or idx[depuis].get('nom') or depuis})",
     }
     arete_retour = {
         "vers": depuis, "dir": _OPPOSE_DIR.get(direction, "?"),
@@ -1575,7 +1576,7 @@ def cmd_qui_est_a(args) -> int:
         print(f"📍 Present at {args.lieu_id}:")
         for p in res:
             d = f" — at {p['distance']}" if args.rayon is not None and p["distance"] else ""
-            print(f"   • {p['id']} ({p['nom']}, {p['type']}){d}")
+            print(f"   • {p['id']} ({p['name']}, {p['type']}){d}")
     return 0 if res else 1
 
 
