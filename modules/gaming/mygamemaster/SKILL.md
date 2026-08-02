@@ -1122,7 +1122,7 @@ A **second switch**, above modules: the `world.json > meta.features` block expos
 | `living_npcs_factions` | Pauses autonomous NPC/faction life: **do not load** `factions` and `proactivite_pnj` modules (see §3.1 / §4.2), do not have NPCs/factions act on own initiative |
 | `temporality` | Disables "living world" engine (opening projection `world_tick pre`, scene brief) — game runs without background temporal simulation |
 | `images` | Disables illustration generation (see `mygamemaster-images`) |
-| `tts` | Disables **narrative voice** (auto-voice of narration **and** `!raconte` command, see `mygamemaster-tts`) — written text unchanged. *Fine cut: keep `!raconte` but cut auto-voice → `meta.hooks.tts_auto=false`.* |
+| `tts` | Disables **narrative voice** (auto-voice of narration **and** `!raconte` command, see `mygamemaster-tts`) — written text unchanged. *Auto-voice is opt-in (`meta.hooks.tts_auto=true` / `MGM_TTS_AUTO=1`); the axis alone gives `!raconte`.* |
 
 > Wiring detail (cascade, axis → fine toggle mapping, env vars) : `docs/living-world/10-features.md`. Axes are already resolved runtime-side (`hooks/_lib.py`) — your role here is to **respect** an explicitly cut axis, never invent one.
 

@@ -14,7 +14,8 @@ Chains, in a single call, the full quality pipeline — without loading the GM m
   3. AMBIANCE mixing (ffmpeg, optional): if key-moment OR long narration, and a
      sound bed matches the proposed ambiance → it is slid UNDER the voice (low volume).
      Otherwise: voice only.
-  4. sidecar `.json` (script, emotion, ambiance, model, ambiance mixed or not).
+  4. sidecar `.json` (script, emotion, ambiance, model, ambiance mixed or not,
+     and the PRODUCER that asked for it — cf. producer_name).
 
 FAIL-OPEN everywhere: the format step falls back to the cleaned narration; ambiance
 mixing is best-effort (ffmpeg/file absent → voice only); only the failure of
@@ -195,10 +196,22 @@ def mix_ambiance(voice_path, ambiance_path, out_path, bitrate=128000):
     return r.returncode == 0 and os.path.isfile(out_path) and os.path.getsize(out_path) > 0
 
 
+def producer_name(explicit=None):
+    """Who asked for this audio: 'manual' (!raconte), 'hook-auto', or a caller tag.
+
+    Both paths write `.mp3` into the same `.banquier/tts/` directory, and a third
+    engine (the runtime's own built-in tts_tool) has been observed writing there
+    too, under a colliding name. Stamping the producer into the sidecar makes
+    "who generated this audio" an answerable question — it was not, and ~32 files
+    of a 40-file corpus turned out to come from an engine nobody had chosen."""
+    return explicit or os.environ.get("MGM_TTS_PRODUCER") or "manual"
+
+
 def render(text, out_path, *, voice=None, model=tts_generate.DEFAULT_MODEL,
            ambiance_dir=DEFAULT_AMBIANCE_DIR, allow_ambiance=True,
            threshold_chars=DEFAULT_THRESHOLD_CHARS, retries=2, timeout=120,
-           format_model=None, language_boost=None, campaign_dir=None):
+           format_model=None, language_boost=None, campaign_dir=None,
+           producer=None):
     """Full pipeline. Returns a report dict. Raises RuntimeError on synthesis failure.
 
     ``voice`` and ``language_boost`` are resolved via ``resolve_voice_and_boost()``:
@@ -276,6 +289,7 @@ def render(text, out_path, *, voice=None, model=tts_generate.DEFAULT_MODEL,
         "voice": voice,
         "language_boost": language_boost,
         "bytes": os.path.getsize(out_path),
+        "producer": producer_name(producer),
         "script": script,
     }
     return report
@@ -286,6 +300,7 @@ def write_sidecar(out_path, report):
     meta = dict(report)
     meta["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     meta["generator"] = "mygamemaster-tts/render"
+    meta.setdefault("producer", producer_name())
     with open(base + ".json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     return base + ".json"
@@ -313,6 +328,9 @@ def main():
     p.add_argument("--timeout", type=int, default=120, help="Synthesis timeout in s (default 120).")
     p.add_argument("--campaign-dir", default=None,
                    help="Campaign directory (to read world.json from). Defaults to cwd.")
+    p.add_argument("--producer", default=None,
+                   help="Caller tag stamped in the sidecar (default: env MGM_TTS_PRODUCER "
+                        "or 'manual'). The auto hook passes 'hook-auto'.")
     p.add_argument("--json", action="store_true", dest="as_json", help="Machine output on stdout.")
     args = p.parse_args()
 
@@ -336,7 +354,7 @@ def main():
             ambiance_dir=args.ambiance_dir, allow_ambiance=not args.no_ambiance,
             threshold_chars=args.threshold_chars, retries=args.retries, timeout=args.timeout,
             format_model=args.format_model, language_boost=args.language_boost,
-            campaign_dir=args.campaign_dir)
+            campaign_dir=args.campaign_dir, producer=args.producer)
     except RuntimeError as e:
         die(str(e), 1)
 

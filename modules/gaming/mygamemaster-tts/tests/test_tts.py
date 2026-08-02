@@ -282,6 +282,68 @@ def main():
         if saved_langue is not None:
             os.environ["MGM_LANGUE"] = saved_langue
 
+    # ── 7. producer stamping — "who generated this audio?" ───────────────────
+    print("[7] tts_render — producer stamped in the sidecar")
+    fmt_mock = json.dumps({"script": "A shattered throne.", "emotion": "calm",
+                           "ambiance": "aucune", "moment_cle": False})
+    with tempfile.TemporaryDirectory() as d:
+        env = {"MGM_TTS_MOCK": "1", "MGM_TTS_FORMAT_MOCK": fmt_mock, "MGM_TTS_PRODUCER": ""}
+        rc, so, se = run("tts_render.py", ["--out", os.path.join(d, "a.mp3"), "--json",
+                                           "--producer", "hook-auto"],
+                         stdin_text="You enter the hall.", env=env)
+        total += 3
+        check("exit 0", rc == 0, se[:160])
+        meta = json.load(open(os.path.join(d, "a.json"), encoding="utf-8"))
+        check("sidecar names the caller", meta.get("producer") == "hook-auto", json.dumps(meta)[:120])
+        check("sidecar names the engine", meta.get("generator") == "mygamemaster-tts/render")
+
+        rc, so, se = run("tts_render.py", ["--out", os.path.join(d, "b.mp3"), "--json"],
+                         stdin_text="You enter the hall.", env=env)
+        total += 1
+        meta = json.load(open(os.path.join(d, "b.json"), encoding="utf-8"))
+        check("default producer = manual (!raconte path)", meta.get("producer") == "manual",
+              json.dumps(meta)[:120])
+
+    # ── 8. tts_doctor — one command answers "why is there no voice?" ─────────
+    print("[8] tts_doctor — diagnosis in a single run")
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "world.json"), "w", encoding="utf-8") as f:
+            json.dump({"meta": {"name": "T"}}, f)
+        os.makedirs(os.path.join(d, ".banquier", "tts"))
+        # An mp3 with no sidecar = written by another engine (the field's ~32 files).
+        with open(os.path.join(d, ".banquier", "tts", "raconte_1.mp3"), "wb") as f:
+            f.write(b"\xff\xfb\x90\x64" + b"\x00" * 64)
+
+        env = {"MGM_TTS_MOCK": "1", "MGM_TTS_FORMAT_MOCK": fmt_mock,
+               "MINIMAX_API_KEY": "", "MGM_TTS_AUTO": "", "MGM_FEATURE_TTS": ""}
+        rc, so, se = run("tts_doctor.py", [d, "--mock", "--json"], env=env)
+        total += 6
+        rep = json.loads(so) if so.strip().startswith("{") else {}
+        check("doctor reports a defect (exit 1)", rc == 1, se[:160] or so[:160])
+        check("auto-voice is OFF by default", rep.get("axis", {}).get("tts_auto") is False,
+              json.dumps(rep.get("axis")))
+        check("axis tts stays ON (manual !raconte preserved)",
+              rep.get("axis", {}).get("tts") is True, json.dumps(rep.get("axis")))
+        check("missing key announced, not mimed as 'disabled'",
+              any("MINIMAX_API_KEY" in p for p in rep.get("verdict", {}).get("problems", [])),
+              json.dumps(rep.get("verdict"))[:200])
+        check("foreign audio detected (sidecar-less file)",
+              rep.get("artefacts", {}).get("foreign") == 1, json.dumps(rep.get("artefacts")))
+        check("end-to-end render still exercised in mock",
+              rep.get("render", {}).get("ok") is True, json.dumps(rep.get("render")))
+
+        # Opt-in + key present → healthy, exit 0.
+        env_ok = dict(env, MINIMAX_API_KEY="k-test", MGM_TTS_AUTO="1")
+        os.remove(os.path.join(d, ".banquier", "tts", "raconte_1.mp3"))
+        rc, so, se = run("tts_doctor.py", [d, "--mock", "--json"], env=env_ok)
+        rep = json.loads(so) if so.strip().startswith("{") else {}
+        total += 3
+        check("opt-in honoured (exit 0)", rc == 0, json.dumps(rep.get("verdict"))[:200])
+        check("MGM_TTS_AUTO=1 turns auto-voice ON",
+              rep.get("axis", {}).get("tts_auto") is True, json.dumps(rep.get("axis")))
+        check("thresholds in effect reported",
+              "MGM_TTS_MIN_CHARS" in rep.get("thresholds", {}), json.dumps(rep.get("thresholds")))
+
     print("\n" + "=" * 56)
     print("RESULT: %d/%d tests OK" % (_OK, total))
     return 0 if _OK == total else 1

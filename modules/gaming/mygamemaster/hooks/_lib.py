@@ -205,6 +205,27 @@ def features(monde):
     return out
 
 
+def tts_auto_default():
+    """Default state of the AUTOMATIC narrative voice: OFF — opt-in only.
+
+    Do not flip this back to True without reading docs/10-field-report.md. It was
+    established from the artefacts of the retired campaign that the automatic path
+    produced 0 audio file over 34 sessions (the manual `!raconte` path produced
+    ~40/40 in the same directory), and that it failed without emitting a single
+    readable diagnosis. On top of that it spends 3-8 s inside a hook the runtime
+    kills at 45 s (ansible/templates/config.yaml.j2).
+
+    A feature never once observed to work must not ship enabled — but it is one
+    flag away, and its absence is now announced rather than mimed:
+      * env MGM_TTS_AUTO=1        → instance/deployment opt-in;
+      * meta.hooks.tts_auto=true  → campaign opt-in (world.json wins over env).
+    The `tts` axis itself stays ON by default, so `!raconte` is unaffected. Once
+    opted in, a missing MINIMAX_API_KEY is recorded as a FAILURE (tts_record),
+    never as "this turn did not want audio".
+    """
+    return as_bool(os.environ.get("MGM_TTS_AUTO"), False)
+
+
 def hooks_cfg(monde):
     """Effective meta.hooks toggles (all enabled by default).
 
@@ -235,8 +256,8 @@ def hooks_cfg(monde):
         "tick_post": gated("tick_post", True, feat["temporality"]),
         # Axis "living_npcs_factions" → exposed for the tick (actors that "think"):
         "living_npcs_factions": bool(feat["living_npcs_factions"]),
-        # Axis "tts" → automatic narrative voice (Minimax) in transform_llm_output:
-        "tts_auto": gated("tts_auto", True, feat["tts"]),
+        # Axis "tts" → automatic narrative voice; opt-in, cf. tts_auto_default():
+        "tts_auto": gated("tts_auto", tts_auto_default(), feat["tts"]),
         # The 6 raw axes, for direct consumers:
         "features": feat,
     }
@@ -409,6 +430,59 @@ def ledger_read_clear(camp, payload):
 
     _locked_rw(path, mut)
     return out["box"]
+
+
+# ─── Auto-voice (TTS) outcome journal ────────────────────────────────────────
+
+TTS_STATUS_FILE = "tts-status.json"
+TTS_EVENTS_KEPT = 20
+
+
+def tts_record(camp, payload, outcome, reason, **fields):
+    """Persists ONE auto-voice outcome in .banquier/tts-status.json. Fail-open.
+
+    stderr is not a channel this code owns — the runtime may discard it, and a
+    campaign that never sees a `[mj-tts]` line cannot tell "no trace" from "trace
+    went nowhere". So the decision is written where the hook already writes
+    (`.banquier/`, cf. ledger_append) and survives the session.
+
+    `outcome` is one of:
+      'ok'      — audio produced and attached;
+      'skipped' — CONFIGURED silence (axis off, opt-in not taken, pause, turn too
+                  short): normal operation, nothing to repair;
+      'failed'  — DEFECT (no key in the hook env, renderer absent, timeout,
+                  non-zero exit): something to repair.
+    Keeping those apart is the whole point: conflating them is what let a 0/34
+    failure rate look like a feature choosing to stay quiet.
+
+    `last_failure` is kept separately from `last`, so a later success never erases
+    the only evidence of the defect. Returns the recorded event.
+    """
+    event = {"ts": now_iso(), "outcome": outcome, "reason": reason,
+             "session": active_session_number(camp), "sid": _sid(payload)}
+    event.update({k: v for k, v in fields.items() if v is not None})
+    key = "%s:%s" % (outcome, reason)
+
+    def mut(data):
+        d = data if isinstance(data, dict) else {}
+        d["last"] = event
+        if outcome == "failed":
+            d["last_failure"] = event
+        counts = d.get("counts") if isinstance(d.get("counts"), dict) else {}
+        counts[key] = int(counts.get(key, 0)) + 1
+        d["counts"] = counts
+        recent = d.get("recent") if isinstance(d.get("recent"), list) else []
+        recent.append(event)
+        d["recent"] = recent[-TTS_EVENTS_KEPT:]
+        return d
+
+    _locked_rw(_bq_dir(camp) / TTS_STATUS_FILE, mut)
+    return event
+
+
+def tts_status(camp):
+    """Reads the auto-voice journal ({} if the hook never recorded anything)."""
+    return load_json(Path(camp) / ".banquier" / TTS_STATUS_FILE) or {}
 
 
 def snap_get(camp, payload, key):
