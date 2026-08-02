@@ -1,0 +1,27 @@
+{
+  "session": 1,
+  "date": "2026-01-01",
+  "heure_debut": "J18 aube",
+  "heure_fin": "J18 soir",
+  "participants": [
+    "PC_01"
+  ],
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ],
+  "pnj_rencontres": [
+    {
+      "nom": "NPC_ALLY",
+      "role": "ROLE_01"
+    }
+  ],
+  "lieux_visites": [
+    {
+      "nom": "LOC_VILLAGE"
+    }
+  ],
+  "resume": "SUMMARY_01"
+}

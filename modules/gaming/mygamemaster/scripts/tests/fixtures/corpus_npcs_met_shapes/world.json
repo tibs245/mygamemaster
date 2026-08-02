@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "campagne": "CORPUS_SHAPES",
+    "version": 1,
+    "time": {
+      "regime": "Narratif"
+    },
+    "pj_ids": [
+      "PC_01"
+    ]
+  },
+  "modules": {
+    "travel": {
+      "actif": false,
+      "params": {}
+    },
+    "factions": {
+      "actif": false,
+      "params": {}
+    },
+    "weather": {
+      "actif": false,
+      "params": {}
+    },
+    "worldbuilding_lieux": {
+      "actif": false,
+      "params": {}
+    },
+    "proactivite_pnj": {
+      "actif": false,
+      "params": {}
+    },
+    "artefacts": {
+      "actif": false,
+      "params": {}
+    },
+    "politique": {
+      "actif": false,
+      "params": {}
+    },
+    "construction_royaume": {
+      "actif": false,
+      "params": {}
+    }
+  },
+  "universe": {
+    "regions": [
+      {
+        "id": "reg:R1",
+        "name": "REGION_01",
+        "locations": [
+          {
+            "id": "loc:village",
+            "name": "LOC_VILLAGE"
+          },
+          {
+            "id": "loc:forest",
+            "name": "LOC_FOREST"
+          }
+        ]
+      }
+    ]
+  },
+  "global_state": {
+    "factions": [],
+    "faction_actions_horloge": {
+      "actions": []
+    },
+    "timeline": "Jour 5 EVENT_E."
+  },
+  "rules": {
+    "time": {
+      "tracking": {
+        "current_day": 5,
+        "current_hour": "J5 aube"
+      }
+    }
+  },
+  "system": {
+    "des": "d20"
+  }
+}

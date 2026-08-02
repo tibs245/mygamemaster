@@ -1,0 +1,30 @@
+{
+  "date": "2026-01-01",
+  "participants": [
+    "PC_01"
+  ],
+  "start_hour": "Jour 5 aube",
+  "end_hour": "Jour 5 soir",
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ],
+  "visited_locations": [
+    {
+      "name": "LOC_VILLAGE"
+    }
+  ],
+  "resume": "SUMMARY_01",
+  "session": 1,
+  "npcs_met": [
+    {
+      "name": "NPC_ALLY",
+      "role": "ROLE_01",
+      "attitude": "ATTITUDE_01",
+      "lieu": "LOC_VILLAGE",
+      "notes": "NOTE_01"
+    }
+  ]
+}

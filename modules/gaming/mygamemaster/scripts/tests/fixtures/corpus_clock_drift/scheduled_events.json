@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "campagne": "CORPUS_CLOCK",
+    "version": 1
+  },
+  "events": [
+    {
+      "id": "evt:anchor-d32-01",
+      "T": 4500,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D032",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d35-01",
+      "T": 5700,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D035",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d62-01",
+      "T": 15000,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D062",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:resolved-future-01",
+      "T": 16500,
+      "type": "consequence",
+      "cible": "loc:village",
+      "statut": "resolu",
+      "label": "EVENT_D070",
+      "significativite": "majeur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:scheduled-overdue-01",
+      "T": 10500,
+      "type": "consequence",
+      "cible": "loc:village",
+      "statut": "programme",
+      "label": "EVENT_D048",
+      "significativite": "majeur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d80-01",
+      "T": 18800,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "programme",
+      "label": "EVENT_D080_A",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    },
+    {
+      "id": "evt:anchor-d80-02",
+      "T": 24294,
+      "type": "ancre",
+      "cible": "loc:village",
+      "statut": "programme",
+      "label": "EVENT_D080_B",
+      "significativite": "mineur",
+      "visible_par_pj": true
+    }
+  ]
+}

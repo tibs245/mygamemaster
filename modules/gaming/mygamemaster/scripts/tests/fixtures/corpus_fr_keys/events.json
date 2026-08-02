@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "campagne": "CORPUS_FR",
+    "version": 1
+  },
+  "evenements": [
+    {
+      "id": "evt:e01",
+      "t": 1584,
+      "type": "ancre",
+      "label": "EVENT_A",
+      "session": 1,
+      "description": "DESC_01",
+      "source": "SOURCE_01"
+    }
+  ]
+}
