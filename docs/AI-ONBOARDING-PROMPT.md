@@ -40,9 +40,15 @@ Explain the following, then ask for the token:
   3. On the same Bot page, under 'Privileged Gateway Intents', enable:
        • Message Content Intent  (REQUIRED — the GM reads message text)
        • Server Members Intent   (recommended)
-  4. Go to OAuth2 → URL Generator → tick 'bot' scope → tick: Read Messages / View Channels,
-     Send Messages, Read Message History, Add Reactions.
-  5. Copy the generated URL and use it to invite the bot to your Discord server."
+  4. Go to OAuth2 → URL Generator → tick BOTH scopes: 'bot' AND 'applications.commands'
+     (the second one is required for the slash commands /new, /status, /sessions to exist —
+     without it the bot answers messages but every slash command is missing or replies
+     'Unknown Integration') → then tick: Read Messages / View Channels, Send Messages,
+     Read Message History, Add Reactions.
+  5. Copy the generated URL and use it to invite the bot to your Discord server.
+     If the bot is already on the server, open the URL again with both scopes ticked: this
+     grants the missing scope without kicking the bot or losing history. Restart the instance
+     afterwards, since Hermes registers its commands at gateway startup."
 
 Ask: "Paste your Discord bot token here (it will only appear once in the Developer Portal):  "
 Store it internally as: discord_token_<slug>
@@ -180,6 +186,7 @@ Print a brief checklist of what the user must do manually before running the com
   [ ] OpenRouter key added to vault.yml
   [ ] MiniMax key added (or consciously skipped)
   [ ] Bot invited to the Discord server (OAuth2 URL from Developer Portal)
+  [ ] Invite URL had BOTH scopes: 'bot' AND 'applications.commands' (else no slash commands)
   [ ] Message Content Intent enabled on the bot
   [ ] games.yml connection block filled with real server details
   [ ] world.json saved at the correct path

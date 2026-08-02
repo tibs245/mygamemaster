@@ -21,14 +21,31 @@ see [`AI-ONBOARDING-PROMPT.md`](AI-ONBOARDING-PROMPT.md).
    - **Message Content Intent** (required — the GM reads message text)
    - **Server Members Intent** (recommended — used for player look-ups)
 
-4. Generate an invite URL: go to **OAuth2 → URL Generator**, tick the `bot` scope, then tick the
-   minimum permissions:
+4. Generate an invite URL: go to **OAuth2 → URL Generator** and tick **both** scopes:
+   - `bot`
+   - `applications.commands` — **required**, and easy to miss. Without it the bot connects and
+     answers normally, but Hermes cannot register its slash commands: `/new`, `/status`,
+     `/sessions` and the rest never appear, or worse, Discord shows commands left over from
+     another application and answers `Unknown Integration` when you pick one.
+
+   Then tick the minimum permissions:
    - Read Messages / View Channels
    - Send Messages
    - Read Message History
    - Add Reactions (optional, used for dice)
 
    Copy the generated URL, open it in a browser, and invite the bot to your server.
+
+   > **Re-inviting is safe and is the fix.** If a bot is already on the server without
+   > `applications.commands`, generate the URL again with both scopes and open it: the server
+   > keeps its history and the bot is not kicked, the missing scope is simply granted. Restart
+   > the instance afterwards — Hermes registers its commands at gateway startup.
+
+   > **One Discord application per game.** Slash commands are registered against the
+   > **application**, not the token, so moving a token to a different application orphans the
+   > commands already registered by the old one. If two instances ever share an application,
+   > only one may own the registration — the other needs `slash_commands: false`, otherwise the
+   > last one to start wins and the command list flaps.
 
 ---
 
