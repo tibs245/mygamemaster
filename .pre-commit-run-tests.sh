@@ -8,8 +8,8 @@
 # `|| FAILED=1` pattern so that a failing suite never aborts the script early —
 # all suites always run, and any failure is aggregated into FAILED.
 #
-# Escape hatch: MGM_SKILL_SIZE_SKIP=1 downgrades the skill-size failure to a
-# warning, so a live campaign can be unblocked without bypassing the hook.
+# Escape hatch: MGM_SKILL_SIZE_SKIP=1 waives a skill-size budget failure. No
+# other step asserts skill size, so the waiver really does unblock the push.
 
 set -uo pipefail
 

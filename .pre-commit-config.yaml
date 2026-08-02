@@ -33,7 +33,7 @@ repos:
         args: [-c, .yamllint]
 
   # ── Skill character budget (fast; every commit touching a SKILL.md) ───────
-  # Warns at 80% of the 100 000-character limit, fails at 90%.
+  # Warns at 80% of the 100 000 limit, fails at 90%.
   # Unblock a live campaign with MGM_SKILL_SIZE_SKIP=1.
   - repo: local
     hooks:
@@ -43,6 +43,8 @@ repos:
         entry: python3 scripts/check_skill_size.py
         files: (^|/)SKILL\.md$
         pass_filenames: false
+        # Shows the 80–90% warning on a passing run; pre-commit hides it otherwise.
+        verbose: true
 
   # ── Unit tests on pre-push (slow; runs all 4 suites + repo checks) ────────
   - repo: local
