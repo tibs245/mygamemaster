@@ -117,7 +117,7 @@ def cles_ordonnees(fiche: dict) -> list[str]:
 
 def rendre(fiche: dict, maxlen: int) -> str:
     """Human-readable view: `**key**: value`; objects/lists as indented JSON."""
-    lignes = [f"=== {fiche.get('nom', 'UNKNOWN NPC')} ==="]
+    lignes = [f"=== {fiche.get('name') or fiche.get('nom') or 'UNKNOWN NPC'} ==="]
     for k in cles_ordonnees(fiche):
         if k == "name":
             continue
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Available NPCs ({len(pnjs)}):")
         for p in sorted(pnjs, key=lambda x: str(x.get("name", ""))):
             loc = p.get("localisation_actuelle", "?")
-            print(f"  • {str(p.get('nom', '?')):24s} [{loc}]")
+            print(f"  • {str(p.get('name') or p.get('nom') or '?'):24s} [{loc}]")
         return 0
 
     if not args.name:

@@ -1131,7 +1131,7 @@ def _brief_acteur(campagne: Path, acteur: dict, emis: list[dict]) -> str:
     Aligned with build_brief.py (existing): we give ONLY the relevant to the actor's
     agent (anti-knowledge-leak, doc 02 §3). No network call here.
     """
-    lignes = [f"=== ACTOR BRIEF: {acteur.get('nom', acteur.get('id'))} ==="]
+    lignes = [f"=== ACTOR BRIEF: {acteur.get('name') or acteur.get('nom') or acteur.get('id')} ==="]
     lignes.append(f"Long-term goal: {acteur.get('but_long_terme', '')}")
     motifs = acteur.get("motivations", [])
     if isinstance(motifs, list) and motifs:
@@ -1572,7 +1572,7 @@ def _assembler_briefing(campagne: Path, T_de: int, T_a: int, ticks: list[dict],
     if actifs:
         lignes.append("│ 🟠 ACTIVE ACTORS (resolved intentions):")
         for t in actifs:
-            lignes.append(f"│   • {t.get('nom')} [{t.get('lod')}] : "
+            lignes.append(f"│   • {t.get('name') or t.get('actor')} [{t.get('lod')}] : "
                           + ", ".join(t.get("events", [])))
 
     # Emitted events (dated in narrative form).
