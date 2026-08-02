@@ -135,7 +135,7 @@ Explicit positive signal from the player, to be preserved by any refactor:
 - **Ethics of the name** — the player refusing an imposed nickname, and the world honouring it.
 - **A world that lives without the PC**, *including when that frustrates* — an NPC leaving before
   the PC could speak to him was accepted as legitimate.
-- **Sober scenes, short gestures.**
+- **Short scenes, small gestures.**
 - **Plain admission of bugs, without defence**, when the player reported one.
 
 The player did not ask for cosmetic features. Across 16 explicit requests he asked for

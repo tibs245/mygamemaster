@@ -188,7 +188,7 @@ what the GM may and may not do is already settled by the catalogue.
     when I break that rule anyway, what do you want me to do — patch the sentence, roll the turn
     back, or replay the scene? And who settles purely narrative questions (timing, titles)?
 21. **Ellipse form** — When you give the fast-forward signal, what should the skip look like : a
-    sober summary of the routine, a landing on one meaningful scene, a bare "three days later"?
+    plain summary of the routine, a landing on one meaningful scene, a bare "three days later"?
     What should it stop on?
 22. **Feedback** — How do you want to tell me a turn was bad, and what do you expect me to do
     about it?
