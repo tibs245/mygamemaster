@@ -32,11 +32,23 @@ repos:
       - id: yamllint
         args: [-c, .yamllint]
 
-  # ── Unit tests on pre-push (slow; runs all 3 suites) ──────────────────────
+  # ── Skill character budget (fast; every commit touching a SKILL.md) ───────
+  # Warns at 80% of the 100 000-character limit, fails at 90%.
+  # Unblock a live campaign with MGM_SKILL_SIZE_SKIP=1.
+  - repo: local
+    hooks:
+      - id: skill-size
+        name: Skill character budget
+        language: system
+        entry: python3 scripts/check_skill_size.py
+        files: (^|/)SKILL\.md$
+        pass_filenames: false
+
+  # ── Unit tests on pre-push (slow; runs all 4 suites + repo checks) ────────
   - repo: local
     hooks:
       - id: unit-tests
-        name: Unit tests (scripts + hooks + tts)
+        name: Unit tests (scripts + hooks + tts + repo scripts)
         language: script
         entry: .pre-commit-run-tests.sh
         stages: [pre-push]
