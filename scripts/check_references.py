@@ -58,7 +58,7 @@ IGNORE = re.compile(
 # constantly; they are not repo references and must not be judged as such.
 ARTEFACTS_CAMPAGNE = {
     "MJ-INTENTION-LOG.md", "GM-INTENTION-LOG.md", "analyse-bug-rapport.md",
-    "checklist-steward.md",
+    "checklist-steward.md", "player-profile.md",
 }
 
 

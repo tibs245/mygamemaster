@@ -378,6 +378,20 @@ Before any save, verify these critical points. This is the iron rule — no wrap
    → If deadline reached → note consequence
    → Verify each faction has ≥ 1 short-term + ≥ 1 long-term objective
 
+□ PLAYER PROFILE — Preferences the player stated or demonstrated this session
+   → Open `<campaign>/player-profile.md` (copied from
+     `mygamemaster/references/player-profile-template.md` at campaign creation)
+   → Add any control signal, pacing dial, standing policy or refusal expressed during the session,
+     one line each, dated and sourced to this session number
+   → Status: `locked` if the player stated it as a rule, `observed` if inferred from repeated
+     reactions, `hypothesis` otherwise
+   → Never delete a line — supersede it, keeping the old one with its replacement
+   → ⚠️ A profile entry may make the GM stricter, never more permissive than
+     `mygamemaster/references/locked-lessons.md`. A request that would relax a catalogue rule is
+     recorded as a declined request (section 7), and the catalogue rule stays in force
+   → If the file does not exist → create it from the template now. `close_session.py` reports its
+     absence as point P11 (non-blocking)
+
 □ CROSS-CHECK CLOCK vs SESSION — NARRATIVE VERIFICATION (⚠️ MANDATORY)
    ⚠️ Don't confuse "valid file" with "consequences played".
    → Open faction_actions_horloge.actions

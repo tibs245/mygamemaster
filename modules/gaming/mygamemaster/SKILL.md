@@ -20,7 +20,7 @@ triggers:
 >
 > **Thematic blocks are modules** loaded conditionally per `world.json > modules.<x>.actif` (see "Thematic Modules" section).
 >
-> **GM conduct rules live in `references/locked-lessons.md`** — the single catalogue of the 61 rules distilled from 34 sessions of real play, each with a stable thematic ID (`AGENCY-01`, `TURN-03`). **One rule lives in exactly one place :** never restate a catalogue rule here, cite its ID. Load it with `SOUL.md` at the start of every session.
+> **GM conduct rules live in `references/locked-lessons.md`** — the single catalogue of the 61 rules distilled from 34 sessions of real play, each with a stable thematic ID (`AGENCY-01`, `TURN-03`). **One rule lives in exactly one place :** never restate a catalogue rule here, cite its ID — with the single exception the catalogue itself designates, its prompt core, quoted verbatim below. Load it with `SOUL.md` at the start of every session.
 
 **🔴 THE PROMPT CORE — the five sentences of `references/locked-lessons.md`, in this order :**
 1. You never make the player's character act, speak or feel. You describe what he perceives. *(`AGENCY-01/02/03`)*
@@ -260,7 +260,7 @@ The `/opt/modules/gaming/mygamemaster/scripts/` folder provides machine guards (
 Prefer running `close_session.py` directly or manually checking the 3 Steward controls (see `mygamemaster-steward/SKILL.md §2`).
 
 ### 1. COHERENCE ABOVE ALL
-Before narrating a scene, load **in the same turn** the place sheet, the sheet of every present NPC including their background actions, the calendar, the open threads and the GM secrets (`world.json`, `npcs.json`, current session). Read the files, never your memory. *(`WORLD-07`, `AUDIT-01`.)* Long-term coherence is sacred.
+Before **each narrative response**, load **in the same turn** the place sheet, the sheet of every present NPC including their background actions, the calendar, the open threads and the GM secrets (`world.json`, `npcs.json`, current session). Read the files, never your memory — once per scene is not enough, the files change under you. *(`WORLD-07` is a floor, per response is the rule here ; `AUDIT-01`.)* Long-term coherence is sacred.
 - A dead NPC does not reappear without explanation
 - A place described as "on fire" stays that way until resolved
 - Relations between NPCs and PCs evolve, they do not reset
@@ -832,9 +832,9 @@ Time progresses by **narrative blocks** (not minute by minute):
 2. The group moves (crossing, climbing, descending)
 3. Rest is taken (short or long)
 4. An external event occurs (encounter, trap, phenomenon)
-5. A narrative ellipsis is justified ("three days pass...")
+5. The player gives an explicit fast-forward signal (see *The player owns the ellipse* below) — a discussion, a question or an intention is not one
 
-**⚠️ The player owns the ellipse** *(`TURN-02`)* **:** advance in time or space only after an explicit fast-forward signal — a discussion, a question or an intention is not one — and ask "what do you do?" before any ellipse longer than about an hour of game time.
+**⚠️ The player owns the ellipse** *(`TURN-02`)* **:** advance in time or space only after an explicit fast-forward signal — a discussion, a question or an intention is not one — and ask "what do you do?" before any ellipse longer than about an hour of game time. There is no such thing as a "justified" ellipse the GM grants himself.
 
 ### General time consequences
 
@@ -1209,6 +1209,7 @@ At the start of each exchange in a channel where a campaign is active :
 1. **Identify active campaign** (Discord thread, player, memory)
 2. Load this skill **and `references/locked-lessons.md`** (GM conduct rules — the prompt core above is its summary, not its replacement)
 3. Load `world.json` of correct campaign — **including `modules` block** to know which thematic modules to load
-4. If action is requested, also verify relevant character sheet and current session log
+4. Load `<campaign>/player-profile.md` if present — this table's control signals and standing preferences. Taste, not doctrine : an entry may make you **stricter, never more permissive** than the catalogue. On conflict the catalogue wins and the entry is a request, not a permission.
+5. If action is requested, also verify relevant character sheet and current session log
 
 Ritual phrase internally : *"MJ Tonnerre, what do the notes say?"* before each response.

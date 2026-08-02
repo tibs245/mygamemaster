@@ -17,13 +17,16 @@ forbade them). These checks prove, mechanically, that:
   * `SKILL.md` stays inside its size budget — the production skill once froze at
     104 162 characters against a hard limit of 100 000 and refused 76 writes. Measured in
     UTF-8 bytes, the conservative reading (the file is emoji-heavy: bytes > characters);
-  * the campaign-creation path wires `references/player-profile-template.md`, so a table
-    captures its player's preferences instead of rediscovering them over 34 sessions.
+  * the player profile is wired on all three sides — created at onboarding, loaded by the
+    Invariant, updated at close — so a table captures its player's preferences instead of
+    rediscovering them over 34 sessions. A file that is only written is an orphan file.
 
-ESCAPE HATCHES (an operator must be able to unblock a live campaign):
-  * `MYGM_SKIP_PROMPT_WIRING_CHECKS=1` — skip this whole module.
+ESCAPE HATCH:
   * `MYGM_SKILL_CHAR_BUDGET=<n>` — raise (or lower) the size budget for `SKILL.md`, in bytes.
     The hard product limit is 100 000; the default budget below keeps a deliberate margin.
+    There is deliberately no blanket skip: this module runs at pre-push, in CI and at image
+    build, reads only tracked files, and never executes during play — no session can be
+    blocked by it, so no environment legitimately needs it off.
 """
 
 import os
@@ -39,13 +42,13 @@ SKILL = MODULE / "SKILL.md"
 CATALOGUE = MODULE / "references" / "locked-lessons.md"
 PROFIL = MODULE / "references" / "player-profile-template.md"
 INITIATION = RACINE / "modules" / "gaming" / "mygamemaster-initiation" / "SKILL.md"
+SESSION = RACINE / "modules" / "gaming" / "mygamemaster-session" / "SKILL.md"
+CLOTURE = MODULE / "scripts" / "close_session.py"
 CREER = RACINE / "docs" / "CREATE-A-GAME.md"
 
 # Hard product limit; the budget below keeps a margin so a growth spurt is caught early.
 LIMITE_DURE = 100_000
 BUDGET_DEFAUT = 92_000
-
-SKIP = os.environ.get("MYGM_SKIP_PROMPT_WIRING_CHECKS") == "1"
 
 # The catalogue's own "prompt core" — five sentences, in this order. Kept verbatim here so a
 # reworded catalogue and a stale prompt cannot silently diverge: the test fails on both sides.
@@ -74,7 +77,6 @@ def lire(chemin: Path) -> str:
     return chemin.read_text(encoding="utf-8")
 
 
-@unittest.skipIf(SKIP, "MYGM_SKIP_PROMPT_WIRING_CHECKS=1")
 class TestCatalogueAtteignable(unittest.TestCase):
     """The catalogue is cited by the prompt, not orphaned next to it."""
 
@@ -104,7 +106,6 @@ class TestCatalogueAtteignable(unittest.TestCase):
                       "editor restates a rule here instead of editing it there.")
 
 
-@unittest.skipIf(SKIP, "MYGM_SKIP_PROMPT_WIRING_CHECKS=1")
 class TestNoyauDePrompt(unittest.TestCase):
     """The five prompt-core sentences reach the shipped prompt, ID-anchored."""
 
@@ -146,7 +147,6 @@ class TestNoyauDePrompt(unittest.TestCase):
                           f"{rid} is stated in SKILL.md's body without its ID — anchor it.")
 
 
-@unittest.skipIf(SKIP, "MYGM_SKIP_PROMPT_WIRING_CHECKS=1")
 class TestIdsTracables(unittest.TestCase):
     """No prompt may cite a rule ID the catalogue does not define."""
 
@@ -168,7 +168,6 @@ class TestIdsTracables(unittest.TestCase):
                              f"locked-lessons.md: {orphelins}")
 
 
-@unittest.skipIf(SKIP, "MYGM_SKIP_PROMPT_WIRING_CHECKS=1")
 class TestBudgetTaille(unittest.TestCase):
     """The shipped prompt has a size budget; it once froze at 104 162 characters."""
 
@@ -180,16 +179,15 @@ class TestBudgetTaille(unittest.TestCase):
             f"SKILL.md is {taille} bytes, over the {budget} budget "
             f"(hard product limit {LIMITE_DURE}). Replace prose with a rule ID and a "
             "pointer into references/locked-lessons.md rather than appending. "
-            "To unblock a live campaign: MYGM_SKILL_CHAR_BUDGET=<n>.")
+            "To ship an oversized prompt on purpose: MYGM_SKILL_CHAR_BUDGET=<n>.")
 
     def test_budget_sous_la_limite_dure(self):
         self.assertLess(BUDGET_DEFAUT, LIMITE_DURE,
                         "The budget must keep a margin under the hard limit.")
 
 
-@unittest.skipIf(SKIP, "MYGM_SKIP_PROMPT_WIRING_CHECKS=1")
 class TestProfilJoueurCable(unittest.TestCase):
-    """The player profile template is consumed by the campaign-creation path."""
+    """The player profile is created, read and updated — not written and orphaned."""
 
     def test_le_gabarit_existe(self):
         self.assertTrue(PROFIL.is_file())
@@ -201,6 +199,22 @@ class TestProfilJoueurCable(unittest.TestCase):
         self.assertIn("player-profile.md", texte,
                       "The onboarding skill must name the file it writes into the campaign.")
 
+    def test_invariant_charge_le_profil(self):
+        skill = lire(SKILL)
+        invariant = skill[skill.index("## Invariant"):]
+        self.assertIn("player-profile.md", invariant,
+                      "The session-start Invariant must load the campaign's player profile. "
+                      "A profile no session reads is an orphan file — the exact pathology "
+                      "this module guards against for the catalogue.")
+
+    def test_cloture_met_a_jour_le_profil(self):
+        self.assertIn("player-profile.md", lire(SESSION),
+                      "The close procedure must have a step that updates the player profile: "
+                      "'update it at every close' has to reach the document that closes.")
+        self.assertIn("player-profile.md", lire(CLOTURE),
+                      "close_session.py must report on the player profile, so a profile "
+                      "nobody updates is visible at close instead of silently rotting.")
+
     def test_doc_creation_partie_cite_le_gabarit(self):
         texte = lire(CREER)
         self.assertIn(
@@ -209,6 +223,35 @@ class TestProfilJoueurCable(unittest.TestCase):
         self.assertIn("locked-lessons.md", texte,
                       "docs/CREATE-A-GAME.md must separate taste (profile) from doctrine "
                       "(catalogue), so neither file absorbs the other.")
+
+
+class TestPreseanceCatalogue(unittest.TestCase):
+    """Taste never relaxes doctrine: the profile may only make the GM stricter."""
+
+    PRECEDENCE = "stricter, never more permissive"
+
+    @staticmethod
+    def _plat(chemin: Path) -> str:
+        # Markdown reflow must not be able to hide the sentence from the guard.
+        return re.sub(r"[\s>*]+", " ", lire(chemin))
+
+    def test_invariant_dit_qui_gagne(self):
+        skill = self._plat(SKILL)
+        invariant = skill[skill.index("## Invariant"):]
+        self.assertIn(self.PRECEDENCE, invariant,
+                      "Where the profile is loaded, SKILL.md must state that a catalogue "
+                      "rule wins over a profile entry — otherwise an onboarding answer can "
+                      "pre-authorise an AGENCY-01 violation.")
+
+    def test_onboarding_ne_negocie_pas_le_catalogue(self):
+        self.assertIn(self.PRECEDENCE, self._plat(INITIATION),
+                      "The onboarding questionnaire must state that an answer cannot relax "
+                      "a catalogue rule, next to the questions that could try.")
+
+    def test_doc_creation_partie_dit_qui_gagne(self):
+        self.assertIn(self.PRECEDENCE, self._plat(CREER),
+                      "docs/CREATE-A-GAME.md must carry the same precedence rule as the "
+                      "prompt, so the two documents cannot drift apart.")
 
 
 if __name__ == "__main__":
