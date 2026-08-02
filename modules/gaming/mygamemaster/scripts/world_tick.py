@@ -29,8 +29,18 @@ Cross-cutting conventions (contract §0):
     (plans/trajectories/lod) and evenements_programmes.json (emitted events), and
     only in --apply mode, via worldlib atomic write;
   * exit codes: 0 ok; 1 business condition signalled; 2 usage / file not found;
+    3 TEMPORAL INCOHERENCE (see below);
   * `pre`/`post` run OUTSIDE the narration loop: they CAN fail hard in
-    --apply (file not found → 2). READS remain fail-open.
+    --apply (file not found → 2). READS remain fail-open EXCEPT on game time.
+
+TEMPORAL COHERENCE (TIME-04). Fail-open is not coherence: reading game time was
+guarded by `except: T = 0`, so a campaign on day 58 whose files became unreadable
+kept ticking at day 1, exited 0, and reported success. Game time is now read in
+ONE place (`_t_courant`) and it fails loud. A projection window that runs
+backwards, and a reconciliation with no session log to reconcile against, are
+reported as incoherences and exit 3. A no-op that comes from a FEATURE TOGGLE is
+a different thing: it stays exit 0, but it is announced in the output.
+Escape hatch: MGM_ALLOW_CLOCK_DRIFT=1 accepts the incoherence (still reported).
 
 Targets: Python 3.11, PURE STDLIB (no external dependencies). Imports `worldlib`
 and MAY import `geo_query` and `causal_propagate` as modules (only authorised
@@ -726,10 +736,7 @@ def _intention_stub(acteur: dict, campagne: Path) -> dict:
     """
     aid = acteur.get("id", "actor")
     but = acteur.get("but_long_terme", "") or "pursue their objectives"
-    try:
-        T_now = W.t_courant(Path(campagne))
-    except Exception:
-        T_now = 0
+    T_now = _t_courant(campagne)
     echeance = T_now + 7 * W.UT_PAR_JOUR     # +7 days
 
     # Location: base/last stay of the actor if it exists (otherwise null).
@@ -780,17 +787,16 @@ def _normaliser_intention(intention: dict, acteur: dict, campagne: Path) -> dict
     # Deadline → deterministic integer T.
     ech = out.get("echeance")
     if not isinstance(ech, int) or isinstance(ech, bool):
-        t = None
         src = out.get("echeance_source", ech)
         try:
             t = W.echeance_en_t(src, Path(campagne))
         except Exception:
             t = None
         if t is None:
-            try:
-                t = W.t_courant(Path(campagne)) + 7 * W.UT_PAR_JOUR
-            except Exception:
-                t = 7 * W.UT_PAR_JOUR
+            _log(f"⚠ _normaliser_intention : deadline {src!r} of "
+                 f"{acteur.get('id', 'actor')} is NOT datable — replaced by the "
+                 f"default horizon (+7 days); it is not anchored to its source.")
+            t = _t_courant(campagne) + 7 * W.UT_PAR_JOUR
         out["echeance"] = int(t)
     out.setdefault("id", f"intent:{W.slug(out.get('action', 'suite'))[:32] or 'suite'}")
     out.setdefault("lieu", _lieu_courant_acteur(acteur))
@@ -860,6 +866,38 @@ _MSG_TICK_PRE_OFF = "pre-processing disabled (meta.hooks.tick_pre=false)"
 _MSG_TICK_POST_OFF = "closing reconciliation disabled (meta.hooks.tick_post=false)"
 
 
+# ════════════════════════════════════════════════════════════════════════════
+#  Temporal coherence — fail-open is NOT coherence (TIME-04)
+# ════════════════════════════════════════════════════════════════════════════
+
+CODE_INCOHERENCE_TEMPORELLE = 3
+ENV_ALLOW_DERIVE = "MGM_ALLOW_CLOCK_DRIFT"
+
+
+class IncoherenceTemporelle(RuntimeError):
+    """Game time could not be established.
+
+    Raised instead of falling back to T=0: a tick that silently runs at T=0 on a
+    day-58 campaign emits events dated 58 days in the past, exits 0, and reports
+    a clean success. That is the failure mode this class exists to make loud.
+    """
+
+
+def _derive_autorisee() -> bool:
+    """True when the operator accepts a divergent clock (same hatch as clock.py)."""
+    return os.environ.get(ENV_ALLOW_DERIVE, "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def _t_courant(campagne: Path) -> int:
+    """Current T (UT) — the SINGLE reader of game time in this module, fail-LOUD."""
+    try:
+        return W.t_courant(Path(campagne))
+    except Exception as e:
+        raise IncoherenceTemporelle(
+            f"current game time is unreadable in {campagne}: {e}") from e
+
+
 def _hook_actif(monde, nom: str) -> bool:
     """Fine toggle meta.hooks.<nom> (default True). False ONLY if explicitly
     cut. Read from the already-loaded world; fail-open "active" if block absent.
@@ -881,11 +919,10 @@ def _noop_pre(campagne: Path, motif: str = _MSG_TEMPORALITY_OFF,
     no consumer breaks; writes NOTHING. The briefing carries the message.
     `motif` = reason for the no-op (temporality axis OR meta.hooks.tick_pre toggle).
     `feature_temporality` stays True when only the fine toggle cuts (axis still ON).
+    `noop` carries the reason so a caller cannot mistake a CONFIGURED no-op for a
+    tick that ran and found nothing.
     """
-    try:
-        T = W.t_courant(Path(campagne))
-    except Exception:
-        T = 0
+    T = _t_courant(campagne)
     return {
         "t_de": T,
         "t_a": T,
@@ -897,6 +934,9 @@ def _noop_pre(campagne: Path, motif: str = _MSG_TEMPORALITY_OFF,
         "ecritures": [],
         "feature_temporality": feature_temporality,
         "message": motif,
+        "noop": motif,
+        "incoherences": [],
+        "avertissements": [],
     }
 
 
@@ -915,6 +955,8 @@ def _noop_post(motif: str = _MSG_TEMPORALITY_OFF,
         "ecritures": [],
         "feature_temporality": feature_temporality,
         "message": motif,
+        "noop": motif,
+        "incoherences": [],
     }
 
 
@@ -968,11 +1010,27 @@ def pre(campagne: Path, t_session: int | None = None,
     acteurs = W.charger_acteurs(campagne)
     acteurs_idx = W.index_acteurs(acteurs)
 
-    T_de = W.t_courant(campagne)
+    incoherences: list[dict] = []
+    avertissements: list[dict] = []
+
+    T_de = _t_courant(campagne)
     T_a = int(t_session) if t_session is not None else T_de
     if T_a < T_de:
-        _log(f"⚠ pre : t_session ({T_a}) < t_courant ({T_de}) — clamped to present.")
+        incoherences.append({
+            "code": "t_session_anterieur",
+            "message": (f"t_session ({T_a}) is BEHIND current game time ({T_de}) — "
+                        f"clamped to the present; a {T_de - T_a} UT gap between the "
+                        "caller's clock and the campaign's means one of them drifted"),
+        })
+        _log("⚠ pre : " + incoherences[-1]["message"])
         T_a = T_de
+    elif T_a == T_de:
+        avertissements.append({
+            "code": "fenetre_vide",
+            "message": (f"empty projection window (t_session == t_courant == {T_de}): "
+                        "the world was NOT advanced — pass --t-session to project it"),
+        })
+        _log("ℹ pre : " + avertissements[-1]["message"])
 
     contexte = _contexte_joueur(cone, T_de, T_a)
 
@@ -1054,6 +1112,9 @@ def pre(campagne: Path, t_session: int | None = None,
         "scenes": scenes,
         "briefing": briefing,
         "ecritures": ecritures,
+        "noop": None,
+        "incoherences": incoherences,
+        "avertissements": avertissements,
     }
 
 
@@ -1199,8 +1260,25 @@ def post(campagne: Path, session: dict | str | None = None,
     acteurs = W.charger_acteurs(campagne)
     acteurs_idx = W.index_acteurs(acteurs)
 
+    incoherences: list[dict] = []
     session_obj = _resoudre_session(campagne, session)
-    faits = extraire_faits_joueur(session_obj) if session_obj else []
+    if session_obj is None:
+        incoherences.append({
+            "code": "session_introuvable",
+            "message": (f"session log {session!r} not found or unreadable in "
+                        f"{campagne / 'sessions'}"
+                        if session is not None else
+                        f"no session log in {campagne / 'sessions'}")
+            + " — the reconciliation would run over ZERO player facts and report "
+              "a clean success over nothing",
+        })
+        _log("❌ post : " + incoherences[-1]["message"])
+        # Refusing AFTER writing actors.json would leave the world mutated by a
+        # reconciliation the caller then rejects (exit 3).
+        return {"faits_joueur": [], "reconciliations": [], "plans_renouveles": [],
+                "propagations": [], "ecritures": [], "noop": None,
+                "incoherences": incoherences}
+    faits = extraire_faits_joueur(session_obj)
 
     reconciliations: list[dict] = []
     plans_renouveles: list[str] = []
@@ -1250,23 +1328,40 @@ def post(campagne: Path, session: dict | str | None = None,
         "plans_renouveles": plans_renouveles,
         "propagations": [e.get("id") for e in propagations_evt],
         "ecritures": ecritures,
+        "noop": None,
+        "incoherences": incoherences,
     }
 
 
 def _resoudre_session(campagne: Path, session: dict | str | None) -> dict | None:
     """Resolves the session argument: dict as-is, file path, or '<NNN>'.
 
-    '<NNN>' (number) → sessions/<NNN zero-padded 3>.json. None → last session
-    present in sessions/. Fail-open: None if not found/unreadable.
+    '<NNN>' (number) → sessions/<NNN zero-padded 3>.json, then <NNN>.json, then
+    any log whose name STARTS with that number (close_session accepts those and
+    the two must resolve the same file). None → last session present in
+    sessions/. Returns None if not found/unreadable — the caller reports it.
     """
     if isinstance(session, dict):
         return session
     sessions_dir = campagne / "sessions"
     if isinstance(session, str) and session:
-        # Pure number → padded file.
+        # Pure number → padded file, then the unpadded name (both exist in the wild;
+        # missing the second one made the reconciliation run over an empty session).
         if session.isdigit():
-            cible = sessions_dir / f"{int(session):03d}.json"
-            return W.charger_json(cible, None)
+            n = int(session)
+            for nom in (f"{n:03d}.json", f"{n}.json"):
+                data = W.charger_json(sessions_dir / nom, None)
+                if data is not None:
+                    return data
+            # close_session derives the number from stems like
+            # `031-north-ford.json`; resolving only `031.json` refuses the close.
+            if sessions_dir.is_dir():
+                for sp in sorted(sessions_dir.glob(f"{n:03d}*.json")) \
+                        + sorted(sessions_dir.glob(f"{n}[-_.]*.json")):
+                    data = W.charger_json(sp, None)
+                    if data is not None:
+                        return data
+            return None
         # Otherwise, file path (absolute or relative).
         data = W.charger_json(session, None)
         if data is not None:
@@ -1432,10 +1527,7 @@ def _evenement_depuis_fait(fait: dict, campagne: Path,
     degrades cleanly: no PC actor built, the target falls back to that of the
     fact (otherwise None). No hard-coded PC id.
     """
-    try:
-        T = W.t_courant(Path(campagne))
-    except Exception:
-        T = 0
+    T = _t_courant(campagne)
     libelle = str(fait.get("libelle", "player action"))
     type_evt = _type_fait(libelle)
     slug = W.slug(libelle)[:32] or "player-action"
@@ -1640,6 +1732,30 @@ def _charger_cone_arg(spec: str | None) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _signaler_etat_temporel(res: dict) -> int | None:
+    """Print the no-op reason / warnings / incoherences of a tick result.
+
+    Returns CODE_INCOHERENCE_TEMPORELLE when the run must fail, None otherwise.
+    A CONFIGURED no-op is legitimate and stays exit 0, but it is announced: the
+    field report's worst case is an engine believed active that ran over nothing.
+    """
+    if res.get("noop"):
+        _log("ℹ NO-OP (configured): " + res["noop"] + " — nothing was computed.")
+    for av in res.get("avertissements") or []:
+        _log("ℹ " + av["message"])
+    incoherences = res.get("incoherences") or []
+    for inc in incoherences:
+        _log("❌ TEMPORAL INCOHERENCE — " + inc["message"])
+    if not incoherences:
+        return None
+    if _derive_autorisee():
+        _log(f"   ⚠ {ENV_ALLOW_DERIVE}=1 — accepted by the operator, nothing fixed.")
+        return None
+    _log(f"   → resynchronise the temporal files, or set {ENV_ALLOW_DERIVE}=1 "
+         f"to proceed anyway.")
+    return CODE_INCOHERENCE_TEMPORELLE
+
+
 def cmd_pre(args) -> int:
     camp = _exiger_campagne(args)
     if camp is None:
@@ -1648,8 +1764,18 @@ def cmd_pre(args) -> int:
     if args.apply and not (camp / "actors.json").exists():
         _log(f"❌ actors.json not found in {camp} — nothing to project in --apply.")
         return 2
-    cone = _charger_cone_arg(args.cone)
-    res = pre(camp, t_session=args.t_session, cone=cone, apply=args.apply)
+    cone = None
+    if args.cone:
+        cone = _charger_cone_arg(args.cone)
+        if cone is None:
+            _log("❌ --cone was given but could not be read — refusing to project "
+                 "on a silently empty cone.")
+            return 2
+    try:
+        res = pre(camp, t_session=args.t_session, cone=cone, apply=args.apply)
+    except IncoherenceTemporelle as e:
+        _log(f"❌ TEMPORAL INCOHERENCE — {e}")
+        return CODE_INCOHERENCE_TEMPORELLE
     if args.as_json:
         _sortir_json(res)
     else:
@@ -1658,6 +1784,9 @@ def cmd_pre(args) -> int:
             print("✅ Writes: " + " ; ".join(res["ecritures"]))
         elif not args.apply:
             print("ℹ dry-run: no writes (use --apply to persist).")
+    code = _signaler_etat_temporel(res)
+    if code is not None:
+        return code
     # Code 1 if a crossing was found (business condition signalled), otherwise 0.
     return 1 if res["croisements"] else 0
 
@@ -1669,7 +1798,11 @@ def cmd_post(args) -> int:
     if args.apply and not (camp / "actors.json").exists():
         _log(f"❌ actors.json not found in {camp} — nothing to reconcile in --apply.")
         return 2
-    res = post(camp, session=args.session, apply=args.apply)
+    try:
+        res = post(camp, session=args.session, apply=args.apply)
+    except IncoherenceTemporelle as e:
+        _log(f"❌ TEMPORAL INCOHERENCE — {e}")
+        return CODE_INCOHERENCE_TEMPORELLE
     if args.as_json:
         _sortir_json(res)
     else:
@@ -1685,6 +1818,9 @@ def cmd_post(args) -> int:
             print("   ✅ Writes: " + " ; ".join(res["ecritures"]))
         elif not args.apply:
             print("   ℹ dry-run: no writes (use --apply).")
+    code = _signaler_etat_temporel(res)
+    if code is not None:
+        return code
     return 1 if res["reconciliations"] else 0
 
 

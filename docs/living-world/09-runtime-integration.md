@@ -338,9 +338,13 @@ In `main()` of `close_session.py`, after the line `clock (dry-run) : exit …` (
   wrap-up **identical** to current.
 - **`actors.json` missing** → same, clean skip (a campaign without living world is never
   penalized).
-- **Never blocking**: the result of `world_tick post` feeds **only** `alertes`, **never**
-  `blocs`. The verdict `ok`/exit code of `close_session.py` is **unchanged** by B2. (A reconciliation
-  failure is a GM matter, not a wrap-up refusal — consistent with the ALERT handling of `clock.py`, P5.)
+- **Non-blocking, EXCEPT on game time**: the result of `world_tick post` feeds `alertes` for every
+  exit code but `3`. A reconciliation failure is a GM matter, not a wrap-up refusal. **Exit 3 is a
+  temporal incoherence** (TIME-04) and is treated exactly like P11: it goes to `blocs` and the wrap-up
+  is refused, unless `MGM_ALLOW_CLOCK_DRIFT=1` downgrades it to an alert. A tick that could not read
+  game time did not reconcile anything, and saying otherwise is how a campaign drifted 51 days.
+- **Nothing is written when the tick refuses**: the `session_introuvable` incoherence returns before
+  the `--apply` write block, so a refused reconciliation leaves `actors.json` untouched.
 - **`--apply`** is deliberate here (wrap-up **is** the moment to write `actors.json` /
   `evenements_programmes.json`). The timestamped snapshot (`on_session_end.py`) and the commit (proposed)
   capture these writes just after. Writes **only** to allowed files

@@ -2,7 +2,7 @@
 """
 close_session.py — Session closing pipeline in 1 command (MJ Tonnerre).
 
-Chains the existing deterministic guards then a ~10-point pipeline check.
+Chains the existing deterministic guards then a 12-point pipeline check.
 REFUSES (exit ≠ 0) if a blocking step fails. Does NOT commit on its own:
 it PROPOSES a commit message and lets the GM/Steward decide
 (option `--commit` documented but disabled by default).
@@ -11,9 +11,9 @@ Chained steps (reuses neighbouring scripts via subprocess):
   1. validate_json.py        <campaign>/           → BLOCKING if exit ≠ 0
   2. validator-distances.py  <campaign>/world.json → WARN (exit 1) / BLOCKING (exit 2)
   3. check_session.py        <campaign> [--session]→ BLOCKING if exit ≠ 0
-  4. clock.py --dry-run      <campaign>            → ALERT if deadline elapsed
+  4. clock.py --json         <campaign>            → BLOCKING (see P5 / P11)
 
-~10-point pipeline check (read-only, complements check_session):
+12-point pipeline check (read-only, complements check_session):
   P1  session locations propagated into universe.regions[].locations
   P2  encountered NPCs filed in npcs.json
   P3  each faction has objectif_court_terme + objectif_long_terme
@@ -25,6 +25,19 @@ Chained steps (reuses neighbouring scripts via subprocess):
   P9  session log complete: etat_fin present
   P10 timeline (UT regime): events.json present and valid
   P11 player profile: player-profile.md present and sourced to this session (non-blocking)
+  P12 temporal coherence: every clock of the campaign agrees (clock.py drift)
+  P13 temporal hygiene: deadlines datable, calendar plausible (NON-blocking)
+
+TIME-03/TIME-04 — P5 and P12 are BLOCKING and are decided on the CONTENT of
+clock.py's report, not on its exit code. Game time has one writer; a close that
+proceeds over a divergent clock is how a campaign drifted 51 days unnoticed.
+P13 carries what the clock reports but does not refuse over — an undatable
+deadline and a fantasy calendar are legitimate states, and gating on them would
+push a GM to leave the override on for good.
+
+Escape hatch: MGM_ALLOW_CLOCK_DRIFT=1 downgrades P5, P12 and the world_tick
+temporal verdict to alerts, so a GM who judged the divergence narratively
+acceptable can still close. The override is traced in the report.
 
 Usage:
   python3 close_session.py <campaign> [--session N]
@@ -45,12 +58,30 @@ import subprocess
 import sys
 from pathlib import Path
 
+import clock as CLOCK
+
 SCRIPTS_DIR = Path(__file__).resolve().parent
+
+_ESCAPE = CLOCK.ENV_ALLOW_DERIVE
+_CODE_INCOHERENCE_TICK = 3
 
 
 def charger_json(chemin: Path):
     with open(chemin, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _rapport_clock(res_clock: dict) -> dict:
+    """Parse clock.py's `--json` report. {} when unreadable — the caller BLOCKS
+    on that rather than assuming the clock is fine (TIME-04)."""
+    sortie = (res_clock.get("stdout") or "").strip()
+    if not sortie:
+        return {}
+    try:
+        rapport = json.loads(sortie)
+    except json.JSONDecodeError:
+        return {}
+    return rapport if isinstance(rapport, dict) else {}
 
 
 def lancer(script: str, args: list[str]) -> dict:
@@ -108,10 +139,11 @@ def derniere_session(campagne: Path) -> tuple[int | None, Path | None]:
     return cands[-1]
 
 
-# ─── ~10-point pipeline check ─────────────────────────────────────────────────
+# ─── 12-point pipeline check ──────────────────────────────────────────────────
 
 def check_pipeline(campagne: Path, session_path: Path, monde: dict,
-                   res_check: dict, res_clock: dict) -> list[dict]:
+                   res_check: dict, res_clock: dict,
+                   rap_clock: dict, override_derive: bool) -> list[dict]:
     """Return a list of points: {"id","label","ok","bloquant","detail"}."""
     points = []
 
@@ -152,14 +184,27 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
         not sans_horloge, True,
         "" if not sans_horloge else f"missing: {', '.join(sans_horloge)}")
 
-    # P5: clock up to date (clock.py). Elapsed unresolved deadline = ALERT,
-    # non-blocking for the commit (it is a narrative decision for the GM) but
-    # strongly flagged.
-    clock_ok = res_clock["exit"] == 0
-    add("P5", "Clock up to date (no elapsed unresolved deadline)",
-        clock_ok, False,
-        "" if clock_ok else "clock.py reports ≥ 1 ELAPSED deadline — "
-        "consequence to play out / resolve by the GM")
+    # P5 reads the clock REPORT, never its exit code (TIME-04) — so an
+    # unreadable report blocks: an unverifiable clock is not a verified one.
+    if not rap_clock:
+        add("P5", "Clock up to date (no elapsed unresolved deadline)",
+            False, True,
+            f"clock.py returned no readable report (exit {res_clock['exit']}) — "
+            "the clock could not be verified; run it by hand: "
+            f"python3 clock.py {campagne}")
+    else:
+        echues = [it for it in rap_clock.get("items", [])
+                  if it.get("statut_calcule") == "echue"
+                  and it.get("statut_actuel") != "resolue"]
+        add("P5", "Clock up to date (no elapsed unresolved deadline)",
+            not echues, not override_derive,
+            "" if not echues else
+            f"{len(echues)} overdue unresolved deadline(s): "
+            + _apercu(f"[{it['faction']}] {it['action']} — due at "
+                      f"{it['seuil_max']} {it['unite']}, now {it['courant']} "
+                      f"(consequence: {it.get('consequence') or 'not written'})"
+                      for it in echues)
+            + f" → play them out, or mark them 'resolue', or {_ESCAPE}=1")
 
     # P6: chronology not empty.
     chrono = monde.get("global_state", {}).get("timeline", "")
@@ -222,7 +267,48 @@ def check_pipeline(campagne: Path, session_path: Path, monde: dict,
             "session taught about the player's signals and preferences (or note "
             "explicitly that it taught nothing new)")
 
+    # P12: the campaign's clocks must agree with EACH OTHER, not merely exist.
+    # P13: temporal hygiene — reported, never a refusal (see CLOCK._anomalie).
+    if not rap_clock:
+        add("P12", "Temporal coherence: every clock agrees", False, True,
+            "no clock report — divergence cannot be ruled out")
+        add("P13", "Temporal hygiene: deadlines datable, calendar plausible",
+            True, False, "not checked (no clock report)")
+    else:
+        derive = rap_clock.get("derive") or {}
+        anomalies = derive.get("anomalies") or []
+        bloquantes = [a for a in anomalies if a.get("bloquant")]
+        signalees = [a for a in anomalies if not a.get("bloquant")]
+        diverge = bool(derive.get("derive")) or bool(bloquantes)
+        morceaux = []
+        if derive.get("derive"):
+            morceaux.append(
+                f"{derive['ecart']} day(s) apart: "
+                + _apercu(f"{s['libelle']} → day {s['jour']}"
+                          for s in derive.get("sources", [])))
+        morceaux += [f"{a['code']}: {a['message']}" for a in bloquantes]
+        add("P12", "Temporal coherence: every clock agrees",
+            not diverge, not override_derive,
+            "" if not diverge else " ; ".join(morceaux)
+            + f" → resynchronise the temporal files, or {_ESCAPE}=1")
+        add("P13", "Temporal hygiene: deadlines datable, calendar plausible",
+            not signalees, False,
+            "" if not signalees else
+            _apercu(f"{a['code']}: {a['message']}" for a in signalees)
+            + " → pin the deadlines to the {texte,unite,min,max,ancre} format "
+              "so the clock can advance them; a non-24h calendar is legitimate "
+              "and stays as declared. Neither refuses the close.")
+
     return points
+
+
+def _apercu(morceaux, limite: int = 5) -> str:
+    """First `limite` items, joined, with a count of what was left out."""
+    items = list(morceaux)
+    texte = " ; ".join(items[:limite])
+    if len(items) > limite:
+        texte += f" ; …(+{len(items) - limite})"
+    return texte
 
 
 def _norm(nom: str) -> str:
@@ -262,19 +348,21 @@ def executer(campagne: Path, num_session: int | None,
         cs_args += ["--session", str(num_session)]
     res_check = lancer("check_session.py", cs_args)
 
-    # 5. clock --dry-run (ALERT)
-    res_clock = lancer("clock.py", [str(campagne)])
+    # 5. clock --json (BLOCKING) — the REPORT is the verdict, not the exit code.
+    res_clock = lancer("clock.py", [str(campagne), "--json"])
+    rap_clock = _rapport_clock(res_clock)
+    override_derive = CLOCK.derive_autorisee()
 
     # 6. world_tick post --apply (LIVING WORLD) — reconciliation. NON-BLOCKING:
     #    gated by the presence of actors.json (world_tick guards itself on
     #    features.temporality). A failure here NEVER prevents closing (alert).
     res_tick = _tick_post_si_actif(campagne, num)
 
-    # ~10-point pipeline check (skipped if JSON is broken: we read no further)
+    # 12-point pipeline check (skipped if JSON is broken: we read no further)
     points = []
     if res_json["exit"] == 0:
         points = check_pipeline(campagne, session_path, monde,
-                                res_check, res_clock)
+                                res_check, res_clock, rap_clock, override_derive)
 
     # Verdict
     blocs = []
@@ -291,18 +379,29 @@ def executer(campagne: Path, num_session: int | None,
             blocs.append(f"{p['id']} {p['label']} — {p['detail']}")
 
     alertes = []
+    if override_derive:
+        alertes.append(
+            f"⚠️ OVERRIDE ACTIVE — {_ESCAPE}=1: the temporal gates (P5, P11, "
+            "world_tick) were downgraded to alerts. The GM accepts the "
+            "divergence; NOTHING was resynchronised.")
     if res_dist["exit"] == 1:
         alertes.append("validator-distances: warnings (human review needed)")
     for p in points:
         if not p["bloquant"] and not p["ok"]:
             alertes.append(f"{p['id']} {p['label']} — {p['detail']}")
-    # Living world: reconciliation is informational, never blocking.
+    # Living world: reconciliation is informational EXCEPT when the tick reports
+    # a temporal incoherence (exit 3) — that is the same class as P11.
     if res_tick.get("lance"):
         if res_tick["exit"] == 0:
             alertes.append("world_tick post: world reconciled (see detail).")
         elif res_tick["exit"] == 1:
             alertes.append("world_tick post: reconciliations applied "
                            "(disrupted plans renewed / propagations).")
+        elif res_tick["exit"] == _CODE_INCOHERENCE_TICK:
+            cause = (res_tick.get("stderr") or "").strip().splitlines()
+            message = ("world_tick post: TEMPORAL INCOHERENCE — "
+                       + (cause[-1] if cause else "see its output"))
+            (alertes if override_derive else blocs).append(message)
         else:
             alertes.append("world_tick post: NON-blocking failure "
                            f"(exit {res_tick['exit']}) — reconciliation to rerun manually.")
@@ -319,6 +418,8 @@ def executer(campagne: Path, num_session: int | None,
         "session_num": num,
         "session_fichier": str(session_path),
         "ok": ok,
+        "clock_drift_override": override_derive,
+        "derive_temporelle": rap_clock.get("derive"),
         "etapes": {
             "validate_json": res_json["exit"],
             "validate_schema": res_schema["exit"],
@@ -357,7 +458,7 @@ def _titre_session(session_path: Path) -> str:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="close_session.py",
-        description="Session closing pipeline — deterministic guards + 10-point check.",
+        description="Session closing pipeline — deterministic guards + 12-point check.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
@@ -407,10 +508,15 @@ def main(argv=None) -> int:
     print(f"  validate_json        : exit {et['validate_json']}")
     print(f"  validator-distances  : exit {et['validator_distances']}")
     print(f"  check_session        : exit {et['check_session']}")
-    print(f"  clock (dry-run)      : exit {et['clock']}")
+    print(f"  clock (report)       : exit {et['clock']}")
     if et.get("world_tick_post") is not None:
         print(f"  world_tick post      : exit {et['world_tick_post']} (living world)")
     print("─" * 60)
+    derive = rapport.get("derive_temporelle")
+    if derive:
+        for ligne in CLOCK.formater_derive(derive):
+            print("  " + ligne)
+        print("─" * 60)
     for p in rapport["points"]:
         mark = "✅" if p["ok"] else ("❌" if p["bloquant"] else "⚠️")
         ligne = f"  {mark} {p['id']} {p['label']}"
