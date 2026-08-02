@@ -27,6 +27,7 @@ ansible/.vault_pass
 # Real campaign data (local only, git-ignored)
 data/mygamemaster/campaigns/la-naissance-dun-roi/
 data/mygamemaster/campaigns/jusquau-bout-de-mon-monde/
+data/mygamemaster/campaigns/nouvelle-marche/
 # Legacy pre-rename campaign tree — git-ignored, but `COPY . .` would still bake it in.
 data/mj-tonnerre/
 
