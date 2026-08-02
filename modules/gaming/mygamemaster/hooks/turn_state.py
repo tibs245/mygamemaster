@@ -108,28 +108,45 @@ OPERATOR ESCAPE HATCH
     still tracked. Default: ON. Budget: `meta.hooks.turn_gate_max_tentatives`
     (falls back to the judge's `gate_max_tentatives`, default 2).
 
-USAGE (from the campaign cwd)
+USAGE (from the campaign cwd — diagnostics; the enforcing path is the hooks below)
     echo "<narration draft>" | python3 .../turn_state.py check --declared "<player input>"
     python3 .../turn_state.py signal --message "⏩"     # arm/clear the grant explicitly
     python3 .../turn_state.py state                    # inspect, prints JSON
     python3 .../turn_state.py reset                    # clear state + grant
   Exit codes for `check`: 0 = deliver, 1 = refused (rewrite, then resubmit).
+  When the runtime has classified the turn, `--declared` is IGNORED in favour of that
+  record: the player's message is the only thing that can arm a grant.
 
-INTEGRATION (read this before wiring it in)
-    Today this module is a SECOND command the GM runs alongside `mj_checkpoint.py`; it is
-    not called from anywhere in the repository yet. The one-line hand-off, for whoever
-    merges the two gates:
+WHERE THIS RUNS (three call sites, only one of which asks anything of the model)
+    A gate whose only trigger is a line of `SKILL.md` is not enforced — that is the whole
+    lesson of `docs/10-field-report.md` and of the agency gate branched the day before. So
+    the pacing rules are wired to the hooks the runtime actually runs:
 
-        v = turn_state.check_narration(camp, payload, draft, args.declared)
-        violations = v["violations"] + violations   # deterministic first, judge after
+      1. `pre_llm_call` → `open_turn()`. The grant is armed from the player's VERBATIM
+         message, by the runtime, once per turn. This is what makes the signal both
+         unforgeable (the model can no longer type its own `--declared "⏩"`) and
+         un-skippable (no `--declared` to forget). It also publishes the classification as
+         a campaign-level FACT (`.banquier/turn-signal.json`) so the two other call sites,
+         which do not share this module's `snap-<sid>.json`, read the same verdict.
+      2. `pre_tool_call` → `clock_verdict()`. The ONE effect of an ellipse that is both
+         persistent and deterministic is the game clock in
+         `world.json > rules.time.tracking.current_day`. A write that pushes that integer
+         forward without a signal is BLOCKED, and the runtime hands the refusal back to the
+         model, which must adapt (specs/hooks-runtime.md §1). This is the doctrine's
+         "forbidden action → the response AND the actions are reworked", and it is the only
+         mechanism in the runtime that can force a rework at all.
+      3. `transform_llm_output` → `check_delivered()`. Last-resort net, on the text really
+         delivered. It does NOT cut: removing "Trois heures plus tard" leaves the narration
+         that follows it incoherent, and the house rule is that a rework beats a cut. It
+         feeds the correction forward and journals the turn.
 
-    put right before `mj_checkpoint.main()` computes `n = L.attempts_inc(...)`, and its
-    own attempt budget dropped in favour of the checkpoint's. `declared` MUST be the
-    player's VERBATIM message: it is the only thing that can arm a grant — omit it and
-    no `⏩` is ever seen, so every ellipse is refused.
+    `mj_checkpoint.py` keeps `check_narration()` as its pacing layer: that is the path
+    where a refusal buys a REWRITE BEFORE DELIVERY, which is strictly better than either
+    of the two above. Call site 2 is what makes the model come to it.
+
     Violations use the SAME shape as `hooks/llm_judge.py`
-    ({"domaine","regle","extrait","pourquoi","correction"}) so the checkpoint can feed
-    them to its existing `format_feedback` / `scoreboard_update` without adaptation.
+    ({"domaine","regle","extrait","pourquoi","correction"}) so every call site can feed
+    them to the existing `format_feedback` / `scoreboard_update` without adaptation.
 """
 import argparse
 import json
@@ -152,7 +169,14 @@ STATES = (AWAITING_INPUT, DECISION_STOP, EVENT_STOP, FF_GRANTED)
 K_STATE = "turn_state"
 K_GRANT = "turn_ff_grant"
 K_ATTEMPTS = "turn_gate_attempts"    # this gate's own budget, NOT the checkpoint's
+K_CLOCK_ATTEMPTS = "turn_clock_attempts"   # the pre_tool_call gate's own budget
+K_LAST_TURN = "turn_last_seen"
 SCOREBOARD_KEY = "turn_gate"
+SCOREBOARD_CLOCK_KEY = "turn_clock_gate"
+
+# Campaign-level, NOT per-session: the CLI runs under session_id "gate" and would never
+# see what `pre_llm_call` wrote under the real Hermes session id.
+TURN_SIGNAL_FILE = "turn-signal.json"
 
 ELLIPSE_THRESHOLD_MIN = 60          # TURN-02: "about an hour of game time"
 MAX_MOMENTS_WITHOUT_GRANT = 1       # TURN-01: one moment = one STOP
@@ -444,25 +468,26 @@ def grant_clear(camp, payload, reason=""):
                                         "ts": L.now_iso()})
 
 
-def attempts_get(camp, payload):
-    v = L.snap_get(camp, payload, K_ATTEMPTS)
+def attempts_get(camp, payload, key=K_ATTEMPTS):
+    v = L.snap_get(camp, payload, key)
     return int(v) if isinstance(v, int) else 0
 
 
-def attempts_inc(camp, payload):
-    n = attempts_get(camp, payload) + 1
-    L.snap_set(camp, payload, K_ATTEMPTS, n)
+def attempts_inc(camp, payload, key=K_ATTEMPTS):
+    n = attempts_get(camp, payload, key) + 1
+    L.snap_set(camp, payload, key, n)
     return n
 
 
-def attempts_reset(camp, payload):
-    L.snap_set(camp, payload, K_ATTEMPTS, 0)
+def attempts_reset(camp, payload, key=K_ATTEMPTS):
+    L.snap_set(camp, payload, key, 0)
 
 
 def reset(camp, payload):
     set_state(camp, payload, AWAITING_INPUT)
     grant_clear(camp, payload, "reset")
     attempts_reset(camp, payload)
+    attempts_reset(camp, payload, K_CLOCK_ATTEMPTS)
 
 
 # ── Transitions ──────────────────────────────────────────────────────────────
@@ -475,7 +500,11 @@ def observe_input(camp, payload, message):
     grant: a permission granted for one turn cannot survive into the next (TURN-02),
     and a silence is a decision to follow the default flow, not permission (TURN-04).
     """
-    kind, signal = classify_input(message)
+    return apply_kind(camp, payload, *classify_input(message))
+
+
+def apply_kind(camp, payload, kind, signal=""):
+    """`observe_input` once the classification is already known (see `open_turn`)."""
     if kind == "fast_forward":
         grant_arm(camp, payload, signal)
         state = FF_GRANTED
@@ -490,6 +519,58 @@ def observe_input(camp, payload, message):
     set_state(camp, payload, state)
     return {"input": kind, "signal": signal, "state": state,
             "grant": kind == "fast_forward"}
+
+
+# ── Runtime turn record (campaign-level fact, written by pre_llm_call) ───────
+
+
+def signal_read(camp):
+    """How the RUNTIME classified this turn's player message, or None."""
+    d = L.load_json(_signal_path(camp))
+    return d if isinstance(d, dict) and d.get("kind") in INPUT_KINDS else None
+
+
+def open_turn(camp, payload, message, paused=False):
+    """Opens a turn on the real player message. Entry point for `pre_llm_call`.
+
+    Arms or clears the grant, publishes the classification campaign-wide, and clears the
+    per-turn budget of the clock gate. A paused turn (⏸️) is recorded as such and gates
+    nothing: the pause is the player's own, explicit bypass channel.
+    """
+    kind, signal = classify_input(message)
+    if not paused:
+        apply_kind(camp, payload, kind, signal)
+    L.snap_set(camp, payload, K_CLOCK_ATTEMPTS, 0)
+    previous = signal_read(camp) or {}
+    record = {"kind": kind, "signal": signal, "paused": bool(paused),
+              "sid": L._sid(payload), "ts": L.now_iso(),
+              # Turn identity: `ts` has one-second resolution and two turns can share it.
+              "seq": int(previous.get("seq") or 0) + 1,
+              "message": L.truncate(message, 200)}
+    _signal_write(camp, record)
+    return record
+
+
+def _sync_turn(camp, payload, runtime):
+    """Clears the rewrite budget when the runtime has moved on to a new turn.
+
+    `pre_llm_call` resets the budgets it can reach, but `mj_checkpoint.py` and the CLI keep
+    their state under session_id "gate", which no hook ever sees. Without this, a refusal
+    on one turn would still be counted against the next one and the second turn would open
+    already one attempt from a forced pass.
+    """
+    seq = runtime.get("seq")
+    if seq is not None and L.snap_get(camp, payload, K_LAST_TURN) != seq:
+        L.snap_set(camp, payload, K_LAST_TURN, seq)
+        attempts_reset(camp, payload)
+
+
+def _signal_path(camp):
+    return L._bq_dir(camp) / TURN_SIGNAL_FILE
+
+
+def _signal_write(camp, record):
+    L._locked_rw(_signal_path(camp), lambda _: record)
 
 
 # ── Verdict ──────────────────────────────────────────────────────────────────
@@ -578,7 +659,16 @@ def check_narration(camp, payload, draft, declared="", stop=DECISION_STOP, monde
     """
     if monde is None:
         monde = L.load_monde(camp)
-    obs = observe_input(camp, payload, declared) if declared else None
+    # The runtime read the player's real message; `declared` is the model's retyping of
+    # it, so it may differ — including in a ⏩ the player never sent.
+    runtime = signal_read(camp)
+    if runtime is not None and not runtime.get("paused"):
+        _sync_turn(camp, payload, runtime)
+        obs = apply_kind(camp, payload, runtime["kind"], runtime.get("signal", ""))
+    elif declared:
+        obs = observe_input(camp, payload, declared)
+    else:
+        obs = None
     granted = grant_get(camp, payload) is not None
     moments = detect_moments(draft)
     verdict = {
@@ -621,6 +711,119 @@ def check_narration(camp, payload, draft, declared="", stop=DECISION_STOP, monde
     new_state = stop if stop in (DECISION_STOP, EVENT_STOP) else DECISION_STOP
     set_state(camp, payload, new_state)
     verdict["state"] = new_state
+    return verdict
+
+
+def check_delivered(camp, payload, draft, monde=None):
+    """LAST-RESORT NET on the text really delivered. Entry point for `transform_llm_output`.
+
+    Deliberately NOT a cut, unlike the agency gate on the same hook: removing an ellipse
+    marker leaves the narration that follows it hanging in a moment that no longer exists,
+    and the house doctrine is that a rework beats a cut. Nothing downstream of inference
+    can ask for a rework, so what is left here is the correction fed forward — and the
+    journal that proves the turn was seen.
+
+    No budget: one pass per turn, no re-inference, and `take_pending` clears the feedback
+    after a single injection. It reads NONE of the other gates' counters.
+
+    Returns {"violations", "granted", "moments", "_skipped"?}. Never raises for a missing
+    world.json — the caller is on the delivery path of every turn.
+    """
+    if monde is None:
+        monde = L.load_monde(camp)
+    granted = grant_get(camp, payload) is not None
+    out = {"violations": [], "granted": granted, "moments": []}
+    if not gate_enabled(monde):
+        out["_skipped"] = "gate_off"
+        return out
+    out["moments"] = detect_moments(draft)
+    out["violations"] = evaluate(out["moments"], granted)
+    if granted:
+        grant_clear(camp, payload, "consumed")
+    set_state(camp, payload, DECISION_STOP)
+    return out
+
+
+# ── Clock gate (pre_tool_call): the ellipse's one persistent, deterministic effect ──
+
+
+def current_day(monde):
+    """`rules.time.tracking.current_day` as an int, or None when it is not one.
+
+    Only the DAY is read. `current_hour` is free text in the real corpus ("morning",
+    "matin"), and specs/hooks-runtime.md §2 forbids blocking on anything ambiguous.
+    """
+    try:
+        suivi = (((monde.get("rules") or {}).get("time") or {}).get("tracking")) or {}
+        return int(suivi.get("current_day"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def clock_verdict(camp, payload, monde, before, after):
+    """TURN-02 on a WRITE that pushes the game clock forward. Entry point for `pre_tool_call`.
+
+    Returns {"action": "allow"|"block", "reason", "message", ...}. `block` is the only
+    verdict in this repository that makes the model rework a turn: the runtime hands the
+    refusal back and the model must adapt (specs/hooks-runtime.md §1).
+
+    A DETECTED violation blocks; anything we merely could not establish ALLOWS and says
+    so. In particular, a turn with no runtime record allows: no record means `pre_llm_call`
+    did not run, so no ⏩ could ever have been seen, and blocking on our own absence would
+    refuse every legitimate ellipse of every campaign.
+    """
+    verdict = {"action": "allow", "reason": "", "message": "",
+               "before": before, "after": after, "attempts": 0}
+    if not gate_enabled(monde):
+        verdict["reason"] = "gate_off"
+        return verdict
+    if before is None or after is None:
+        verdict["reason"] = "no_clock"
+        return verdict
+    if after <= before:
+        verdict["reason"] = "no_advance"
+        return verdict
+
+    sig = signal_read(camp)
+    if sig is None or sig.get("sid") != L._sid(payload):
+        verdict["reason"] = "blind_no_turn_record"
+        return verdict
+    if sig.get("paused"):
+        verdict["reason"] = "paused"
+        return verdict
+    if sig.get("kind") == "fast_forward":
+        verdict["reason"] = "granted"
+        verdict["signal"] = sig.get("signal", "")
+        return verdict
+
+    days = after - before
+    violation = _violation(
+        "TURN-02", "current_day %s → %s" % (before, after),
+        "the write advances game time by %d day(s) and the player gave no fast-forward "
+        "signal this turn (his message reads as %r)" % (days, sig.get("kind", "?")),
+        "keep the clock where it is, narrate only the current moment and stop on the "
+        "state of the world — or ask the player before the ellipse")
+    verdict["violations"] = [violation]
+    n = attempts_inc(camp, payload, key=K_CLOCK_ATTEMPTS)
+    budget = gate_max_attempts(monde)
+    verdict["attempts"] = n
+    verdict["max_attempts"] = budget
+    feedback = format_feedback([violation])
+    if n >= budget:
+        L.snap_set(camp, payload, K_CLOCK_ATTEMPTS, 0)
+        L.scoreboard_update(camp, SCOREBOARD_CLOCK_KEY, False, 0, 1, ["TURN-02"], forced=1)
+        L.set_pending(camp, payload, feedback)
+        verdict["reason"] = "forced"
+        verdict["forced"] = n
+        return verdict
+    L.scoreboard_update(camp, SCOREBOARD_CLOCK_KEY, False, 0, 1, ["TURN-02"])
+    verdict["action"] = "block"
+    verdict["reason"] = "no_signal"
+    verdict["message"] = (
+        "%s\n\n➡️ Rewrite this turn — the narration AND this write — then try again "
+        "(attempt %d/%d). The player can grant the ellipse with ⏩; you cannot grant it "
+        "to yourself. After %d attempts the write is let through and the violation is "
+        "logged." % (feedback, n, budget, budget))
     return verdict
 
 

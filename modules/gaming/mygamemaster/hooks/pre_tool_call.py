@@ -3,7 +3,10 @@
 pre_tool_call — executed before a write tool (matched in config.yaml).
 
 1. Snapshot of the counters for the targeted file (baseline for post-write deltas).
-2. JSON integrity guard: if a `write_file` provides broken JSON content and
+2. PACING GATE (TURN-02): a write that pushes `rules.time.tracking.current_day` forward
+   with no fast-forward signal from the player is BLOCKED — the model receives the refusal
+   and must rework the turn. This is the only hook that can force a rework at all.
+3. JSON integrity guard: if a `write_file` provides broken JSON content and
    `meta.hooks.garde_json_strict` is true → we BLOCK (the model receives the refusal and corrects).
    Otherwise → simple warning appended to the ledger.
 
@@ -15,9 +18,64 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _lib as L  # noqa: E402
+import turn_state as T  # noqa: E402
 
 WRITE_KEYS = ["path", "file_path", "filename", "file", "target", "name"]
 CONTENT_KEYS = ["content", "text", "new_content", "data", "contents"]
+
+
+def _turn_trace(camp, payload, outcome, reason, info=None):
+    """Durable record first, stderr second (same trade-off as `transform_llm_output`)."""
+    info = dict(info or {})
+    try:
+        L.turn_record(camp, payload, outcome, reason, **info)
+    except Exception as exc:
+        sys.stderr.write(
+            "[mj-turn] JOURNAL WRITE FAILED (%s: %s): a pacing verdict could not be "
+            "recorded in .banquier/turn-gate.json.\n" % (type(exc).__name__, exc))
+    if outcome != "clean":
+        detail = " ".join("%s=%s" % (k, info[k]) for k in sorted(info))
+        sys.stderr.write("[mj-turn] %s: %s %s\n" % (outcome, reason, detail))
+
+
+def enforce_pacing(camp, payload, monde, kind, path, content):
+    """TURN-02 on the game clock this write is about to move. Returns a block dict or {}.
+
+    THIS is where the doctrine's "forbidden action → rework the response AND the actions"
+    becomes real. `transform_llm_output` cannot ask for a rewrite (rewrite-only, it cannot
+    restart the model); `pre_tool_call` can, and an ellipse's one persistent effect — the
+    integer `current_day` — is exactly the kind of unambiguous data specs/hooks-runtime.md
+    §2 allows a hook to block on. A turn that cannot persist its ellipse has to rework it.
+
+    Scope is deliberately narrow, because a false rejection is worse than the original
+    defect: world.json only, full parseable JSON content only (a patch carries no clock to
+    compare), day counters only (`current_hour` is free text), and only when the day moves
+    FORWARD. Everything else, and every failure of ours, lets the write through.
+
+    Never raises: this runs before every write of every campaign.
+    """
+    if kind != "world" or not isinstance(content, str) or not content.strip():
+        return {}
+    try:
+        after = T.current_day(json.loads(content))
+        before = T.current_day(L.load_json(path) or {})
+        v = T.clock_verdict(camp, payload, monde, before, after)
+    except Exception as exc:
+        _turn_trace(camp, payload, "blind", "clock_gate_error",
+                    {"error": "%s: %s" % (type(exc).__name__, exc)})
+        return {}
+
+    info = {k: v[k] for k in ("before", "after", "attempts") if v.get(k) is not None}
+    if v["action"] == "block":
+        _turn_trace(camp, payload, "blocked", v["reason"], info)
+        return {"action": "block", "message": v["message"]}
+    if v["reason"] == "forced":
+        _turn_trace(camp, payload, "forced", v["reason"], info)
+    elif v["reason"].startswith("blind"):
+        _turn_trace(camp, payload, "blind", v["reason"], info)
+    elif v["reason"] in ("granted", "gate_off", "paused"):
+        _turn_trace(camp, payload, "allowed", v["reason"], info)
+    return {}
 
 
 def handle(payload):
@@ -38,11 +96,19 @@ def handle(payload):
     except Exception:
         pass
 
-    # 2) JSON guard (only if full content is provided — write_file).
     monde = L.load_monde(camp)
+    content = L.first_present(tool_input, CONTENT_KEYS)
+
+    # 2) Pacing gate. Suspended by an explicit ⏸️ pause only — an admin who plays gets the
+    #    check, like the judge and the agency gate.
+    if not L.pause_active(payload, monde, camp):
+        blocked = enforce_pacing(camp, payload, monde, kind, path, content)
+        if blocked:
+            return blocked
+
+    # 3) JSON guard (only if full content is provided — write_file).
     if L.is_bypassed(payload, monde, camp):
         return {}
-    content = L.first_present(tool_input, CONTENT_KEYS)
     if isinstance(content, str) and content.strip():
         try:
             json.loads(content)

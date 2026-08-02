@@ -130,7 +130,7 @@ all fine toggles it oversees**. Otherwise, the fine toggle decides (default ON).
 |---|---|
 | `tracabilite` | `auto_commit`, `snapshot_fin_session` |
 | `verbosite` | `banquier_persiste` |
-| `temporalite` | `tick_pre`, `tick_post`, `brief_scene` |
+| `temporalite` | `tick_pre`, `tick_post`, `brief_scene`, `docs_monde` |
 | `pnj_faction_vivants` | exposed to `world_tick` (actors that think) |
 | `tts` | `tts_auto` (auto-voice in `transform_llm_output`) — **the one fine toggle that defaults to `false`** |
 
@@ -142,6 +142,12 @@ all fine toggles it oversees**. Otherwise, the fine toggle decides (default ON).
 > the result with `modules/gaming/mygamemaster-tts/scripts/tts_doctor.py`. Its outcome
 > — attached, configured skip, or failure — is recorded per turn in
 > `.banquier/tts-status.json`.
+
+> `docs_monde` is the SEASON block extracted from `saisons.json` by
+> `modules/gaming/mygamemaster/scripts/world_docs.py` and injected by `pre_llm_call`
+> (~300 chars for the current
+> fiction day: light, ground, vegetation, the day the phase tips, and the anti-tipping
+> rule within 2 days of that boundary).
 
 > So `temporalite=false` is enough to neutralize `tick_pre/tick_post/brief_scene` even if they are
 > `true` further down — no need to set them to `false` one by one. Conversely, for a

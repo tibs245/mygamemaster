@@ -35,6 +35,11 @@ FIELD_TO_VAR = {
     "language": "default_language",
     "discord_secret_key": "discord_secret_key",
     "soul_extra": "soul_extra",
+    # Optional; a field absent from this map is dropped SILENTLY, so an unmapped
+    # games.yml key looks applied and is not.
+    "memory_char_limit": "memory_char_limit",
+    "user_char_limit": "user_char_limit",
+    "memory_nudge_interval": "memory_nudge_interval",
 }
 
 # Map the shared connection block -> Ansible connection facts (group vars).

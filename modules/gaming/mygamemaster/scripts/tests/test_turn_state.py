@@ -45,12 +45,19 @@ import _lib as L  # noqa: E402
 import turn_state as T  # noqa: E402
 
 
-def make_campaign(root: Path, hooks_cfg: dict | None = None) -> Path:
+def make_campaign(root: Path, hooks_cfg: dict | None = None, day: int | None = None) -> Path:
     camp = root / "campagne"
     camp.mkdir(parents=True, exist_ok=True)
     monde = {"meta": {"name": "test", "hooks": hooks_cfg or {}}}
+    if day is not None:
+        monde["rules"] = {"time": {"tracking": {"current_day": day,
+                                                "current_hour": "morning"}}}
     (camp / "world.json").write_text(json.dumps(monde), encoding="utf-8")
     return camp
+
+
+def monde_of(camp: Path) -> dict:
+    return json.loads((camp / "world.json").read_text(encoding="utf-8"))
 
 
 PAYLOAD = {"session_id": "gate"}
@@ -493,6 +500,209 @@ class TestCLI(unittest.TestCase):
     def test_unreadable_draft_never_breaks_the_session(self):
         out, rc = self.run_cli(["check", "--file", "does-not-exist.txt"])
         self.assertEqual(rc, 0)
+
+
+class TestRuntimeTurnRecord(unittest.TestCase):
+    """`open_turn` — the grant is armed by the RUNTIME, from the player's real message."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.camp = make_campaign(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_open_turn_arms_on_the_player_message_and_publishes_the_fact(self):
+        rec = T.open_turn(self.camp, PAYLOAD, "⏩ jusqu'au soir")
+        self.assertEqual(rec["kind"], "fast_forward")
+        self.assertIsNotNone(T.grant_get(self.camp, PAYLOAD))
+        self.assertEqual(T.signal_read(self.camp)["kind"], "fast_forward")
+
+    def test_the_record_is_campaign_level_not_per_session(self):
+        """The CLI runs under session_id 'gate' and must still see the runtime's verdict."""
+        T.open_turn(self.camp, {"session_id": "sess_hermes"}, "⏩")
+        self.assertTrue((self.camp / ".banquier" / T.TURN_SIGNAL_FILE).exists())
+        self.assertEqual(T.signal_read(self.camp)["kind"], "fast_forward")
+
+    def test_an_ordinary_message_clears_a_grant_left_over_from_the_previous_turn(self):
+        T.open_turn(self.camp, PAYLOAD, "⏩")
+        T.open_turn(self.camp, PAYLOAD, "Je prends la hache.")
+        self.assertIsNone(T.grant_get(self.camp, PAYLOAD))
+        self.assertEqual(T.signal_read(self.camp)["kind"], "action")
+
+    def test_a_paused_turn_is_recorded_and_arms_nothing(self):
+        rec = T.open_turn(self.camp, PAYLOAD, "⏸️ on s'arrête là", paused=True)
+        self.assertTrue(rec["paused"])
+        self.assertIsNone(T.grant_get(self.camp, PAYLOAD))
+
+    def test_the_model_cannot_grant_itself_an_ellipse(self):
+        """A `--declared` the model types is its own text; only the player's arms a grant."""
+        T.open_turn(self.camp, PAYLOAD, "Je regarde le feu.")
+        v = T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE, "⏩")
+        self.assertFalse(v["ok"])
+        self.assertIn("TURN-02", [x["regle"] for x in v["violations"]])
+
+    def test_the_runtime_grant_reaches_a_checkpoint_that_forgot_declared(self):
+        """The symmetrical false rejection: a real ⏩ must not be lost for a missing flag."""
+        T.open_turn(self.camp, PAYLOAD, "⏩ jusqu'au matin")
+        self.assertTrue(T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)["ok"])
+
+    def test_without_a_runtime_record_declared_still_arms_the_grant(self):
+        """CLI-only use (no hooks deployed) keeps its historical behaviour."""
+        self.assertTrue(T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE, "⏩")["ok"])
+
+    def test_a_new_turn_clears_the_rewrite_budget_of_the_checkpoint(self):
+        """`pre_llm_call` cannot reach the "gate" snapshot the checkpoint keeps its state in,
+        so a refusal on turn N would otherwise be counted against turn N+1."""
+        T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        self.assertEqual(
+            T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)["attempts"], 1)
+        T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        v = T.check_narration(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertEqual(v["attempts"], 1, "the new turn must start on a clean budget")
+        self.assertFalse(v["ok"], "and must therefore still get its rewrite")
+
+    def test_turns_are_told_apart_within_the_same_second(self):
+        """`ts` has one-second resolution: the sequence number is the turn's identity."""
+        first = T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        second = T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        self.assertEqual(second["seq"], first["seq"] + 1)
+
+
+class TestClockGate(unittest.TestCase):
+    """`clock_verdict` — TURN-02 on the ellipse's one persistent, deterministic effect."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.camp = make_campaign(Path(self.tmp.name), day=12)
+        self.monde = monde_of(self.camp)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def verdict(self, before, after, message="Je prends la hache.", **kw):
+        T.open_turn(self.camp, PAYLOAD, message, **kw)
+        return T.clock_verdict(self.camp, PAYLOAD, self.monde, before, after)
+
+    def test_a_day_jump_without_a_signal_is_blocked(self):
+        v = self.verdict(12, 15)
+        self.assertEqual(v["action"], "block")
+        self.assertIn("TURN-02", v["message"])
+        self.assertIn("⏩", v["message"])
+
+    def test_the_block_asks_for_a_rework_of_both_the_narration_and_the_write(self):
+        """Doctrine: a forbidden ACTION sends back the response AND the actions."""
+        self.assertIn("the narration AND this write", self.verdict(12, 13)["message"])
+
+    def test_a_fast_forward_signal_authorises_the_jump(self):
+        v = self.verdict(12, 15, "⏩ jusqu'au surlendemain")
+        self.assertEqual(v["action"], "allow")
+        self.assertEqual(v["reason"], "granted")
+
+    def test_a_paused_turn_is_never_blocked(self):
+        """⏸️ is the player's own bypass channel — the only exception in the doctrine."""
+        v = self.verdict(12, 20, "⏸️ on reprend demain", paused=True)
+        self.assertEqual(v["action"], "allow")
+        self.assertEqual(v["reason"], "paused")
+
+    def test_the_clock_standing_still_is_not_a_write_to_gate(self):
+        for before, after in ((12, 12), (12, 11), (None, 15), (12, None)):
+            self.assertEqual(self.verdict(before, after)["action"], "allow",
+                             (before, after))
+
+    def test_a_missing_runtime_record_allows_and_names_itself_blind(self):
+        """No pre_llm_call means no ⏩ could ever be seen: blocking would refuse them all."""
+        v = T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        self.assertEqual(v["action"], "allow")
+        self.assertTrue(v["reason"].startswith("blind"))
+
+    def test_a_record_from_another_session_is_not_this_turn_s(self):
+        T.open_turn(self.camp, {"session_id": "other"}, "⏩")
+        v = T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        self.assertTrue(v["reason"].startswith("blind"))
+
+    def test_the_escape_hatch_disables_the_block(self):
+        camp = make_campaign(Path(self.tmp.name) / "off",
+                             hooks_cfg={"turn_gate": False}, day=12)
+        T.open_turn(camp, PAYLOAD, "Je prends la hache.")
+        v = T.clock_verdict(camp, PAYLOAD, monde_of(camp), 12, 15)
+        self.assertEqual(v["action"], "allow")
+        self.assertEqual(v["reason"], "gate_off")
+
+    def test_the_budget_forces_the_write_through_and_logs_it(self):
+        """A gate that can never release kills a campaign: it must let go, loudly."""
+        T.open_turn(self.camp, PAYLOAD, "Je prends la hache.")
+        first = T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        self.assertEqual(first["action"], "block")
+        forced = T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        self.assertEqual(forced["action"], "allow")
+        self.assertEqual(forced["reason"], "forced")
+        self.assertIn("TURN-02", L.take_pending(self.camp, PAYLOAD))
+        self.assertEqual(
+            L.load_scoreboard(self.camp)[T.SCOREBOARD_CLOCK_KEY]["forces"], 1)
+
+    def test_a_new_turn_clears_the_budget(self):
+        T.open_turn(self.camp, PAYLOAD, "Je prends la hache.")
+        T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        T.open_turn(self.camp, PAYLOAD, "Je pose la hache.")
+        self.assertEqual(
+            T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)["action"], "block")
+
+    def test_the_clock_budget_is_nobody_else_s(self):
+        """Consuming another gate's counter is how a gate silently disarms its neighbour."""
+        T.open_turn(self.camp, PAYLOAD, "Je prends la hache.")
+        L.attempts_inc(self.camp, PAYLOAD)
+        T.clock_verdict(self.camp, PAYLOAD, self.monde, 12, 15)
+        self.assertEqual(L.attempts_get(self.camp, PAYLOAD), 1)
+        self.assertEqual(T.attempts_get(self.camp, PAYLOAD, T.K_ATTEMPTS), 0)
+
+    def test_current_day_reads_only_an_integer(self):
+        self.assertEqual(T.current_day(monde_of(self.camp)), 12)
+        for junk in ({}, {"rules": {}}, {"rules": {"time": {"tracking": {}}}},
+                     {"rules": {"time": {"tracking": {"current_day": "matin"}}}}):
+            self.assertIsNone(T.current_day(junk), junk)
+
+
+class TestDeliveredNet(unittest.TestCase):
+    """`check_delivered` — the last-resort net: it flags, it never cuts."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.camp = make_campaign(Path(self.tmp.name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_an_unauthorised_ellipse_in_the_delivered_text_is_flagged(self):
+        T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        v = T.check_delivered(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertEqual([x["regle"] for x in v["violations"]], ["TURN-02"])
+
+    def test_a_granted_ellipse_is_not_flagged_and_the_grant_is_consumed(self):
+        T.open_turn(self.camp, PAYLOAD, "⏩")
+        v = T.check_delivered(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertEqual(v["violations"], [])
+        self.assertIsNone(T.grant_get(self.camp, PAYLOAD))
+
+    def test_it_consumes_no_budget_at_all(self):
+        """One pass per turn, no re-inference: there is no loop here to bound."""
+        T.open_turn(self.camp, PAYLOAD, "Je taille le bois.")
+        for _ in range(4):
+            self.assertTrue(T.check_delivered(self.camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+                            ["violations"])
+        self.assertEqual(T.attempts_get(self.camp, PAYLOAD), 0)
+        self.assertEqual(L.attempts_get(self.camp, PAYLOAD), 0)
+
+    def test_the_escape_hatch_skips_it(self):
+        camp = make_campaign(Path(self.tmp.name) / "off", hooks_cfg={"turn_gate": False})
+        v = T.check_delivered(camp, PAYLOAD, DRAFT_ONE_ELLIPSE)
+        self.assertIn("_skipped", v)
+        self.assertEqual(v["violations"], [])
+
+    def test_a_clean_narration_leaves_the_turn_at_a_stop(self):
+        v = T.check_delivered(self.camp, PAYLOAD, DRAFT_STILL)
+        self.assertEqual(v["violations"], [])
+        self.assertEqual(T.get_state(self.camp, PAYLOAD), T.DECISION_STOP)
 
 
 if __name__ == "__main__":

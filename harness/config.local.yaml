@@ -22,6 +22,25 @@ agent:
   reasoning_effort: medium
   tool_use_enforcement: auto
 
+# Mirrors the memory/compression/curator defaults of config.yaml.j2. Without this
+# block the E2E harness never exercised a memory ceiling at all, so the store the
+# production agent saturated was the one thing the tests could not see.
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 6000
+  user_char_limit: 4000
+  nudge_interval: 10
+
+compression:
+  threshold: 0.75
+  protect_last_n: 40
+
+curator:
+  enabled: true
+  prune_builtins: false
+  stale_after_days: 90
+
 display:
   interface: cli
   language: fr

@@ -10,11 +10,15 @@ pre_llm_call — before the GM's turn:
 Output: {"context": "<feedback + state>"} or {}.
 """
 import os
+import re
 import subprocess
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _lib as L  # noqa: E402
+
+MEMORY_TAG_RE = re.compile(r"^[a-z0-9-]{4,24} \|")
 
 
 def handle(payload):
@@ -31,6 +35,8 @@ def handle(payload):
         "bypass": bypass,
     })
     L.attempts_reset(camp, payload)  # new turn → gate budget reset to zero
+    _open_turn(camp, payload, paused)
+    triggers = _section_triggers(camp, payload, monde, paused)
 
     # Judge feed-forward: the correction from the previous turn is re-injected as long as
     # the turn is NOT explicitly paused — including on an admin turn (otherwise, in a game
@@ -43,9 +49,19 @@ def handle(payload):
             parts.append(pending)
 
     if bypass or not cfg["injection_etat"]:
+        L.section_usage_record(camp, payload, triggers)
         return {"context": "\n\n".join(parts)} if parts else {}
 
     parts.append(build_context(camp, monde, payload))
+    if cfg.get("fiche_memoire"):
+        fiche = build_memory_card(monde)  # "" below the threshold and while the format holds
+        if fiche:
+            parts.append(fiche)
+            triggers["memory_card_active"] = True
+    if cfg.get("docs_monde"):  # gated by features.temporality (see _lib.hooks_cfg)
+        saison = build_season_brief(camp, monde)  # fail-open: "" if unavailable
+        if saison:
+            parts.append(saison)
     if cfg.get("brief_scene"):  # gated by features.temporality (see _lib.hooks_cfg)
         brief = build_scene_brief(camp, payload, monde)  # fail-open: "" if unavailable
         if brief:
@@ -54,8 +70,50 @@ def handle(payload):
         emo = build_emotions_brief(camp)  # fail-open: "" if unavailable
         if emo:
             parts.append(emo)
+    L.section_usage_record(camp, payload, triggers)
     ctx = "\n\n".join(p for p in parts if p)
     return {"context": ctx} if ctx else {}
+
+
+def _open_turn(camp, payload, paused):
+    """Arms or clears the fast-forward grant from the player's VERBATIM message (TURN-02).
+
+    This is the only place a grant can be created. Before it, the sole way to arm one was
+    a `--declared` string the model typed itself — which it could forget, and could forge.
+    FAIL-OPEN: a failure here leaves no runtime record, and `turn_state.clock_verdict`
+    treats a missing record as "do not gate" rather than as "no signal".
+    """
+    try:
+        import turn_state as T
+        T.open_turn(camp, payload, L.incoming_message(payload), paused=paused)
+    except Exception as exc:
+        sys.stderr.write("[mj-turn] turn not opened (%s: %s): pacing is unguarded this "
+                         "turn.\n" % (type(exc).__name__, exc))
+
+
+def _section_triggers(camp, payload, monde, paused):
+    """Cheap, shallow detection of the events tied to the 13 SKILL.md sections
+    MESURE-SKILL.md §3 flagged as unmeasured. Fail-open: {} on any failure."""
+    try:
+        msg = L.incoming_message(payload)
+        msg_l = msg.strip().lower()
+        out = {
+            "cmd_cloture": msg_l.startswith("!cloture"),
+            "cmd_game_report": msg_l.startswith("!game-report"),
+            "cmd_reprendre": msg_l.startswith("!reprendre"),
+            "pause_marker": bool(paused),
+            "question_mark": msg.rstrip().endswith("?"),
+        }
+        regime = (((monde or {}).get("meta") or {}).get("time") or {}).get("regime")
+        out["regime_non_narratif"] = bool(regime) and str(regime) != "Narratif"
+        noms = [str(f.get("name")) for f in L.load_pnj_list(camp)
+                if isinstance(f, dict) and f.get("name")]
+        hits = sum(1 for n in noms if n and n.lower() in msg.lower())
+        out["npc_any_named"] = hits >= 1
+        out["npc_multi_named"] = hits >= 2
+        return out
+    except Exception:
+        return {}
 
 
 def build_context(camp, monde, payload=None):
@@ -139,6 +197,95 @@ def _resumer_prefs(prefs):
     return " · ".join(morceaux)
 
 
+def build_memory_card(monde):
+    """Entry-format card for the agent memory tool, injected ONLY when it is needed.
+
+    The card is silent while the stores are healthy and appears at the one moment the
+    agent is about to fail: over `seuil` occupancy, or with an entry that cannot be
+    edited by anchor. Which is the point — a manual written into SKILL.md is read at
+    startup and forgotten by the turn it serves, and a memory entry written mid-session
+    does not reach the system prompt until the NEXT session (memory_tool.py: the
+    snapshot is frozen at session start).
+
+    The format itself is what the field corpus asks for. A 640-char entry stacking 8
+    rules can only be edited whole, which produced `replace` payloads of 838 chars
+    median that minimax-m3 truncated into `content is required`; and 39 of 85
+    `No entry matched` used a `**bold**` anchor while 13 typed the `§` Hermes uses as
+    its own delimiter. Small entries with a plain-ASCII tag remove both mechanically.
+
+    Read faults degrade to "" (a missing HERMES_HOME is not this hook's business).
+    Saturation does NOT: it is a state fault, and it stayed silent for 55 days.
+    """
+    try:
+        cfg = L.memory_cfg(monde)
+        mdir = L.memory_dir()
+        stores = []
+        for cle, nom, _ in L.MEMORY_STORES:
+            entries = L.memory_entries(Path(mdir) / nom)
+            if entries is None:
+                continue
+            limite = cfg["%s_char_limit" % cle]
+            stores.append({
+                "cible": cle,
+                "used": L.memory_used(entries),
+                "limite": limite,
+                "pct": L.memory_used(entries) / float(limite),
+                "hors_norme": _memory_off_format(entries, cfg["entry_max"]),
+            })
+        if not stores:
+            return ""
+        sature = [s for s in stores if s["pct"] >= cfg["seuil"]]
+        hors_norme = [h for s in stores for h in s["hors_norme"]]
+        if not sature and not hors_norme:
+            return ""
+        return _memory_card_text(stores, hors_norme, cfg)
+    except Exception:
+        return ""
+
+
+def _memory_off_format(entries, entry_max):
+    """Entries that cannot be edited by anchor: too long, or with no leading tag."""
+    out = []
+    for e in entries:
+        motifs = []
+        if len(e) > entry_max:
+            motifs.append("%d chars" % len(e))
+        if not MEMORY_TAG_RE.match(e):
+            motifs.append("no tag")
+        if motifs:
+            label = "%s (%s)" % (L.truncate(e, 34), ", ".join(motifs))
+            if label not in out:
+                out.append(label)
+    return out
+
+
+def _memory_card_text(stores, hors_norme, cfg):
+    usage = " · ".join(
+        "%s %d%% (%d/%d)" % (s["cible"].upper(), round(100 * s["pct"]), s["used"], s["limite"])
+        for s in stores
+    )
+    lignes = [
+        "🧠 AGENT MEMORY — %s — free space BEFORE writing." % usage,
+        "MANDATORY ENTRY FORMAT:  short-tag | text of at most %d chars" % cfg["entry_max"],
+        "  · short-tag = [a-z0-9-]{4,24}, unique, FIRST on the line. It is ALWAYS your old_text.",
+        "  · one entry = ONE rule. Never stack several.",
+        "  · NEVER type the § character (Hermes internal delimiter) nor **bold** in an anchor.",
+        "CALL:  memory(action=, target=, content=, old_text=)",
+        "  action ∈ add | replace | remove   (there is NO \"read\" action)",
+        "  target ∈ memory | user",
+        "  add → content required · replace → old_text AND content required "
+        "(content, not new_text) · remove → old_text required",
+        "EVICTION: above %d%%, every add is preceded by a remove. Every tool reply prints "
+        "`usage` — read it." % round(100 * cfg["seuil"]),
+    ]
+    if hors_norme:
+        lignes.append("⚠️ OFF-FORMAT, rewrite one per turn: " + " · ".join(hors_norme[:3]))
+    lignes.append(
+        "NOT HERE: GM conduct rules (→ references/locked-lessons.md), game data "
+        "(→ campaign files). Allowed: player meta-preferences, operational state.")
+    return "\n".join(lignes)
+
+
 def build_scene_brief(camp, payload, monde):
     """B1 — calls scene_brief.py for the current location and returns its text.
     Absolute FAIL-OPEN: any failure (no geo.json, no location hint, missing script,
@@ -158,6 +305,33 @@ def build_scene_brief(camp, payload, monde):
         )
         # scene_brief.py: code 0 ALWAYS (fail-open), 2 if campaign not found.
         if proc.returncode != 0:
+            return ""
+        return (proc.stdout or "").strip()
+    except Exception:
+        return ""  # never break a turn for a branch
+
+
+def build_season_brief(camp, monde):
+    """G4 — calls world_docs.py `season` for the current fiction day.
+
+    `saisons.json` is 50 048 chars the GM was expected to open on its own initiative
+    before describing weather, ground or light; ~340 chars are injected instead.
+    Absolute FAIL-OPEN: no saisons.json, no current day, missing script, timeout,
+    unusable output → "" (the turn proceeds without the block).
+    """
+    try:
+        suivi = (((monde.get("rules") or {}).get("time") or {}).get("tracking")) or {}
+        jour = suivi.get("current_day")
+        if jour in (None, ""):
+            return ""
+        script = _scripts_dir() / "world_docs.py"
+        if not script.exists():
+            return ""
+        proc = subprocess.run(
+            [sys.executable, str(script), "season", str(camp), str(jour)],
+            capture_output=True, text=True, timeout=8,
+        )
+        if proc.returncode != 0:  # world_docs.py season: code 0 ALWAYS (fail-open)
             return ""
         return (proc.stdout or "").strip()
     except Exception:
@@ -202,7 +376,6 @@ def _scene_lieu_courant(camp, payload):
 
 def _scripts_dir():
     """Directory of the living-world scripts (sibling of the hooks/ folder)."""
-    from pathlib import Path
     return Path(os.path.dirname(os.path.abspath(__file__))).parent / "scripts"
 
 

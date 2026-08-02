@@ -291,6 +291,9 @@ def build_fixture(root, strict=False, judge=False, auto_commit=False):
 def main():
     root = tempfile.mkdtemp(prefix="mjt-hooks-")
     sid = "sess_test"
+    # run_hook inherits os.environ, and $HERMES_HOME/memories is a REAL store on a
+    # developer machine — its saturation would leak into unrelated assertions.
+    os.environ["HERMES_HOME"] = os.path.join(root, "hermes-home")
     try:
         camp = build_fixture(root)
         persoj = os.path.join(camp, "characters", "403.json")
@@ -926,6 +929,160 @@ def main():
               "NPC EMOTIONS" not in out.get("context", "")
               and "AUTHORITATIVE STATE" in out.get("context", ""))
 
+        # ── 14a. SEASON block injected from saisons.json ─────────────────────
+        print("\n[14a] pre_llm_call — SEASON block (world_docs.py, fail-open)")
+        camps = build_fixture(os.path.join(root, "saison"))
+
+        def saison_ctx(camp=camps):
+            o, _ = run_hook("pre_llm_call.py", {
+                "cwd": camp, "session_id": "ssn", "message": "x", "extra": {"model": "m"}})
+            return o.get("context", "")
+
+        check("no saisons.json → no SEASON block, turn intact",
+              "SAISON" not in saison_ctx() and "AUTHORITATIVE STATE" in saison_ctx())
+        write_json(os.path.join(camps, "saisons.json"), {
+            "table_de_lecture": {"J1-J8": "phase:une", "J9-J17": "phase:deux"},
+            "phases": [
+                {"id": "phase:une", "nom": "La première", "lumiere": "lever ~06h07",
+                 "sol_et_eau": "Sol sec en surface.", "vegetation": "Feuillage vert-jaune.",
+                 "phase_suivante": "phase:deux"},
+                {"id": "phase:deux", "nom": "La deuxième", "phase_suivante": "phase:une"},
+            ],
+            "regle_anti_bascule": {"principe": "Jamais deux phases d'un coup."},
+        })
+        check("no current_day → no SEASON block", "SAISON" not in saison_ctx())
+        mondes = json.load(open(os.path.join(camps, "world.json"), encoding="utf-8"))
+        mondes["rules"] = {"time": {"tracking": {"current_day": 4}}}
+        mondes["meta"]["langue"] = "fr"
+        write_json(os.path.join(camps, "world.json"), mondes)
+        ctxs = saison_ctx()
+        check("SEASON block injected for the current fiction day",
+              "🍂 SAISON J4 — La première (phase:une)" in ctxs, ctxs[:200])
+        check("the block carries the senses, not the 50 kB file",
+              "sol/eau : Sol sec en surface." in ctxs and "lumière" in ctxs)
+        check("the block announces the tipping day",
+              "bascule vers phase:deux à J9" in ctxs)
+        bloc_saison = [b for b in ctxs.split("\n\n") if "SAISON" in b][0]
+        check("the block stays around 300 chars", len(bloc_saison) < 400, str(len(bloc_saison)))
+        check("the anti-tipping rule is silent far from the boundary",
+              "transition imminente" not in ctxs)
+        mondes["rules"]["time"]["tracking"]["current_day"] = 8
+        write_json(os.path.join(camps, "world.json"), mondes)
+        check("the anti-tipping rule appears on the eve of the transition",
+              "transition imminente" in saison_ctx() and "Jamais deux phases" in saison_ctx())
+        mondes["meta"]["features"] = {"temporality": False}
+        write_json(os.path.join(camps, "world.json"), mondes)
+        check("axis temporality OFF → no SEASON block, state injection intact",
+              "SAISON" not in saison_ctx() and "AUTHORITATIVE STATE" in saison_ctx())
+        mondes["meta"]["features"] = {}
+        mondes["meta"]["hooks"]["docs_monde"] = False
+        write_json(os.path.join(camps, "world.json"), mondes)
+        check("toggle docs_monde: false → no SEASON block", "SAISON" not in saison_ctx())
+        mondes["meta"]["hooks"].pop("docs_monde")
+        write_json(os.path.join(camps, "world.json"), mondes)
+        check("toggle docs_monde defaults to ON", "SAISON" in saison_ctx())
+        with open(os.path.join(camps, "saisons.json"), "w", encoding="utf-8") as fh:
+            fh.write("{ not json")
+        check("broken saisons.json → fail-open (no block, no crash)",
+              "SAISON" not in saison_ctx() and "AUTHORITATIVE STATE" in saison_ctx())
+
+        # ── 14b. memory entry-format card (threshold + anchor format) ────────
+        print("\n[14b] pre_llm_call — memory entry-format card")
+        campmc = build_fixture(os.path.join(root, "memcard"))
+        hhome = os.path.join(root, "hhome-card")
+        memdir = os.path.join(hhome, "memories")
+        os.makedirs(memdir, exist_ok=True)
+        DELIM = "\n§\n"
+        ENV_MC = {"HERMES_HOME": hhome}
+
+        def write_store(nom, entries):
+            with open(os.path.join(memdir, nom), "w", encoding="utf-8") as fh:
+                fh.write(DELIM.join(entries))
+
+        def card_ctx(env=None, camp=campmc):
+            e = dict(ENV_MC)
+            e.update(env or {})
+            o, _ = run_hook("pre_llm_call.py", {
+                "cwd": camp, "session_id": "smc", "message": "x",
+                "extra": {"model": "m"}}, env=e)
+            return o.get("context", "")
+
+        conforme = ["stop-rubis | never decide for the PC, hand the turn back.",
+                    "pacing-long | the player prefers long scenes over fast cuts."]
+        write_store("MEMORY.md", conforme)
+        write_store("USER.md", conforme)
+        ctxmc = card_ctx()
+        check("healthy stores under 70% → no card at all",
+              "AGENT MEMORY" not in ctxmc and "AUTHORITATIVE STATE" in ctxmc, ctxmc[:120])
+
+        write_store("USER.md", ["tag%03d | %s" % (i, "y" * 200) for i in range(15)])
+        ctxmc = card_ctx()
+        check("store above 70% → card injected", "AGENT MEMORY" in ctxmc, ctxmc[:120])
+        check("card reports the saturated store and its usage",
+              "USER 79% (3177/4000)" in ctxmc, ctxmc[:200])
+        check("card teaches the anchor format", "short-tag | text of at most 250 chars" in ctxmc)
+        check("card forbids § and bold anchors",
+              "NEVER type the § character" in ctxmc and "**bold**" in ctxmc)
+        check("card gives the exact signature, including 'content, not new_text'",
+              "memory(action=, target=, content=, old_text=)" in ctxmc
+              and "content, not new_text" in ctxmc)
+        check("card names the eviction rule at the configured threshold",
+              "above 70%, every add is preceded by a remove" in ctxmc)
+        check("conformant entries are not listed as off-format", "OFF-FORMAT" not in ctxmc)
+
+        write_store("USER.md", conforme + ["**S30 — Stop Rubis** : " + "z" * 620])
+        ctxmc = card_ctx()
+        check("one off-format entry fires the card BELOW the threshold",
+              "AGENT MEMORY" in ctxmc and "USER 19% (766/4000)" in ctxmc, ctxmc[:200])
+        check("the off-format entry is named with its size and its defect",
+              "OFF-FORMAT" in ctxmc and "643 chars, no tag" in ctxmc,
+              [x for x in ctxmc.splitlines() if "OFF-FORMAT" in x][:1])
+
+        write_store("USER.md", conforme + ["untagged but short enough to edit whole."])
+        ctxmc = card_ctx()
+        check("a short entry without a tag is still off-format (no anchor to aim at)",
+              "no tag" in ctxmc and "chars, no tag" not in ctxmc, ctxmc[:200])
+
+        write_store("USER.md", conforme)
+        write_store("MEMORY.md", ["ok-tag | " + "w" * 300])
+        ctxmc = card_ctx()
+        check("an over-long entry is off-format even with a valid tag",
+              "OFF-FORMAT" in ctxmc and "309 chars)" in ctxmc, ctxmc[:200])
+
+        write_store("MEMORY.md", conforme)
+        write_store("USER.md", ["tag%03d | %s" % (i, "y" * 200) for i in range(15)])
+        mondemc = json.load(open(os.path.join(campmc, "world.json"), encoding="utf-8"))
+        mondemc["meta"]["hooks"]["memoire"] = {"user_char_limit": 20000}
+        write_json(os.path.join(campmc, "world.json"), mondemc)
+        check("a raised ceiling declared in world.json silences the card",
+              "AGENT MEMORY" not in card_ctx())
+        mondemc["meta"]["hooks"]["memoire"] = {"user_char_limit": 4000, "seuil": 0.95}
+        write_json(os.path.join(campmc, "world.json"), mondemc)
+        check("a raised threshold silences the card at 79%", "AGENT MEMORY" not in card_ctx())
+        mondemc["meta"]["hooks"].pop("memoire")
+        mondemc["meta"]["hooks"]["fiche_memoire"] = False
+        write_json(os.path.join(campmc, "world.json"), mondemc)
+        check("toggle fiche_memoire: false → no card, state injection intact",
+              "AGENT MEMORY" not in card_ctx() and "AUTHORITATIVE STATE" in card_ctx())
+        mondemc["meta"]["hooks"].pop("fiche_memoire")
+        write_json(os.path.join(campmc, "world.json"), mondemc)
+        check("toggle defaults to ON", "AGENT MEMORY" in card_ctx())
+
+        o_mc, _ = run_hook("pre_llm_call.py", {
+            "cwd": campmc, "session_id": "smc_p", "message": "⏸️ debug",
+            "extra": {"model": "m"}}, env=ENV_MC)
+        check("no card on a paused turn (the GM is not playing)", o_mc == {},
+              json.dumps(o_mc)[:80])
+
+        ctxmc = card_ctx(env={"HERMES_HOME": os.path.join(root, "hhome-absent")})
+        check("no memories directory → read fault degrades to no card, turn intact",
+              "AGENT MEMORY" not in ctxmc and "AUTHORITATIVE STATE" in ctxmc, ctxmc[:120])
+        hbad = os.path.join(root, "hhome-broken")
+        os.makedirs(os.path.join(hbad, "memories", "USER.md"), exist_ok=True)
+        ctxmc = card_ctx(env={"HERMES_HOME": hbad})
+        check("unreadable store → no crash, no card, turn intact",
+              "AGENT MEMORY" not in ctxmc and "AUTHORITATIVE STATE" in ctxmc, ctxmc[:120])
+
         # ── 15. deterministic agency gate (AGENCY-01/02/03) ──────────────────
         print("\n[15] agency_gate — deterministic AGENCY-01/02/03")
         sys.path.insert(0, HOOKS_DIR)
@@ -1271,6 +1428,226 @@ def main():
         check("dialogue axis defaults to ON", LB.features({})["dialogue"])
         check("grading needs a model: no model configured → inactive, not blocking",
               not LB.dialogue_config({})["actif"])
+
+        print("\n[17] pre_llm_call — section-usage instrumentation")
+        import pre_llm_call as PLC  # noqa: E402
+        campu = build_fixture(os.path.join(root, "section-usage"))
+        sidu = "sess_usage"
+        usage_path = os.path.join(campu, ".banquier", "section-usage.json")
+
+        run_hook("pre_llm_call.py", {
+            "cwd": campu, "session_id": sidu, "message": "!cloture",
+            "extra": {"model": "m"},
+        })
+        usage = json.load(open(usage_path, encoding="utf-8"))
+        check("turn 1 counted", usage["turns"] == 1, json.dumps(usage))
+        check("!cloture fires cmd_cloture", usage["counts"].get("cmd_cloture") == 1)
+        check("fired list recorded on the turn",
+              usage["recent"][-1]["fired"] == ["cmd_cloture"], json.dumps(usage["recent"][-1]))
+
+        run_hook("pre_llm_call.py", {
+            "cwd": campu, "session_id": sidu, "message": "⏸️ pause",
+            "extra": {"model": "m"},
+        })
+        usage = json.load(open(usage_path, encoding="utf-8"))
+        check("bypass turn is still counted (fail-open trace, not a game guard)",
+              usage["turns"] == 2)
+        check("pause marker fires even though the turn returns {}",
+              usage["counts"].get("pause_marker") == 1)
+
+        run_hook("pre_llm_call.py", {
+            "cwd": campu, "session_id": sidu,
+            "message": "Berthe glares at Firmin across the table?",
+            "extra": {"model": "m"},
+        })
+        usage = json.load(open(usage_path, encoding="utf-8"))
+        last_fired = usage["recent"][-1]["fired"]
+        check("both known NPCs named → npc_multi_named",
+              "npc_multi_named" in last_fired, json.dumps(last_fired))
+        check("naming an NPC also fires the weaker npc_any_named",
+              "npc_any_named" in last_fired)
+        check("trailing '?' fires question_mark", "question_mark" in last_fired)
+
+        campr = build_fixture(os.path.join(root, "section-usage-regime"))
+        wp = os.path.join(campr, "world.json")
+        wj = json.load(open(wp, encoding="utf-8"))
+        wj["meta"]["time"]["regime"] = "Chronométré"
+        write_json(wp, wj)
+        run_hook("pre_llm_call.py", {
+            "cwd": campr, "session_id": "sess_regime", "message": "Rubis waits.",
+            "extra": {"model": "m"},
+        })
+        usager = json.load(open(os.path.join(campr, ".banquier", "section-usage.json"),
+                                 encoding="utf-8"))
+        check("meta.time.regime != Narratif fires regime_non_narratif",
+              "regime_non_narratif" in usager["recent"][-1]["fired"])
+
+        check("_section_triggers fail-open on a broken monde (never raises)",
+              PLC._section_triggers(pathlib.Path(campu), {"message": "x"}, "not-a-dict", False)
+              == {})
+        before = json.load(open(usage_path, encoding="utf-8"))
+        LB.section_usage_record(object(), {"session_id": sidu}, {"cmd_cloture": True})
+        after = json.load(open(usage_path, encoding="utf-8"))
+        check("section_usage_record fail-open on an unusable campaign path — "
+              "journal untouched, no exception",
+              before == after)
+
+        print("\n[18] pacing gate — a forbidden ellipse cannot persist (TURN-01/02/06)")
+        campt = build_fixture(os.path.join(root, "pacing"))
+        sidt = "sess_pacing"
+        wt = os.path.join(campt, "world.json")
+        wjt = json.load(open(wt, encoding="utf-8"))
+        wjt["rules"] = {"time": {"tracking": {"current_day": 12, "current_hour": "morning"}}}
+        write_json(wt, wjt)
+        turn_journal = os.path.join(campt, ".banquier", "turn-gate.json")
+
+        def open_turn(message, camp=campt, sid=sidt):
+            return run_hook("pre_llm_call.py", {"cwd": camp, "session_id": sid,
+                                                "message": message, "extra": {"model": "m"}})
+
+        def try_write(day, camp=campt, sid=sidt, path="world.json"):
+            body = dict(wjt)
+            body["rules"] = {"time": {"tracking": {"current_day": day}}}
+            return run_hook("pre_tool_call.py", {
+                "cwd": camp, "session_id": sid, "tool_name": "write_file",
+                "tool_input": {"path": path, "content": json.dumps(body)}})
+
+        open_turn("Je prends la hache.")
+        out, err = try_write(15)
+        check("a 3-day jump the player never authorised is REFUSED, not merely logged",
+              out.get("action") == "block", json.dumps(out))
+        check("the refusal names the rule and the signal the player controls",
+              "TURN-02" in out.get("message", "") and "⏩" in out.get("message", ""))
+        check("the refusal asks for a rework of the narration AND the write",
+              "the narration AND this write" in out.get("message", ""))
+        check("the block is journalled durably (stderr is not a record)",
+              json.load(open(turn_journal, encoding="utf-8"))["last_blocked"]["after"] == 15)
+        check("the block is announced on stderr too", "[mj-turn] blocked" in err)
+
+        out, _ = try_write(15)
+        check("the budget releases the write rather than trap the campaign",
+              out == {}, json.dumps(out))
+        check("the forced pass is pinned in the journal, never silent",
+              json.load(open(turn_journal, encoding="utf-8"))["last_forced"]["attempts"] == 2)
+        check("the unresolved violation is fed forward to the next turn",
+              _pending_has_text(os.path.join(campt, ".banquier", "pending-%s.json" % sidt)))
+
+        open_turn("⏩ jusqu'au surlendemain")
+        out, _ = try_write(15)
+        check("the player's ⏩ authorises the very same write", out == {}, json.dumps(out))
+
+        open_turn("Je pose la hache.")
+        out, _ = try_write(12)
+        check("a world.json write that does not move the clock is untouched", out == {})
+        out, _ = try_write(15, path=os.path.join("characters", "403.json"))
+        check("only world.json carries the clock — other campaign writes are not gated",
+              out == {})
+        out, _ = run_hook("pre_tool_call.py", {
+            "cwd": campt, "session_id": sidt, "tool_name": "patch",
+            "tool_input": {"path": "world.json", "diff": "@@ current_day 12 → 15"}}), ""
+        check("a patch carries no clock to compare — it is let through, not guessed at",
+              out[0] == {})
+
+        open_turn("⏸️ on reprend demain")
+        out, _ = try_write(20)
+        check("an explicit ⏸️ pause is never blocked — the player's own bypass channel",
+              out == {}, json.dumps(out))
+
+        campb = build_fixture(os.path.join(root, "pacing-blind"))
+        wb = os.path.join(campb, "world.json")
+        wjb = json.load(open(wb, encoding="utf-8"))
+        wjb["rules"] = {"time": {"tracking": {"current_day": 12}}}
+        write_json(wb, wjb)
+        out, err = run_hook("pre_tool_call.py", {
+            "cwd": campb, "session_id": "sess_blind", "tool_name": "write_file",
+            "tool_input": {"path": "world.json",
+                           "content": json.dumps({"rules": {"time": {"tracking":
+                                                                     {"current_day": 15}}}})}})
+        check("no runtime turn record = OUR outage, not the model's fault: write allowed",
+              out == {}, json.dumps(out))
+        check("and 'blind' is journalled apart from a decision (defect ≠ verdict)",
+              "blind" in json.load(open(os.path.join(campb, ".banquier", "turn-gate.json"),
+                                        encoding="utf-8"))["last_blind"]["outcome"])
+
+        campo = build_fixture(os.path.join(root, "pacing-off"))
+        wo = os.path.join(campo, "world.json")
+        wjo = json.load(open(wo, encoding="utf-8"))
+        wjo["rules"] = {"time": {"tracking": {"current_day": 12}}}
+        wjo["meta"]["hooks"]["turn_gate"] = False
+        write_json(wo, wjo)
+        open_turn("Je prends la hache.", camp=campo, sid="sess_off")
+        out, _ = run_hook("pre_tool_call.py", {
+            "cwd": campo, "session_id": "sess_off", "tool_name": "write_file",
+            "tool_input": {"path": "world.json", "content": json.dumps(
+                {"rules": {"time": {"tracking": {"current_day": 15}}}})}})
+        check("meta.hooks.turn_gate=false unblocks a live table", out == {}, json.dumps(out))
+
+        print("\n[18b] transform_llm_output — the delivered turn is flagged, never cut")
+        open_turn("▶️ on reprend")   # lift the persistent pause armed just above
+        open_turn("Je taille le bois.")
+        ell = ("Trois heures plus tard, la forge est froide. Berthe attend près du billot. "
+               "Que fais-tu ?")
+        out, err = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": sidt, "message": "Je taille le bois.",
+            "response": ell, "extra": {"model": "m"}})
+        delivered = out.get("response", ell)
+        check("the ellipse is NOT cut — cutting it strands the sentences after it",
+              "Trois heures plus tard" in delivered, delivered)
+        check("the pacing fault is journalled on the delivered text",
+              json.load(open(turn_journal, encoding="utf-8"))["last"]["outcome"] == "flagged")
+        check("the correction is fed forward instead",
+              _pending_has_text(os.path.join(campt, ".banquier", "pending-%s.json" % sidt)))
+        check("TURN-02 reaches the scoreboard from the delivery path alone",
+              LB.load_scoreboard(pathlib.Path(campt))["m"]["par_regle"].get("TURN-02") == 1)
+
+        open_turn("⏩")
+        out, _ = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": sidt, "message": "⏩", "response": ell,
+            "extra": {"model": "m"}})
+        check("a granted ellipse is delivered untouched and unflagged",
+              json.load(open(turn_journal, encoding="utf-8"))["last"]["outcome"] == "clean")
+
+        open_turn("Je taille le bois.")
+        out, err = run_hook("transform_llm_output.py", {
+            "cwd": campt, "session_id": sidt, "message": "⏸️ pause", "response": ell,
+            "extra": {"model": "m"}})
+        check("an explicit pause suspends the delivery net like the other gates",
+              json.load(open(turn_journal, encoding="utf-8"))["last"]["reason"] == "paused")
+
+        print("\n[18c] mj_checkpoint — the pacing layer, where a fault buys a REWRITE")
+        campc = build_fixture(os.path.join(root, "pacing-checkpoint"))
+        noj = {"MGM_JUDGE_ACTIF": "0", "MGM_JUDGE_MODEL": "", "MGM_DIALOGUE_MODEL": ""}
+        ELL = "Trois heures plus tard, la forge est froide."
+
+        open_turn("Je taille le bois.", camp=campc, sid="sess_cp")
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", ELL], cwd=campc, env=noj)
+        check("an unauthorised ellipse is sent back to be rewritten, not cut (exit 1)",
+              code == 1 and "TURN-02" in out, out)
+        check("the feedback tells the GM what to write instead",
+              "stay in the current moment" in out, out)
+
+        open_turn("Je taille le bois.", camp=campc, sid="sess_cp")
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", ELL, "--declared", "⏩"],
+                            cwd=campc, env=noj)
+        check("the model cannot grant itself the ellipse via --declared",
+              code == 1 and "TURN-02" in out, out)
+
+        open_turn("⏩ jusqu'au soir", camp=campc, sid="sess_cp")
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", ELL], cwd=campc, env=noj)
+        check("the player's real ⏩ clears the same draft, --declared or not",
+              code == 0 and "grant consumed" in out, out)
+
+        open_turn("Je taille le bois.", camp=campc, sid="sess_cp")
+        run_cli("mj_checkpoint.py", args=["--draft", ELL], cwd=campc, env=noj)
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", ELL], cwd=campc, env=noj)
+        check("the budget forces the turn through rather than loop (exit 0, loud)",
+              code == 0 and "PACING GATE FORCED" in out, out)
+
+        offc = dict(noj, MGM_TURN_GATE="0")
+        open_turn("Je taille le bois.", camp=campc, sid="sess_cp")
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", ELL], cwd=campc, env=offc)
+        check("MGM_TURN_GATE=0 clears the turn and says the pacing was not checked",
+              code == 0 and "pacing not checked" in out, out)
 
     finally:
         shutil.rmtree(root, ignore_errors=True)

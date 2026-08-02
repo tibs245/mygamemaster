@@ -49,6 +49,18 @@ games:
       **System**: generic d20 — Crunch 3/5.
       **Tone**: eerie, atmospheric, mysterious.
 
+    # ── Optional: agent memory ceilings ──────────────────────────────────────
+    # Defaults live in ansible/templates/config.yaml.j2 (6000 / 4000 chars,
+    # ≈ 2200 / 1450 tokens at the 2.75 chars/token Hermes counts). Set them here
+    # only to depart from those defaults; `host_vars/<slug>.yml` overrides this
+    # table in turn. Raising a ceiling without the entry-format card that
+    # pre_llm_call.py injects at 70% occupancy only moves the breaking point:
+    # the ceiling is what forces the oversized `replace` payloads in the first
+    # place (docs/10-field-report.md).
+    # memory_char_limit: 6000
+    # user_char_limit: 4000
+    # memory_nudge_interval: 10
+
   # Add another game by copying the block above and changing the values.
   # Remember to add its `discord_token_<slug>` to vault.yml.
   #

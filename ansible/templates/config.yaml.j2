@@ -28,11 +28,39 @@ agent:
   reasoning_effort: medium
   tool_use_enforcement: auto
 
+# Agent memory ceilings. Hermes counts ~2.75 chars/token, so 6000/4000 ≈ 2200/1450
+# tokens — the snapshot is frozen for the whole session and lands in the cached
+# prefix, so the real per-turn cost after the first call is marginal.
+# The former 2200/1375 were hard-coded here with no per-table override: the user
+# profile ran at 88% of its ceiling (98% as early as June 16) and produced 318
+# capacity refusals, which is what forced the oversized `replace` payloads the
+# model then truncated (docs/10-field-report.md).
+# Override per game: a `memory_char_limit:` field in the games.yml entry (mapped by
+# hermes_inventory.py) or `host_vars/<slug>.yml`. A ceiling is only useful with the
+# entry-format card injected by pre_llm_call.py — raising it alone just moves the
+# breaking point.
 memory:
   memory_enabled: true
   user_profile_enabled: true
-  memory_char_limit: 2200
-  user_char_limit: 1375
+  memory_char_limit: {{ memory_char_limit | default(6000) }}
+  user_char_limit: {{ user_char_limit | default(4000) }}
+  nudge_interval: {{ memory_nudge_interval | default(10) }}
+
+# Transcript compression + skill curator: both ran on Hermes defaults nobody chose.
+# threshold 0.50 summarised the transcript LOSSILY at half the window — the GM lost
+# the detail of its own session mid-game. prune_builtins: true is what took the skill
+# set 78 → 31 and, on the 26/07 pass, absorbed the player-preferences skill precisely
+# BECAUSE it was loaded before every turn.
+# The curator stays ON: it is the only thing keeping SKILL.md under the platform's
+# non-configurable 100 000-char write freeze.
+compression:
+  threshold: {{ compression_threshold | default(0.75) }}
+  protect_last_n: {{ compression_protect_last_n | default(40) }}
+
+curator:
+  enabled: true
+  prune_builtins: false
+  stale_after_days: {{ curator_stale_after_days | default(90) }}
 
 display:
   interface: cli

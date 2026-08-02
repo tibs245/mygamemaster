@@ -9,22 +9,28 @@ text and cuts what it flags. What this script adds is the chance to fix a draft 
 delivery — a rewrite is always better than a cut — plus the two layers the delivery path
 cannot afford (a network judge and a dialogue grader, one LLM call each).
 
-Three layers, in this order:
+Four layers, in this order:
 
   1. DETERMINISTIC AGENCY GATE (`agency_gate.py`) — local, stdlib, no model. Owns the TIER 0
      rules AGENCY-01/02/03. Its verdict does NOT depend on the LLM judge being configured,
      reachable or in budget: an unavailable judge can no longer let an agency violation through,
      which was the single most expensive defect of the 34-session corpus.
-  2. LLM JUDGE (`llm_judge.py`) — everything else (steward consistency + the other conduct
+  2. DETERMINISTIC PACING GATE (`turn_state.py`) — TURN-01/02/06. Also enforced by the runtime
+     (`pre_tool_call` refuses the write that would persist an unauthorised ellipse), but only
+     HERE does a fault buy a rewrite before the player sees anything. The fast-forward grant is
+     read from what the runtime recorded of the player's message, never from `--declared`:
+     the model cannot grant itself an ellipse.
+  3. LLM JUDGE (`llm_judge.py`) — everything else (steward consistency + the other conduct
      rules). Fail-open by design, and that is acceptable ONLY because layer 1 already ran.
-  3. DIALOGUE GRADER (`dialogue_judge.py`) — quality of the NPC dialogue, when there IS
-     dialogue. Layers 1 and 2 check that the scene breaks no rule; this one checks it is
+  4. DIALOGUE GRADER (`dialogue_judge.py`) — quality of the NPC dialogue, when there IS
+     dialogue. Layers 1 to 3 check that the scene breaks no rule; this one checks it is
      worth reading. On a second failure the turn switches to the dry-summary fallback rather
      than shipping a flat conversation (references/dialogue-craft.md §5).
 
 Exit contract (the response is TEXT, the GM reads it in the terminal):
   - OK                → « ✅ CHECKPOINT OK » (exit 0) → the GM delivers.
   - INFRACTION        → explicit feedback + « rewrite then retry » (exit 1) → the GM corrects.
+  - PACING            → « ⛔ PACING » naming TURN-01/02/06 (exit 1) → the GM reworks the turn.
   - FLAT DIALOGUE     → named rubric feedback (exit 1) → the GM rewrites the dialogue.
   - UNREADABLE DRAFT  → refusal (exit 1): a draft that cannot be read cannot be cleared.
   - BUDGET EXHAUSTED  → LOUD forced pass (exit 0), logged to the scoreboard and re-injected on
@@ -34,7 +40,9 @@ Exit contract (the response is TEXT, the GM reads it in the terminal):
 Operator escape hatches (a live campaign must always be unblockable):
   MGM_AGENCY_GATE=off        disables layer 1 entirely (default: ON).
   MGM_AGENCY_MAX_ATTEMPTS=N  rewrite budget of layer 1 before the forced pass (default 3).
-  feature_toggle.py <camp> dialogue off   disables layer 3 (the GM then summarises directly).
+  MGM_TURN_GATE=0            disables layer 2 entirely (default: ON).
+  meta.hooks.turn_gate_max_tentatives   rewrite budget of layer 2 (default 2).
+  feature_toggle.py <camp> dialogue off   disables layer 4 (the GM then summarises directly).
 
 Usage (from the campaign cwd) :
   echo "<narration draft>" | python3 .../mj_checkpoint.py [--declared "player action"]
@@ -49,6 +57,7 @@ import _lib as L  # noqa: E402
 import agency_gate as A  # noqa: E402
 import dialogue_judge as D  # noqa: E402
 import llm_judge as J  # noqa: E402
+import turn_state as T  # noqa: E402
 
 AGENCY_ATTEMPTS_KEY = "agency_attempts"
 DIALOGUE_ATTEMPTS_KEY = "dialogue_attempts"
@@ -81,7 +90,7 @@ def _trace_dialogue(msg):
 
 
 def run_dialogue_gate(draft, declared, camp, payload, monde):
-    """Layer 3. Returns (exit code or None to clear the turn, note appended to the OK line).
+    """Layer 4. Returns (exit code or None to clear the turn, note appended to the OK line).
 
     The grader never blocks on uncertainty: not configured, no dialogue in the draft, or an
     unreachable model → (None, note). Only an actual low score sends the scene back, and only
@@ -122,6 +131,35 @@ def run_dialogue_gate(draft, declared, camp, payload, monde):
           "The next failure ships the dry summary instead."
           % (D.format_feedback(verdict), n, cfg["max_tentatives"]))
     return 1, ""
+
+
+def run_turn_gate(draft, declared, camp, payload, monde):
+    """Layer 2. Pacing (TURN-01/02/06). Returns (exit code or None to continue, note).
+
+    This is the ONLY path where a pacing fault buys a rewrite before the player sees
+    anything — the runtime's own enforcement (`pre_tool_call`) can only refuse the write
+    that persists the ellipse, and `transform_llm_output` can only feed the correction
+    forward. A gate that crashes does not get to approve, but it does not get to kill the
+    campaign either: it refuses once and names the escape hatch.
+    """
+    try:
+        v = T.check_narration(camp, payload, draft, declared, monde=monde)
+    except Exception as exc:
+        sys.stderr.write("[mj-turn] internal error: %r\n" % (exc,))
+        print("🚫 CHECKPOINT REFUSED — the pacing gate crashed (%r). Fix it, or unblock "
+              "the campaign with MGM_TURN_GATE=0 (the turn is then unguarded)." % (exc,))
+        return 1, ""
+    if "_skipped" in v:
+        return None, " — pacing not checked (%s)" % v["_skipped"]
+    if "forced" in v:
+        print("⚠️ PACING GATE FORCED after %d attempts — correct as best you can and "
+              "DELIVER (remaining violations logged):\n%s" % (v["forced"], v["feedback"]))
+        return 0, ""
+    if not v["ok"]:
+        print("%s\n\n➡️ Rewrite your narration then re-run the checkpoint (attempt %d/%d)."
+              % (v["feedback"], v["attempts"], v["max_attempts"]))
+        return 1, ""
+    return None, " (⏩ grant consumed)" if v["grant_consumed"] else ""
 
 
 def run_agency_gate(draft, declared, camp, payload, modele):
@@ -196,6 +234,9 @@ def main():
     code, report = run_agency_gate(draft, args.declared, camp, payload, jcfg["modele"])
     if code is not None:
         return code
+    code, pacing_note = run_turn_gate(draft, args.declared, camp, payload, monde)
+    if code is not None:
+        return code
 
     def clear(message):
         """Rule layers passed → hand over to the dialogue grader before clearing.
@@ -206,7 +247,7 @@ def main():
         code, note = run_dialogue_gate(draft, args.declared, camp, payload, monde)
         if code is not None:
             return code
-        print(message.replace("{note}", note))
+        print(message.replace("{note}", pacing_note + note))
         return 0
 
     if not jcfg["actif"]:
