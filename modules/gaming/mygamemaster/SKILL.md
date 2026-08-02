@@ -889,7 +889,7 @@ Per-campaign isolation (memory, SOUL.md, config, sessions) is ensured by the **o
 | Mode | Description | When to use |
 |------|-------------|------------|
 | **Narrative** (default) | GM estimates durations by scale (moments, minutes, hours, days). Log in `world.json > global_state.timeline`. | Short campaigns, open exploration, low time constraint. |
-| **TU (Time Unit)** | 1 TU = 10 minutes. All events logged in `events.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mygamemaster/scripts/clock.py`. Configurable from `world.json > meta.temps`. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
+| **TU (Time Unit)** | 1 TU = 10 minutes, 144 TU/day — a **code constant** in `scripts/clock.py`, readable without opening any campaign. All events logged in `events.json` with precise time. Clock calculations via `python3 /opt/modules/gaming/mygamemaster/scripts/clock.py`. `world.json > meta.time` may **override** the unit (`units_per_day`, `time_unit_minutes`); a value that is not a strictly positive integer is rejected and reported. Full documentation: `references/timeline-governance.md`. | Long campaigns, strong time constraints, need to query history. |
 
 **⚠️ Absolute rule — TU mode :** If TU mode is active (`world.json > meta.temps.regime === "TU"`), TIMELINE checklist is MANDATORY before and after each narrative action. *(This is the proven precedent of per-campaign conditional loading, generalized to `modules` block.)*
 

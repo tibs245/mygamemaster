@@ -656,6 +656,25 @@ class TestCoherenceTemporelle(unittest.TestCase):
         proc = self._cli(["post", str(self.camp), "--session", "404"])
         self.assertEqual(proc.returncode, WT.CODE_INCOHERENCE_TEMPORELLE, proc.stderr)
 
+    def test_une_reconciliation_refusee_n_ecrit_rien(self):
+        """Refusing AFTER writing leaves the world mutated by a rejected tick."""
+        acteurs = self.camp / "actors.json"
+        avant = acteurs.read_bytes() if acteurs.exists() else None
+        res = WT.post(self.camp, session="404", apply=True)
+        self.assertEqual(res["ecritures"], [])
+        self.assertEqual(acteurs.read_bytes() if acteurs.exists() else None, avant)
+
+    def test_un_journal_nomme_est_resolu_comme_close_session_le_resout(self):
+        """close_session reads the number off `031-north-ford.json`; so must the tick."""
+        sessions = self.camp / "sessions"
+        sessions.mkdir(exist_ok=True)
+        (sessions / "031-north-ford.json").write_text(
+            json.dumps({"session": 31, "resume": "Day 7: the ford is frozen.",
+                        "actions": ["The party crossed the ford"]}),
+            encoding="utf-8")
+        res = WT.post(self.camp, session="31", apply=False)
+        self.assertEqual(res["incoherences"], [])
+
     def test_cone_illisible_refuse_au_lieu_de_projeter_sur_rien(self):
         proc = self._cli(["pre", str(self.camp), "--cone",
                           str(self.camp / "absent.json")])

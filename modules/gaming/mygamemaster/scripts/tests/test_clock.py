@@ -142,9 +142,47 @@ class TestSourcesTemporelles(unittest.TestCase):
         """Matching only "Jour N" made this source silently empty on an EN campaign."""
         monde = {"meta": {}, "global_state": {"timeline": "Day 31 — the thaw."}}
         self._ecrire("world.json", monde)
-        self.assertEqual(C.jour_max_narratif(self.camp, monde), 31)
+        self.assertEqual(C.jour_narratif(self.camp, monde), 31)
         monde_fr = {"meta": {}, "global_state": {"timeline": "Jour 31 — le dégel."}}
-        self.assertEqual(C.jour_max_narratif(self.camp, monde_fr), 31)
+        self.assertEqual(C.jour_narratif(self.camp, monde_fr), 31)
+
+    def test_clock_et_worldlib_datent_la_fiction_pareil(self):
+        """Two modules, two regexes, two game times — that IS the drift (TIME-03)."""
+        for timeline in ("Jour 58 : la colonne atteint le gué.",
+                         "Day 58: the column reaches the ford.",
+                         "- Jour 12 — le dégel"):
+            with self.subTest(timeline=timeline):
+                monde = {"meta": {}, "global_state": {"timeline": timeline}}
+                self._ecrire("world.json", monde)
+                self.assertEqual(C.jour_narratif(self.camp, monde),
+                                 W.jour_narratif(self.camp))
+                self.assertIsNotNone(W.jour_narratif(self.camp))
+
+    def test_une_echeance_ecrite_en_prose_n_est_pas_le_present(self):
+        """A forward-looking day read as "now" refuses a perfectly coherent campaign."""
+        monde = {
+            "meta": {},
+            "rules": {"time": {"tracking": {"current_day": 58}}},
+            "global_state": {"timeline": (
+                "Day 58: the column reaches the ford. The levy must arrive by "
+                "Day 63 or the ford falls.")},
+        }
+        self._ecrire("world.json", monde)
+        self._ecrire("sessions/031.json", {
+            "session": 31, "resume": "Day 58: the ford is frozen.",
+            "teaser": "By Day 70 the thaw will come."})
+        self.assertEqual(C.jour_narratif(self.camp, monde), 58)
+        rap = C.detecter_derive(self.camp, monde)
+        self.assertEqual(rap["ecart"], 0, rap["sources"])
+        self.assertFalse(rap["derive"])
+
+    def test_sans_entree_datee_le_plus_grand_jour_reste_un_repli(self):
+        """No dated entry anywhere → the loose scan, rather than a blind day 0."""
+        monde = {"meta": {}, "global_state": {"timeline": "We are on Day 3 already."}}
+        self._ecrire("world.json", monde)
+        src = C.jour_narratif_source(self.camp, monde)
+        self.assertEqual(src["jour"], 3)
+        self.assertFalse(src["ancre"])
 
     def test_evenement_programme_futur_n_avance_pas_l_horloge(self):
         """A SCHEDULED event carries a future T; counting it makes the world
@@ -171,14 +209,88 @@ class TestSourcesTemporelles(unittest.TestCase):
         self.assertIn("evenement_resolu_dans_le_futur",
                       [a["code"] for a in rap["anomalies"]])
 
-    def test_echeance_en_chaine_libre_est_signalee(self):
+    def test_echeance_en_chaine_libre_est_signalee_sans_bloquer(self):
+        """Hand-written deadlines are documented as tolerated: report, never refuse."""
         monde = self._monde_jour(7)
         monde["global_state"]["faction_actions_horloge"] = {"actions": [
             {"faction": "F", "actions_en_cours": [
-                {"action": "A", "echeance": "soon-ish"}]}]}
+                {"action": "A", "echeance": "when the snow melts"}]}]}
         self._ecrire("world.json", monde)
         rap = C.detecter_derive(self.camp, monde)
-        self.assertIn("echeance_non_datable", [a["code"] for a in rap["anomalies"]])
+        anomalie = next(a for a in rap["anomalies"]
+                        if a["code"] == "echeance_non_datable")
+        self.assertFalse(anomalie["bloquant"])
+        self.assertEqual(rap["ecart"], 0)
+        self.assertFalse(C.derive_bloquante(rap))
+
+    def test_calendrier_non_24h_est_signale_sans_bloquer(self):
+        """The override honours a fantasy calendar; refusing over it forever is not that."""
+        monde = self._monde_jour(7)
+        monde["meta"]["time"] = {"regime": "UT", "units_per_day": 100,
+                                 "time_unit_minutes": 10}
+        self._ecrire("world.json", monde)
+        rap = C.detecter_derive(self.camp, monde)
+        anomalie = next(a for a in rap["anomalies"]
+                        if a["code"] == "config_temps_incoherente")
+        self.assertFalse(anomalie["bloquant"])
+        self.assertFalse(C.derive_bloquante(rap))
+
+    def test_surcharge_rejetee_reste_bloquante(self):
+        monde = self._monde_jour(7)
+        monde["meta"]["time"] = {"regime": "UT", "units_per_day": 0}
+        self._ecrire("world.json", monde)
+        self.assertTrue(C.derive_bloquante(C.detecter_derive(self.camp, monde)))
+
+    def test_fichier_temporel_illisible_ne_disparait_pas(self):
+        """A dropped source reads as an agreeing source — the fail-open TIME-04 forbids."""
+        monde = self._monde_jour(7)
+        self._ecrire("world.json", monde)
+        (self.camp / "events.json").write_text("{ broken", encoding="utf-8")
+        rap = C.detecter_derive(self.camp, monde)
+        anomalie = next(a for a in rap["anomalies"]
+                        if a["code"] == "source_temporelle_illisible")
+        self.assertTrue(anomalie["bloquant"])
+        self.assertTrue(C.derive_bloquante(rap))
+        self.assertNotIn("sources agree", "\n".join(C.formater_derive(rap)))
+
+    def test_forme_inutilisable_est_signalee_comme_illisible(self):
+        """Valid JSON with no usable events list: validate_json does NOT catch it."""
+        monde = self._monde_jour(7)
+        self._ecrire("world.json", monde)
+        self._ecrire("evenements_programmes.json", {"meta": {}, "events": None})
+        rap = C.detecter_derive(self.camp, monde)
+        self.assertIn("source_temporelle_illisible",
+                      [a["code"] for a in rap["anomalies"]])
+
+    def test_une_seule_source_ne_dit_pas_que_les_sources_s_accordent(self):
+        monde = {"meta": {"name": "T"},
+                 "rules": {"time": {"tracking": {"current_day": 12}}},
+                 "global_state": {}}
+        self._ecrire("world.json", monde)
+        rendu = "\n".join(C.formater_derive(C.detecter_derive(self.camp, monde)))
+        self.assertNotIn("sources agree", rendu)
+        self.assertIn("only 1 temporal source", rendu)
+
+    def test_regime_narratif_ne_convertit_pas_des_entiers_en_ut(self):
+        """events.json integer t in narrative regime counts an undeclared unit."""
+        monde = self._monde_jour(30)
+        self._ecrire("world.json", monde)
+        self._ecrire("events.json", {"meta": {}, "events": [{"t": 30}]})
+        rap = C.detecter_derive(self.camp, monde)
+        self.assertNotIn("events.json", [s["id"] for s in rap["sources"]])
+        self.assertFalse(rap["derive"])
+        self.assertFalse(C.derive_bloquante(rap))
+
+    def test_t_offset_est_retire_avant_conversion(self):
+        """t_offset = UT at campaign start; ignoring it shifts every UT source."""
+        monde = self._monde_jour(7)
+        monde["meta"]["time"] = {"regime": "UT", "t_offset": 288}
+        self._ecrire("world.json", monde)
+        self._ecrire("events.json", {"meta": {}, "events": [{"t": 288 + 6 * 144}]})
+        rap = C.detecter_derive(self.camp, monde)
+        canon = next(s for s in rap["sources"] if s["id"] == "events.json")
+        self.assertEqual(canon["jour"], 7)
+        self.assertFalse(rap["derive"])
 
     def test_tolerance_configurable(self):
         monde = self._monde_jour(7)
@@ -307,31 +419,57 @@ class TestFermetureRefuseLaDerive(unittest.TestCase):
 class TestCampagneSaineResteFermable(unittest.TestCase):
     """Making P5/P11 blocking must not refuse a coherent campaign."""
 
+    def _campagne_resynchronisee(self, d: str, garder_chaine: bool = False) -> Path:
+        camp = Path(d) / "camp"
+        shutil.copytree(CORPUS, camp)
+        monde = json.loads((camp / "world.json").read_text(encoding="utf-8"))
+        monde["rules"]["time"]["tracking"]["current_day"] = 58
+        horloge = monde["global_state"]["faction_actions_horloge"]["actions"][0]
+        horloge["actions_en_cours"] = [{
+            "action": "Hold the ford",
+            "consequence": "The valley stays closed.",
+            "echeance": {"texte": "in ten days", "unite": "jour",
+                         "min": 10, "max": 10, "ancre": 58,
+                         "statut": "en_cours"},
+        }]
+        if garder_chaine:
+            horloge["actions_en_cours"].append({
+                "action": "Rebuild the palisade",
+                "consequence": "A broken palisade means an open ford.",
+                "echeance": "as soon as the frost breaks",
+            })
+        (camp / "world.json").write_text(json.dumps(monde), encoding="utf-8")
+        (camp / "events.json").write_text(json.dumps(
+            {"meta": {}, "events": [{"t": 58 * 144 - 1, "label": "x"}]}),
+            encoding="utf-8")
+        (camp / "evenements_programmes.json").unlink()
+        return camp
+
     def test_les_points_temporels_passent_sur_une_horloge_unique(self):
         with tempfile.TemporaryDirectory() as d:
-            camp = Path(d) / "camp"
-            shutil.copytree(CORPUS, camp)
-            monde = json.loads((camp / "world.json").read_text(encoding="utf-8"))
-            monde["rules"]["time"]["tracking"]["current_day"] = 58
-            horloge = monde["global_state"]["faction_actions_horloge"]["actions"][0]
-            horloge["actions_en_cours"] = [{
-                "action": "Hold the ford",
-                "consequence": "The valley stays closed.",
-                "echeance": {"texte": "in ten days", "unite": "jour",
-                             "min": 10, "max": 10, "ancre": 58,
-                             "statut": "en_cours"},
-            }]
-            (camp / "world.json").write_text(json.dumps(monde), encoding="utf-8")
-            (camp / "events.json").write_text(json.dumps(
-                {"meta": {}, "events": [{"t": 58 * 144 - 1, "label": "x"}]}),
-                encoding="utf-8")
-            (camp / "evenements_programmes.json").unlink()
-
+            camp = self._campagne_resynchronisee(d)
             rap = C.analyser(camp, None)
             self.assertFalse(rap["derive"]["derive"], rap["derive"])
             self.assertEqual(rap["derive"]["anomalies"], [])
             self.assertEqual(rap["n_echue"], 0)
             self.assertEqual(C.code_sortie(rap), 0)
+
+    def test_une_echeance_en_prose_alerte_mais_ne_refuse_pas(self):
+        """Clocks agreeing exactly + one hand-written deadline = closable."""
+        with tempfile.TemporaryDirectory() as d:
+            camp = self._campagne_resynchronisee(d, garder_chaine=True)
+            monde = json.loads((camp / "world.json").read_text(encoding="utf-8"))
+            rap = C._nettoyer_pour_json(C.analyser(camp, None))
+            self.assertEqual(rap["derive"]["ecart"], 0)
+            self.assertEqual(C.code_sortie(C.analyser(camp, None)), 0)
+
+            points = {p["id"]: p for p in CS.check_pipeline(
+                camp, camp / "sessions" / "031.json", monde,
+                {"exit": 0}, {"exit": 0}, rap, False)}
+            self.assertTrue(points["P11"]["ok"], points["P11"]["detail"])
+            self.assertFalse(points["P12"]["ok"])
+            self.assertFalse(points["P12"]["bloquant"])
+            self.assertIn("echeance_non_datable", points["P12"]["detail"])
 
 
 if __name__ == "__main__":

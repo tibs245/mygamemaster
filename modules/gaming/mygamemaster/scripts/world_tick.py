@@ -1273,7 +1273,12 @@ def post(campagne: Path, session: dict | str | None = None,
               "a clean success over nothing",
         })
         _log("❌ post : " + incoherences[-1]["message"])
-    faits = extraire_faits_joueur(session_obj) if session_obj else []
+        # Refusing AFTER writing actors.json would leave the world mutated by a
+        # reconciliation the caller then rejects (exit 3).
+        return {"faits_joueur": [], "reconciliations": [], "plans_renouveles": [],
+                "propagations": [], "ecritures": [], "noop": None,
+                "incoherences": incoherences}
+    faits = extraire_faits_joueur(session_obj)
 
     reconciliations: list[dict] = []
     plans_renouveles: list[str] = []
@@ -1331,8 +1336,10 @@ def post(campagne: Path, session: dict | str | None = None,
 def _resoudre_session(campagne: Path, session: dict | str | None) -> dict | None:
     """Resolves the session argument: dict as-is, file path, or '<NNN>'.
 
-    '<NNN>' (number) → sessions/<NNN zero-padded 3>.json. None → last session
-    present in sessions/. Fail-open: None if not found/unreadable.
+    '<NNN>' (number) → sessions/<NNN zero-padded 3>.json, then <NNN>.json, then
+    any log whose name STARTS with that number (close_session accepts those and
+    the two must resolve the same file). None → last session present in
+    sessions/. Returns None if not found/unreadable — the caller reports it.
     """
     if isinstance(session, dict):
         return session
@@ -1341,10 +1348,19 @@ def _resoudre_session(campagne: Path, session: dict | str | None) -> dict | None
         # Pure number → padded file, then the unpadded name (both exist in the wild;
         # missing the second one made the reconciliation run over an empty session).
         if session.isdigit():
-            for nom in (f"{int(session):03d}.json", f"{int(session)}.json"):
+            n = int(session)
+            for nom in (f"{n:03d}.json", f"{n}.json"):
                 data = W.charger_json(sessions_dir / nom, None)
                 if data is not None:
                     return data
+            # close_session derives the number from stems like
+            # `031-north-ford.json`; resolving only `031.json` refuses the close.
+            if sessions_dir.is_dir():
+                for sp in sorted(sessions_dir.glob(f"{n:03d}*.json")) \
+                        + sorted(sessions_dir.glob(f"{n}[-_.]*.json")):
+                    data = W.charger_json(sp, None)
+                    if data is not None:
+                        return data
             return None
         # Otherwise, file path (absolute or relative).
         data = W.charger_json(session, None)

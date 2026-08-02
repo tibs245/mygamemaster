@@ -228,18 +228,37 @@ Deadline format consumed **identically** (object):
 ```
 For each deadline: `approche` if `current ≥ ancre+min`, `echue` if
 `current ≥ ancre+max`. Deadlines still in **string format** (not migrated) are
-**ignored and reported** (not machine-advanceable). `resolue` are never
-overwritten (GM narrative decision).
+**ignored and reported** — they are not machine-advanceable, but they never
+refuse a wrap-up (they surface as the non-blocking point P12). `resolue` are
+never overwritten (GM narrative decision).
+
+**Drift detection (TIME-03/TIME-04).** Four files write game time independently
+(`rules.time.tracking.current_day`, integer `t` in `events.json`, the "Day N" /
+"Jour N" that OPENS an entry in the chronology or a session log, the resolved
+events of `evenements_programmes.json`). `clock.py` converts each to a game day
+and compares them; a spread above the tolerance is a **drift** and fails. A day
+written mid-sentence ("the levy must arrive by Day 63") is a future date, not a
+clock reading, and is deliberately not counted. A temporal file that exists but
+cannot be read is reported as a blocking anomaly, never dropped — a dropped
+source reads as an agreeing source.
 
 **Signature**
 ```
-python3 clock.py <campaign> [--dry-run|--apply] [--faction NAME] [--json] [--quiet]
+python3 clock.py <campaign> [--dry-run|--apply] [--faction NAME] [--json] [--quiet] [--drift]
 ```
 - `--dry-run` (DEFAULT): report only, writes nothing.
 - `--apply`: writes `echeance.statut` in `world.json` (`echue`/`en_cours`;
   `approche` is a report signal, not a persisted schema status).
+- `--drift`: the temporal sources only — what each clock says and how far apart.
 
-**Exit codes**: `0` no overdue · `1` ≥ 1 overdue unresolved · `2` usage.
+**Exit codes**: `0` no overdue deadline and clocks agree · `1` ≥ 1 overdue
+unresolved **and/or** the clocks diverge · `2` usage.
+
+**Environment**
+- `MGM_ALLOW_CLOCK_DRIFT=1` — escape hatch: a detected drift stays **reported**
+  but stops being fatal, so a live table whose divergence the GM judged
+  narratively acceptable can still wrap up. It fixes nothing.
+- `MGM_CLOCK_DRIFT_TOLERANCE_DAYS=<n>` — accepted spread in days (default 1).
 
 > ⚠️ Do NOT run `--apply` on real campaigns from this tooling (data migration
 > is handled elsewhere). Test `--apply` on a `/tmp` copy.
@@ -253,12 +272,19 @@ python3 $SCRIPTS/clock.py /tmp/copy --apply  # write, copy only
 
 ## 7. `close_session.py` — Wrap-Up Pipeline in 1 Command
 
-Chains `validate_json.py` → `validator-distances.py` → `check_session.py` →
-`clock.py --dry-run`, then a **~10-point pipeline check** (P1 locations propagated,
-P2 NPCs sheeted, P3 factions with short+long term goals, P4 factions in clock, P5
-clock up-to-date, P6 timeline, P7 `heure_fin`, P8 `resume`, P9 `etat_fin`, P10
-UT timeline). **REFUSES wrap-up (exit ≠ 0)** if a blocking step is missing;
+Chains `validate_json.py` → `validate_schema.py` → `validator-distances.py` →
+`check_session.py` → `clock.py --json`, then a **12-point pipeline check** (P1
+locations propagated, P2 NPCs sheeted, P3 factions with short+long term goals,
+P4 factions in clock, P5 clock up-to-date, P6 timeline, P7 `heure_fin`, P8
+`resume`, P9 `etat_fin`, P10 UT timeline, P11 temporal coherence, P12 temporal
+hygiene). **REFUSES wrap-up (exit ≠ 0)** if a blocking step is missing;
 otherwise **proposes a commit message** — never commits itself.
+
+P5 and P11 are decided on the **content** of `clock.py`'s JSON report, not on
+its exit code: an unreadable report blocks too. P12 is **never** blocking — it
+carries what the clock reports but does not refuse over (a hand-written deadline,
+a non-24h calendar). `MGM_ALLOW_CLOCK_DRIFT=1` downgrades P5, P11 and the
+`world_tick post` temporal verdict to alerts, and is traced in the report.
 
 **Signature**
 ```
@@ -437,7 +463,7 @@ python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
 
 | Script | Exit 0 | Exit 1 | Exit 2 |
 |--------|--------|--------|--------|
-| `clock.py` | no overdue deadline | ≥ 1 overdue unresolved | usage |
+| `clock.py` | no overdue deadline, clocks agree | ≥ 1 overdue unresolved and/or clocks diverge | usage |
 | `close_session.py` | pipeline green | blocking step missing | usage |
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |

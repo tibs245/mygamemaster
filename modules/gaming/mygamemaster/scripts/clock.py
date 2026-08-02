@@ -24,9 +24,12 @@ PINNED deadline format consumed EXACTLY (cf. mission):
     "statut": "en_cours" | "echue" | "resolue"
   }
 
-Current game time (reuses the heuristic from check_session.py):
+Current game time:
   - UT regime      → last `t` from events.json (in UT)
-  - narrative regime → max "Jour N" mentioned (chronology + sessions)
+  - narrative regime → the day the fiction is AT, i.e. the latest "Day N" /
+    "Jour N" that OPENS an entry in the chronology or a session log. A day
+    written mid-sentence ("the levy must arrive by Day 63") is a future date,
+    not a clock reading, and is deliberately not counted.
 The `echeance.unite` field determines the comparison scale:
   - "ut"   → compare to current `t` (UT)
   - "jour" → compare to current day
@@ -40,7 +43,14 @@ mentioned in the chronology and the session logs, the living-world events
 emitted by world_tick.py). On a real campaign they diverged by 51 days without
 anyone noticing. `detecter_derive` converts every source to a game DAY and
 compares them against each other; the spread is reported in every mode and is a
-business failure (exit 1) above `TOLERANCE_DERIVE_JOURS`.
+business failure (exit 1) above `TOLERANCE_DERIVE_JOURS`. A temporal file that
+exists but cannot be read is an anomaly, never a dropped source: a dropped
+source reads as an agreeing one.
+
+Anomalies carry `bloquant`. Only those meaning the clock itself is untrustworthy
+(rejected unit override, resolved event dated in the future, unreadable temporal
+file) fail; an undatable deadline or a fantasy calendar are reported and let the
+close proceed.
 
 Usage:
   python3 clock.py <path/campaign>                 # --dry-run (default): report only
@@ -68,6 +78,8 @@ import sys
 import unicodedata
 from pathlib import Path
 
+import worldlib as WL
+
 
 # ─── The time unit, IN CODE (TIME-01) — meta.time only OVERRIDES these ───────
 MINUTES_PAR_UT = 10
@@ -83,6 +95,23 @@ ENV_ALLOW_DERIVE = "MGM_ALLOW_CLOCK_DRIFT"
 ENV_TOLERANCE_DERIVE = "MGM_CLOCK_DRIFT_TOLERANCE_DAYS"
 
 _STATUTS_RESOLUS = ("resolu", "resolue", "resolved", "accompli", "accomplished")
+
+_ANOMALIES_BLOQUANTES = frozenset((
+    "config_temps_invalide",
+    "evenement_resolu_dans_le_futur",
+    "source_temporelle_illisible",
+))
+
+
+def _anomalie(code: str, message: str) -> dict:
+    """An anomaly, flagged `bloquant` only when the clock itself is untrustworthy.
+
+    A hand-written deadline and a fantasy calendar are documented as legitimate:
+    reporting them is right, refusing the close over them is not — the GM would
+    set the drift override permanently and neutralise every temporal gate.
+    """
+    return {"code": code, "message": message,
+            "bloquant": code in _ANOMALIES_BLOQUANTES}
 
 
 def derive_autorisee() -> bool:
@@ -109,9 +138,6 @@ def tolerance_derive() -> int:
 
 
 # ─── Normalisation (consistent with check_session.py) ───────────────────────
-
-_RE_JOUR = re.compile(r"\b(?:[Jj]our|[Dd]ay)\s+(\d+)")
-
 
 def normaliser(nom: str) -> str:
     if not nom:
@@ -161,11 +187,10 @@ def config_temps(monde) -> dict:
             return defaut
         val = temps.get(cle)
         if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
-            anomalies.append({
-                "code": "config_temps_invalide",
-                "message": (f"meta.time.{cle} = {val!r} is not a strictly positive "
-                            f"integer — override REJECTED, code default {defaut} used"),
-            })
+            anomalies.append(_anomalie(
+                "config_temps_invalide",
+                f"meta.time.{cle} = {val!r} is not a strictly positive "
+                f"integer — override REJECTED, code default {defaut} used"))
             return defaut
         surcharge = True
         return val
@@ -174,13 +199,12 @@ def config_temps(monde) -> dict:
     minutes_par_ut = _entier_positif("time_unit_minutes", MINUTES_PAR_UT)
 
     if ut_par_jour * minutes_par_ut != MINUTES_PAR_JOUR:
-        anomalies.append({
-            "code": "config_temps_incoherente",
-            "message": (f"meta.time declares a day of {ut_par_jour * minutes_par_ut} min "
-                        f"({ut_par_jour} UT × {minutes_par_ut} min) instead of "
-                        f"{MINUTES_PAR_JOUR} — override kept, every UT↔day conversion "
-                        "runs on that scale"),
-        })
+        anomalies.append(_anomalie(
+            "config_temps_incoherente",
+            f"meta.time declares a day of {ut_par_jour * minutes_par_ut} min "
+            f"({ut_par_jour} UT × {minutes_par_ut} min) instead of "
+            f"{MINUTES_PAR_JOUR} — override kept, every UT↔day conversion "
+            "runs on that scale"))
 
     return {
         "minutes_par_ut": minutes_par_ut,
@@ -232,44 +256,34 @@ def t_courant_ut(campagne: Path, monde: dict) -> int:
     return 0
 
 
-def jour_max_narratif(campagne: Path, monde: dict) -> int | None:
-    """Largest "Day N" / "Jour N" written in the chronology + the session logs.
+def jour_narratif_source(campagne: Path, monde: dict) -> dict:
+    """The day the FICTION is at — {'jour': int|None, 'ancre': bool, 'detail': str}.
 
-    None when nothing is written anywhere. Both spellings are accepted: the
-    campaigns are English now but legacy content is French, and matching only
-    one of the two makes this source silently return nothing — a blind clock
-    reads as "no divergence".
+    Delegates to `worldlib.jour_narratif_source`: one scanner owns "Day N" /
+    "Jour N" so clock.py and world_tick cannot date the same fiction differently.
+    Only mentions that ANCHOR an entry count as the present; a deadline or a
+    teaser written in prose ("the levy must arrive by Day 63") is a future date,
+    not a clock, and reading it as one refuses a perfectly coherent campaign.
     """
-    jours: set[int] = set()
+    return WL.jour_narratif_source(campagne, monde)
 
-    chrono = monde.get("global_state", {}).get("timeline", "") \
-        if isinstance(monde, dict) else ""
-    if isinstance(chrono, str):
-        jours.update(int(m) for m in _RE_JOUR.findall(chrono))
 
-    sessions_dir = campagne / "sessions"
-    if sessions_dir.is_dir():
-        for sp in sorted(sessions_dir.glob("*.json")):
-            try:
-                contenu = sp.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            jours.update(int(m) for m in _RE_JOUR.findall(contenu))
-
-    return max(jours) if jours else None
+def jour_narratif(campagne: Path, monde: dict) -> int | None:
+    """Game day the fiction is at, or None. See `jour_narratif_source`."""
+    return jour_narratif_source(campagne, monde)["jour"]
 
 
 def jour_courant(campagne: Path, monde: dict) -> int:
-    """Current game day (narrative regime), same heuristic as
-    check_session.py: max "Jour N" mentioned in the chronology + sessions;
-    in UT regime, derived from current t / units_per_day. Min 1."""
+    """Current game day (narrative regime): the day the fiction is at (cf.
+    `jour_narratif`); in UT regime, also derived from current t / units_per_day.
+    Min 1."""
     jours = {1}
 
     if est_regime_ut(monde):
         upd = unites_par_jour(monde)
         jours.add(t_courant_ut(campagne, monde) // upd + 1)
 
-    narratif = jour_max_narratif(campagne, monde)
+    narratif = jour_narratif(campagne, monde)
     if narratif is not None:
         jours.add(narratif)
 
@@ -286,14 +300,25 @@ def temps_courant(campagne: Path, monde: dict) -> dict:
 
 # ─── Drift: comparing the temporal sources against each other ────────────────
 
-def _charger_tolerant(chemin: Path):
-    """JSON of `chemin`, or None. Unreadable is REPORTED by the caller, not hidden."""
+def _charger_temporel(chemin: Path) -> tuple[object, str]:
+    """(data, error) for a temporal file. Absent → (None, ""), unusable → (None, why).
+
+    A dropped source reads as an agreeing source, so a file that exists and
+    cannot be used has to come back as a REASON, never as silence: hiding it
+    here is the very fail-open this module exists to remove (TIME-04).
+    """
     if not chemin.exists():
-        return None
+        return None, ""
     try:
-        return charger_json(chemin)
-    except (OSError, json.JSONDecodeError):
-        return None
+        data = charger_json(chemin)
+    except (OSError, json.JSONDecodeError) as e:
+        return None, f"{chemin.name} unreadable: {e}"
+    if not isinstance(data, dict):
+        return None, f"{chemin.name} is not a JSON object (got {type(data).__name__})"
+    if not isinstance(data.get("events"), list):
+        return None, (f"{chemin.name} has no usable 'events' list "
+                      f"(got {type(data.get('events')).__name__})")
+    return data, ""
 
 
 def _t_entiers(data, cles=("t",)) -> list[int]:
@@ -312,16 +337,33 @@ def _t_entiers(data, cles=("t",)) -> list[int]:
     return out
 
 
-def sources_temporelles(campagne: Path, monde: dict) -> list[dict]:
-    """Every INDEPENDENT writer of game time, each converted to a game DAY.
+def decalage_t(monde) -> int:
+    """`meta.time.t_offset` — UT at campaign start (48 = 8am). 0 when unusable."""
+    val = _bloc_temps(monde).get("t_offset")
+    if isinstance(val, int) and not isinstance(val, bool) and val >= 0:
+        return val
+    return 0
+
+
+def _jour_depuis_ut(t: int, upd: int, offset: int) -> int:
+    """UT → game day, on the campaign's own origin (t_offset) and scale."""
+    return (t - offset) // upd + 1
+
+
+def sources_temporelles(campagne: Path, monde: dict) -> tuple[list[dict], list[dict]]:
+    """(sources, anomalies): every INDEPENDENT writer of game time, as a game DAY.
 
     Four writers exist and none of them knows about the others — that is exactly
     how the corpus campaign ended up with four disagreeing clocks. A source that
     holds nothing is omitted rather than defaulted to day 1: a missing source is
-    not an agreeing source.
+    not an agreeing source. A source that EXISTS but cannot be used comes back as
+    an anomaly, never as an omission.
     """
     upd = unites_par_jour(monde)
+    offset = decalage_t(monde)
+    regime_ut = est_regime_ut(monde)
     sources: list[dict] = []
+    anomalies: list[dict] = []
 
     suivi = monde.get("rules", {}).get("time", {}).get("tracking", {}) \
         if isinstance(monde, dict) else {}
@@ -334,37 +376,51 @@ def sources_temporelles(campagne: Path, monde: dict) -> list[dict]:
             "detail": f"current_day={jour_suivi}",
         })
 
-    ts_events = _t_entiers(_charger_tolerant(campagne / "events.json"))
-    if ts_events:
+    echelle = f"÷ {upd} UT/day" if not offset \
+        else f"− t_offset {offset} ÷ {upd} UT/day"
+
+    evt, err = _charger_temporel(campagne / "events.json")
+    if err:
+        anomalies.append(_anomalie("source_temporelle_illisible", err))
+    ts_events = _t_entiers(evt)
+    if ts_events and not regime_ut:
+        anomalies.append(_anomalie(
+            "source_non_comparable",
+            "events.json carries integer t but the campaign is not in UT regime — "
+            "the unit those integers count is undeclared, so they cannot be "
+            "converted to days; source left out of the comparison"))
+    elif ts_events:
         t_max = max(ts_events)
         sources.append({
             "id": "events.json",
             "libelle": "temporal canon (events.json, integer t)",
-            "jour": t_max // upd + 1,
-            "detail": f"max t={t_max} UT ÷ {upd} UT/day",
+            "jour": _jour_depuis_ut(t_max, upd, offset),
+            "detail": f"max t={t_max} UT {echelle}",
         })
 
-    narratif = jour_max_narratif(campagne, monde)
-    if narratif is not None:
+    narratif = jour_narratif_source(campagne, monde)
+    if narratif["jour"] is not None:
         sources.append({
             "id": "narratif",
             "libelle": '"Day N" written in the chronology + session logs',
-            "jour": narratif,
-            "detail": f"largest day written = {narratif}",
+            "jour": narratif["jour"],
+            "detail": narratif["detail"],
         })
 
-    prog = _charger_tolerant(campagne / "evenements_programmes.json")
+    prog, err = _charger_temporel(campagne / "evenements_programmes.json")
+    if err:
+        anomalies.append(_anomalie("source_temporelle_illisible", err))
     ts_prog = _t_entiers(_resolus_seulement(prog), cles=("T", "t"))
     if ts_prog:
         t_max = max(ts_prog)
         sources.append({
             "id": "evenements_programmes.json",
             "libelle": "living-world clock (world_tick, resolved events)",
-            "jour": t_max // upd + 1,
-            "detail": f"max resolved T={t_max} UT ÷ {upd} UT/day",
+            "jour": _jour_depuis_ut(t_max, upd, offset),
+            "detail": f"max resolved T={t_max} UT {echelle}",
         })
 
-    return sources
+    return sources, anomalies
 
 
 def _resolus_seulement(prog):
@@ -386,16 +442,18 @@ def _anomalies_evenements(campagne: Path, monde: dict,
     """Resolved events dated AFTER the reference day (the corpus had four)."""
     if jour_reference is None:
         return []
-    prog = _resolus_seulement(_charger_tolerant(campagne / "evenements_programmes.json"))
+    data, _ = _charger_temporel(campagne / "evenements_programmes.json")
+    prog = _resolus_seulement(data)
     if prog is None:
         return []
     upd = unites_par_jour(monde)
+    offset = decalage_t(monde)
     futurs = []
     for evt in prog["events"]:
         t = evt.get("T", evt.get("t"))
         if not isinstance(t, int) or isinstance(t, bool):
             continue
-        jour = t // upd + 1
+        jour = _jour_depuis_ut(t, upd, offset)
         if jour > jour_reference:
             futurs.append((evt.get("id", "(no id)"), jour))
     if not futurs:
@@ -403,11 +461,10 @@ def _anomalies_evenements(campagne: Path, monde: dict,
     apercu = " ; ".join(f"{eid} → day {j}" for eid, j in futurs[:5])
     if len(futurs) > 5:
         apercu += f" ; …(+{len(futurs) - 5})"
-    return [{
-        "code": "evenement_resolu_dans_le_futur",
-        "message": (f"{len(futurs)} event(s) marked resolved but dated AFTER the "
-                    f"current day ({jour_reference}): {apercu}"),
-    }]
+    return [_anomalie(
+        "evenement_resolu_dans_le_futur",
+        f"{len(futurs)} event(s) marked resolved but dated AFTER the "
+        f"current day ({jour_reference}): {apercu}")]
 
 
 def _anomalies_echeances(monde: dict) -> list[dict]:
@@ -428,11 +485,10 @@ def _anomalies_echeances(monde: dict) -> list[dict]:
     apercu = " ; ".join(brutes[:5])
     if len(brutes) > 5:
         apercu += f" ; …(+{len(brutes) - 5})"
-    return [{
-        "code": "echeance_non_datable",
-        "message": (f"{len(brutes)} deadline(s) still in free-string form, so no "
-                    f"machine can tell whether they elapsed: {apercu}"),
-    }]
+    return [_anomalie(
+        "echeance_non_datable",
+        f"{len(brutes)} deadline(s) still in free-string form, so no machine can "
+        f"tell whether they elapsed — pin them to advance them: {apercu}")]
 
 
 def detecter_derive(campagne: Path, monde: dict | None = None,
@@ -443,9 +499,9 @@ def detecter_derive(campagne: Path, monde: dict | None = None,
     'tolerance', 'derive': bool, 'anomalies', 'override'}.
 
     `derive` is True as soon as the spread between two sources exceeds the
-    tolerance. `anomalies` collects the incoherences a spread cannot express
-    (rejected unit config, resolved events dated in the future, undatable
-    deadlines); they are reported separately so a caller can weigh them.
+    tolerance. `anomalies` collects the incoherences a spread cannot express;
+    each carries its own `bloquant` flag so a caller weighs them instead of
+    folding a hand-written deadline into a clock-divergence refusal.
     """
     campagne = Path(campagne)
     if monde is None:
@@ -453,7 +509,7 @@ def detecter_derive(campagne: Path, monde: dict | None = None,
     if tolerance is None:
         tolerance = tolerance_derive()
 
-    sources = sources_temporelles(campagne, monde)
+    sources, anomalies = sources_temporelles(campagne, monde)
     jours = [s["jour"] for s in sources]
     jour_min = min(jours) if jours else None
     jour_max = max(jours) if jours else None
@@ -463,7 +519,7 @@ def detecter_derive(campagne: Path, monde: dict | None = None,
                      if s["id"] == "rules.time.tracking.current_day"), None)
     jour_reference = declaree if declaree is not None else jour_max
 
-    anomalies = list(config_temps(monde)["anomalies"])
+    anomalies = list(config_temps(monde)["anomalies"]) + anomalies
     anomalies += _anomalies_evenements(campagne, monde, jour_reference)
     anomalies += _anomalies_echeances(monde)
 
@@ -480,6 +536,11 @@ def detecter_derive(campagne: Path, monde: dict | None = None,
     }
 
 
+def anomalies_bloquantes(derive: dict) -> list[dict]:
+    """Anomalies that make the clock unverifiable, hence refuse the close."""
+    return [a for a in (derive or {}).get("anomalies") or [] if a.get("bloquant")]
+
+
 def formater_derive(derive: dict) -> list[str]:
     """Human rendering of a drift report — one line per source, then the verdict."""
     lignes = ["🕰  Temporal sources (TIME-03 — one writer owns game time):"]
@@ -493,12 +554,22 @@ def formater_derive(derive: dict) -> list[str]:
         lignes.append(f"   ❌ DRIFT: {derive['ecart']} day(s) between the sources "
                       f"(day {derive['jour_min']} … {derive['jour_max']}, "
                       f"tolerance {derive['tolerance']}).")
-    elif derive["sources"]:
+    elif anomalies_bloquantes(derive):
+        lignes.append(f"   ⚠ the {len(derive['sources'])} READABLE source(s) are "
+                      f"{derive['ecart']} day(s) apart — the comparison is "
+                      "incomplete, see below.")
+    elif len(derive["sources"]) >= 2:
         lignes.append(f"   ✅ sources agree (spread {derive['ecart']} day(s), "
                       f"tolerance {derive['tolerance']}).")
+    elif derive["sources"]:
+        # A single clock cannot agree with anything: a green tick here would
+        # assert a comparison that never happened.
+        lignes.append("   ℹ only 1 temporal source — nothing to compare it "
+                      "against, divergence NOT ruled out.")
     for a in derive["anomalies"]:
-        lignes.append(f"   ⚠ {a['code']}: {a['message']}")
-    if (derive["derive"] or derive["anomalies"]) and derive["override"]:
+        marque = "❌" if a.get("bloquant") else "⚠"
+        lignes.append(f"   {marque} {a['code']}: {a['message']}")
+    if (derive["derive"] or anomalies_bloquantes(derive)) and derive["override"]:
         lignes.append(f"   ⚠ {ENV_ALLOW_DERIVE}=1 — divergence ACCEPTED by the "
                       "operator, nothing was fixed.")
     return lignes
@@ -666,10 +737,16 @@ def _nettoyer_pour_json(rapport: dict) -> dict:
 
 
 def derive_bloquante(derive: dict) -> bool:
-    """True when a drift/anomaly was found AND the operator has not accepted it."""
+    """True when the clocks cannot be trusted AND the operator has not accepted it.
+
+    Only a real spread and a BLOCKING anomaly count. An undatable deadline or a
+    non-24h calendar are reported, never a refusal: there is nothing to
+    resynchronise, and the only remedy on offer would be the drift override —
+    which a GM then leaves on forever, disabling the gate this module is.
+    """
     if not derive:
         return False
-    return bool(derive.get("derive") or derive.get("anomalies")) \
+    return bool(derive.get("derive") or anomalies_bloquantes(derive)) \
         and not derive.get("override")
 
 
