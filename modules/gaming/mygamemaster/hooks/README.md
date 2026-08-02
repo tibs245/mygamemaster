@@ -20,15 +20,21 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 | `transform_llm_output.py` | `transform_llm_output` | "Persisted" block + verbosity + **LLM judge** + CSV line + **auto narrative voice** (axis `tts` → `mygamemaster-tts`, attached as `MEDIA:`, fail-open) + snapshot `last_narration` (for `!raconte`) |
 | `on_session_end.py` | `on_session_end` | timestamped snapshot of campaign |
 | `llm_judge.py` | — (lib + CLI) | **LLM judge**: soft steward + strict conduct (`MGM_JUDGE_MOCK` for testing) |
-| `mj_checkpoint.py` | — (called by GM) | **gate** per-turn with loop-prevention budget |
+| `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action |
+| `mj_checkpoint.py` | — (called by GM) | **gate** per-turn: agency gate first, then LLM judge, each with a loop-prevention budget |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 61 cases (including auto-TTS, persistent pause, admin judge) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 146 cases (including auto-TTS, persistent pause, admin judge, the agency corpus table) |
 
 ## Principles
 
 - **Stdlib only**, invoked by explicit interpreter (`/opt/hermes/.venv/bin/python3`).
 - **Fail-open**: any exception → `{}` (no-op). A hook bug never breaks a session.
-- **Deterministic only**: we only block on JSON integrity; game logic
+- **Except AGENCY-01/02/03**: `agency_gate.py` is deliberately NOT fail-open. Its verdict does not
+  depend on the LLM judge being configured, reachable or in budget — the corpus showed that a
+  written-only agency rule is violated again. Ambiguity is still never guessed at: an unrecognised
+  construction is handed to the judge rather than blocked. Escape hatches: `MGM_AGENCY_GATE=off`
+  (default ON) and `MGM_AGENCY_MAX_ATTEMPTS=N` (default 3, then a loud, logged forced pass).
+- **Deterministic only**: apart from the agency gate we only block on JSON integrity; game logic
   ("nonexistent object") remains advisory as long as inventory is free-text (see spec §7).
 - Working state under `<campaign>/.banquier/` (ledger, snapshots, sample counter).
 

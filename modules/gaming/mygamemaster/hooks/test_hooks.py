@@ -71,6 +71,116 @@ def _pending_has_text(path):
         return False
 
 
+# Agency corpus tables (label, draft, declared[, rules]) — mined from docs/10-field-report.md,
+# the AGENCY-01/02/03 evidence column of locked-lessons.md and the worked examples of references/.
+PC_NAMES = ["Rubis"]
+
+AGENCY_VIOLATIONS = [
+    ("FR two chained PC actions (S23 pattern)",
+     "Tu t'approches de la pierre et tu poses la main dessus.", "", ["AGENCY-01", "AGENCY-03"]),
+    ("FR single imposed movement",
+     "Tu recules d'un pas.", "", ["AGENCY-01"]),
+    ("FR imposed gesture + posture",
+     "Tu hoches la tête et tu souris.", "", ["AGENCY-01", "AGENCY-03"]),
+    ("FR imposed breath (AGENCY-01 verbatim: breath)",
+     "Tu retiens ton souffle.", "", ["AGENCY-01"]),
+    ("FR imposed gaze (AGENCY-01 verbatim: gaze)",
+     "Tu détournes le regard.", "", ["AGENCY-01"]),
+    ("FR three stacked actions (S16 pattern)",
+     "Tu ouvres la porte, tu franchis le seuil, puis tu descends l'escalier.", "",
+     ["AGENCY-01", "AGENCY-03"]),
+    ("FR PC dialogue invented (S21/S23)",
+     "Tu dis à Berthe que tu acceptes.", "", ["AGENCY-02"]),
+    ("FR PC dialogue by narrative inversion",
+     "« Je viendrai », dis-tu.", "", ["AGENCY-02"]),
+    ("FR PC named in third person",
+     "Rubis s'agenouille devant le feu.", "", ["AGENCY-01"]),
+    ("FR action beyond the declared one",
+     "Tu t'approches de la pierre et tu poses la main dessus.", "je m'approche de la pierre",
+     ["AGENCY-01", "AGENCY-03"]),
+    ("EN imposed movement (the corpus 1/5 pattern, English locale)",
+     "You step back into the shadows.", "", ["AGENCY-01"]),
+    ("EN gesture + action in one turn",
+     "You nod slowly and place your hand on the stone.", "", ["AGENCY-01", "AGENCY-03"]),
+    ("EN PC dialogue invented",
+     "You say that you accept.", "", ["AGENCY-02"]),
+    ("EN PC named in third person",
+     "Rubis kneels by the fire.", "", ["AGENCY-01"]),
+    ("EN six unvalidated actions (narrative-pacing-concrete ❌ regression)",
+     "You pull the first trap — it's heavy. Full of silvery perch.\n"
+     "You move to the snares next — a hare hangs there, stiff.\n"
+     "You bring it all back to the cabin. Berthe has already prepared the smoker.",
+     "I go to the traps", ["AGENCY-01", "AGENCY-03"]),
+    ("EN action beyond a declared move",
+     "You pull the first one. It's full of silvery perch.", "I go to the traps", ["AGENCY-01"]),
+]
+
+AGENCY_LEGITIMATE = [
+    ("EN sensory anchor (scene-output-template filled example)",
+     "The forge has gone cold; only embers remain, and the iron smell hangs heavy in the dark.", ""),
+    ("EN NPC behaviour + speech with the PC as object",
+     "Hadrec the smith looks up from the bench, hammer still in hand. \"We're closed,\" he says — "
+     "then his eyes flick to the road behind you before settling back on your faces.", ""),
+    ("EN standing facts of the scene",
+     "A half-finished horseshoe lies abandoned on the anvil, the quench-bucket beside it untouched.", ""),
+    ("EN handoff question", "What do you do?", ""),
+    ("EN held beat STOP", "🛑 Drageon looks at you. He waits.", ""),
+    ("EN corrected verb (narrative-recurring-errors #1)",
+     "Firmin spent twenty years maintaining the seals.", ""),
+    ("EN corrected possessive (narrative-recurring-errors #2)",
+     "Berthe looks at you — not because it belongs to you, but because you are the initiator.", ""),
+    ("EN corrected object position (narrative-recurring-errors #5)",
+     "Firmin sits by the window, hands empty — the journal is beside you, on your pallet.", ""),
+    ("EN corrected temporality (narrative-recurring-errors #4)",
+     "For a few days, a stranger has been cleaning them.", ""),
+    ("EN perception only", "You hear a creaking above the beams, and the smell of wet ash reaches you.", ""),
+    ("EN two perceptions are not two actions",
+     "You see the cracked stone; you feel the cold rising through your soles.", ""),
+    ("EN world acting without the PC",
+     "The wind drops. Three silhouettes wait by the fire in the clearing.", ""),
+    ("EN hypothetical clause", "If you step through, the seal will hold — that is what Firmin claims.", ""),
+    ("FR sensory anchor", "La lanterne crache une flamme basse. L'air sent la pierre mouillée.", ""),
+    ("FR NPC gesture + dialogue", "Berthe repose le couteau sans lever les yeux. « On ferme », dit-elle.", ""),
+    ("FR world sound", "Un craquement monte de l'escalier, puis plus rien.", ""),
+    ("FR NPC acting on the PC (object clitic, allowed)", "Firmin te tend le journal, la main tremblante.", ""),
+    ("FR NPC gaze toward the PC (allowed)", "Drageon te regarde. Il attend.", ""),
+    ("FR perception only", "Tu entends un bruit de sabots sur le chemin ; l'odeur de fumée arrive.", ""),
+    ("FR two perceptions", "Tu vois la pierre fendue, et tu sens le froid remonter par les semelles.", ""),
+    ("FR STOP on world state", "🛑 Berthe attend ta réponse.", ""),
+    ("FR NPC dialogue addressing the PC as 'tu'", "« Tu poses trop de questions », lâche Rousset.", ""),
+    ("FR dash dialogue line", "— Tu devrais dormir, dit Berthe. Elle remonte la couverture.", ""),
+    ("FR PC name in a non-subject position", "Rubis, la petite lame de Berthe, brille sur la table.", ""),
+    ("FR NPC-to-NPC relationship (narrative-recurring-errors #3)",
+     "Berthe a connu Firmin pendant des années — c'est elle qu'il a prévenue en premier.", ""),
+    ("FR ambient state", "Il fait nuit depuis deux heures. La neige tient sur les toits de la Marche.", ""),
+    ("FR question to the player", "Que fais-tu ?", ""),
+    ("FR negated construction", "Tu ne sais pas encore ce qui t'attend derrière la porte.", ""),
+    ("FR hypothetical clause", "Tu peux voir la lueur au bout du couloir, si tu avances.", ""),
+    ("FR NPC acting on the party", "Berthe nous regarde tous les deux, puis hausse les épaules.", ""),
+    ("FR declared action executed (AGENCY-03 bounded exception)",
+     "Tu t'approches de la pierre. Le froid monte du sol.", "je m'approche de la pierre"),
+    ("FR declared action executed, English locale",
+     "You step through the doorway. The air is colder here.", "I step through the doorway"),
+    ("FR verbatim placeholder instead of an invented line",
+     "Tu dis [VERBATIM À FOURNIR PAR LE JOUEUR] et Berthe attend.", ""),
+    ("FR player's own words quoted back",
+     "« Je viendrai », dis-tu, et Berthe hoche la tête.", "je réponds « je viendrai »"),
+    ("EN scene state before the PC (narrative-pacing-concrete ✅)",
+     "The fire crackles. The cabin smokes softly in the autumn. Before you, Rousset has already "
+     "left to cut wood. You hear the murmur of the Douce. What do you do?", ""),
+    ("EN state of the world rather than assigned actions",
+     "The Douce flows before you, the traps are further down on the left bank. The smoker is "
+     "ready. Berthe is working on the turnips. What do you do?", ""),
+    ("EN NPC offer is dialogue, not a menu", "Rousset suggests going to cut wood.", ""),
+    ("EN corrected turn executing the declaration (narrative-pacing-concrete ✅)",
+     "You pull the first one. It's full of silvery perch. The second one too, a bit less. "
+     "What do you do with all this?", "I go to the traps and I pull in the fish"),
+    ("FR scene state before the PC",
+     "Le feu crépite. La cabane fume doucement dans l'automne. Devant toi, Rousset est déjà parti "
+     "couper du bois. Tu entends le murmure de la Douce. Que fais-tu ?", ""),
+]
+
+
 def build_fixture(root, strict=False, judge=False, auto_commit=False):
     camp = os.path.join(root, "campagne")
     os.makedirs(os.path.join(camp, "characters"), exist_ok=True)
@@ -344,15 +454,17 @@ def main():
         data = json.load(open(sb, encoding="utf-8")).get("modele/propre", {})
         check("clean turn counted", data.get("propres", 0) == 1 and data.get("infractions_conduite", 0) == 0, json.dumps(data))
 
-        # ── 9. mj_checkpoint gate : anti-loop budget ────────────────────────
-        print("\n[9] mj_checkpoint — gate + anti-loop budget (max 2)")
-        out1, code1 = run_cli("mj_checkpoint.py", args=["--draft", long_resp], cwd=campj,
+        # ── 9. judge layer : anti-loop budget, on a draft the agency gate clears ──
+        print("\n[9] mj_checkpoint — judge layer + anti-loop budget (max 2)")
+        judge_resp = ("You hear the wind howl between the frozen stones of the forgotten old "
+                      "temple, and the smell of wet ash reaches the doorway.")
+        out1, code1 = run_cli("mj_checkpoint.py", args=["--draft", judge_resp], cwd=campj,
                               env={"MGM_JUDGE_MOCK": VIOL})
         check("1st attempt : violation reported (exit 1)", code1 == 1 and "AGENTIVITE" in out1, out1[:80])
-        out2, code2 = run_cli("mj_checkpoint.py", args=["--draft", long_resp], cwd=campj,
+        out2, code2 = run_cli("mj_checkpoint.py", args=["--draft", judge_resp], cwd=campj,
                               env={"MGM_JUDGE_MOCK": VIOL})
         check("2nd attempt : FORCED to avoid looping (exit 0)", code2 == 0 and "FORCED" in out2, out2[:80])
-        outok, codeok = run_cli("mj_checkpoint.py", args=["--draft", long_resp], cwd=campj,
+        outok, codeok = run_cli("mj_checkpoint.py", args=["--draft", judge_resp], cwd=campj,
                                 env={"MGM_JUDGE_MOCK": json.dumps({"ok": True})})
         check("checkpoint OK when nothing to report (exit 0)", codeok == 0 and "OK" in outok, outok[:80])
 
@@ -575,6 +687,105 @@ def main():
         check("broken npcs.json → fail-open (no block, no crash)",
               "NPC EMOTIONS" not in out.get("context", "")
               and "AUTHORITATIVE STATE" in out.get("context", ""))
+
+        # ── 15. deterministic agency gate (AGENCY-01/02/03) ──────────────────
+        print("\n[15] agency_gate — deterministic AGENCY-01/02/03")
+        sys.path.insert(0, HOOKS_DIR)
+        import agency_gate as AG  # noqa: E402
+
+        blocked, fp = 0, []
+        for label, draft, declared, rules in AGENCY_VIOLATIONS:
+            rep = AG.analyze(draft, declared, PC_NAMES)
+            got = [v["regle"] for v in rep["violations"]]
+            ok = (not rep["ok"]) and all(r in got for r in rules)
+            blocked += 1 if ok else 0
+            check("blocks %s" % label, ok, "%s → %s" % (draft[:60], got))
+        for label, draft, declared in AGENCY_LEGITIMATE:
+            rep = AG.analyze(draft, declared, PC_NAMES)
+            if not rep["ok"]:
+                fp.append((label, [v["regle"] for v in rep["violations"]]))
+            check("passes %s" % label, rep["ok"],
+                  "%s → %s" % (draft[:60], [v["regle"] for v in rep["violations"]]))
+        rate = 100.0 * len(fp) / max(1, len(AGENCY_LEGITIMATE))
+        print("     measured false-positive rate: %.1f%% (%d/%d legitimate narrations blocked)"
+              % (rate, len(fp), len(AGENCY_LEGITIMATE)))
+        check("false-positive rate is zero on the corpus table", not fp, json.dumps(fp)[:160])
+        check("violation recall is total on the corpus table",
+              blocked == len(AGENCY_VIOLATIONS), "%d/%d" % (blocked, len(AGENCY_VIOLATIONS)))
+
+        # An ambiguous construction is NOT decided here: it is handed to the LLM judge.
+        amb = AG.analyze("Tu as le pas lourd de celui qui n'a pas dormi.", "", PC_NAMES)
+        check("ambiguous verb → no deterministic verdict (handed to the judge)",
+              amb["ok"] and amb["ambiguous"] >= 1, json.dumps(amb)[:120])
+        collide = AG.analyze("Berthe regarde la porte.", "", ["Regarde"])
+        check("PC name colliding with a verb is not used as an anchor", collide["ok"],
+              json.dumps(collide)[:120])
+
+        # ── 15b. end-to-end : the gate is independent of the LLM judge ───────
+        print("\n[15b] mj_checkpoint — agency gate with the judge switched OFF")
+        campag = build_fixture(os.path.join(root, "agency"))  # NO meta.hooks.judge at all
+        noj = {"MGM_JUDGE_ACTIF": "0", "MGM_JUDGE_MODEL": "", "OPENROUTER_API_KEY": "",
+               "MGM_JUDGE_API_KEY": ""}
+        BAD = "Tu t'approches de la pierre et tu poses la main dessus."
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campag, env=noj)
+        check("judge OFF : PC action refused with a rule ID (exit 1)",
+              code == 1 and "AGENCY-01" in out, out[:120])
+        check("refusal names the offending sentence", "poses la main" in out, out[:120])
+        out, code = run_cli("mj_checkpoint.py", args=[
+            "--draft", "La lanterne vacille. Tu entends un craquement dans l'escalier."],
+            cwd=campag, env=noj)
+        check("judge OFF : perception-only draft passes (exit 0)", code == 0 and "✅" in out, out[:120])
+        out, code = run_cli("mj_checkpoint.py", args=[
+            "--draft", "Tu t'approches de la pierre. Le froid monte du sol.",
+            "--declared", "je m'approche de la pierre"], cwd=campag, env=noj)
+        check("judge OFF : declared action executed passes and cites the declaration",
+              code == 0 and "je m'approche de la pierre" in out, out[:160])
+        # The judge approving is not enough: the deterministic verdict is not negotiable.
+        out, code = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campag,
+                            env={"MGM_JUDGE_MOCK": json.dumps({"ok": True}),
+                                 "MGM_JUDGE_ACTIF": "1", "MGM_JUDGE_MODEL": "x/y"})
+        check("judge says OK : agency violation STILL refused (non-fail-open)",
+              code == 1 and "AGENCY-01" in out, out[:120])
+        out, code = run_cli("mj_checkpoint.py", args=["--file", os.path.join(root, "absent.txt")],
+                            cwd=campag, env=noj)
+        check("unreadable draft : refused instead of waved through", code == 1, out[:120])
+        # A gate bug must refuse, not approve: it does not get to be the reason a turn passes.
+        import io, contextlib  # noqa: E402
+        import mj_checkpoint as MC  # noqa: E402
+        boom = MC.A.analyze
+        MC.A.analyze = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                ccode, _rep = MC.run_agency_gate(BAD, "", L.campaign_dir({"cwd": campag}),
+                                                 {"session_id": "crash"}, "m")
+        finally:
+            MC.A.analyze = boom
+        check("agency gate crash : refused, escape hatch named",
+              ccode == 1 and "MGM_AGENCY_GATE" in buf.getvalue(), buf.getvalue()[:140])
+
+        # ── 15c. anti-loop budget + operator escape hatch ────────────────────
+        print("\n[15c] agency gate — loud forced pass and escape hatch")
+        campab = build_fixture(os.path.join(root, "agencybudget"))
+        budget = dict(noj); budget["MGM_AGENCY_MAX_ATTEMPTS"] = "2"
+        out1, c1 = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campab, env=budget)
+        out2, c2 = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campab, env=budget)
+        check("attempt 1/2 refused (exit 1)", c1 == 1 and "attempt 1/2" in out1, out1[-80:])
+        check("attempt 2/2 forced, LOUD and named (exit 0)",
+              c2 == 0 and "FORCED" in out2 and "AGENCY-01" in out2, out2[:120])
+        check("forced pass traced as feed-forward (pending)",
+              _pending_has_text(os.path.join(campab, ".banquier", "pending-gate.json")))
+        sbag = json.load(open(os.path.join(campab, ".banquier", "scoreboard.json"), encoding="utf-8"))
+        forced = sum(int(m.get("forces", 0)) for m in sbag.values() if isinstance(m, dict))
+        check("forced pass counted in the scoreboard", forced == 1, json.dumps(sbag)[:160])
+        out3, c3 = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campab, env=budget)
+        check("budget reset after a forced pass (no permanent amnesty)",
+              c3 == 1 and "attempt 1/2" in out3, out3[-80:])
+        esc = dict(noj); esc["MGM_AGENCY_GATE"] = "off"
+        out4, c4 = run_cli("mj_checkpoint.py", args=["--draft", BAD], cwd=campab, env=esc)
+        check("MGM_AGENCY_GATE=off unblocks the campaign, loudly",
+              c4 == 0 and "AGENCY GATE DISABLED" in out4, out4[:120])
+        check("gate default is ON", AG.enabled({}) and not AG.enabled({"MGM_AGENCY_GATE": "off"}))
 
     finally:
         shutil.rmtree(root, ignore_errors=True)
