@@ -1,0 +1,11 @@
+{
+  "session": 34,
+  "date": "2026-01-04",
+  "start_hour": "Jour 63 aube",
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ]
+}

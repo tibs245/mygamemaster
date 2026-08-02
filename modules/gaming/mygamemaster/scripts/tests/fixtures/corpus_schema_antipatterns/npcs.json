@@ -1,0 +1,23 @@
+[
+  {
+    "name": "NPC_ALLY",
+    "id": "npc:ally",
+    "description": "DESC_01",
+    "established_facts": [
+      "FACT_01"
+    ],
+    "gm_hypotheses": [
+      "HYP_01"
+    ],
+    "journal": {
+      "J18": "NOTE_01",
+      "J19": "NOTE_02",
+      "J37-J62": "NOTE_03",
+      "J81": "NOTE_04"
+    },
+    "journal_meta": {
+      "regle": "RULE_01",
+      "couverture": "J18-J81"
+    }
+  }
+]

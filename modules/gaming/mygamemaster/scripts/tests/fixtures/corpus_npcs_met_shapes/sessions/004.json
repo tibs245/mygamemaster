@@ -1,0 +1,34 @@
+{
+  "date": "2026-01-01",
+  "participants": [
+    "PC_01"
+  ],
+  "start_hour": "Jour 5 aube",
+  "end_hour": "Jour 5 soir",
+  "actions": [
+    {
+      "acteur": "PC_01",
+      "action": "ACTION_01"
+    }
+  ],
+  "visited_locations": [
+    {
+      "name": "LOC_VILLAGE"
+    }
+  ],
+  "resume": "SUMMARY_01",
+  "session": 4,
+  "npcs_met": [
+    "NPC_ALLY",
+    {
+      "npc_id": "faction:faction_a",
+      "moment": "MOMENT_02",
+      "lieu": "LOC_VILLAGE",
+      "interaction": "INTERACTION_02"
+    },
+    {
+      "name": "NPC_UNKNOWN",
+      "role": "ROLE_03"
+    }
+  ]
+}

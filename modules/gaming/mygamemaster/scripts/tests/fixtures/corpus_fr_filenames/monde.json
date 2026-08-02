@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "campagne": "CORPUS_FR_FILENAMES",
+    "version": 1,
+    "temps": {
+      "regime": "Narratif"
+    },
+    "pj_ids": [
+      "PC_01"
+    ]
+  },
+  "modules": {
+    "voyage": {
+      "actif": false,
+      "params": {}
+    }
+  },
+  "univers": {
+    "regions": []
+  },
+  "etat_global": {
+    "factions": []
+  },
+  "regles": {
+    "temps": {
+      "suivi": {
+        "jour_courant": 1
+      }
+    }
+  }
+}

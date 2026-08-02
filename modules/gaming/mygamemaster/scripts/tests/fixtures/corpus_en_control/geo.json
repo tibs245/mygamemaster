@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "campagne": "CORPUS_EN",
+    "version": 1
+  },
+  "locations": [
+    {
+      "id": "loc:village",
+      "name": "LOC_VILLAGE",
+      "type": "village",
+      "aretes": [
+        {
+          "vers": "loc:forest",
+          "temps_ut": 12
+        }
+      ]
+    },
+    {
+      "id": "loc:forest",
+      "name": "LOC_FOREST",
+      "type": "foret",
+      "aretes": []
+    },
+    {
+      "id": "loc:river",
+      "name": "LOC_RIVER",
+      "type": "point_eau",
+      "aretes": []
+    }
+  ]
+}
