@@ -183,7 +183,7 @@ python3 $SCRIPTS/add_action.py $CAMP 9 <<'EOF'
 EOF
 
 # Consult full NPC sheet (GM view, read-only)
-python3 $SCRIPTS/voir_pnj.py $CAMP Firmin        # or --list / --json
+python3 $SCRIPTS/show_npc.py $CAMP Firmin        # or --list / --json
 
 # Detect gaps in latest session
 python3 $SCRIPTS/check_session.py $CAMP
@@ -199,7 +199,7 @@ sh $SCRIPTS/install-hooks.sh $CAMP
 | `validate_json.py` | Campaign JSON syntax | all valid | one broken | usage |
 | `check_session.py` | Checklist gaps (read-only) | no blocking | blocking gap | usage |
 | `add_action.py` | Append action(s) to session log | added | invalid data | session not found |
-| `voir_pnj.py` | Query NPC sheet (read-only) | found/--list | not found/ambiguous | npcs.json not found/usage |
+| `show_npc.py` | Query NPC sheet (read-only) | found/--list | not found/ambiguous | npcs.json not found/usage |
 | `install-hooks.sh` | Install hook | installed | hook already present | usage/no git |
 
 **Execution constraints**: Python 3 (tested on 3.14), stdlib only, no network access
@@ -343,7 +343,7 @@ EOF
 
 ---
 
-## 11. `voir_pnj.py` — Query NPC Sheet (READ-ONLY)
+## 11. `show_npc.py` — Query NPC Sheet (READ-ONLY)
 
 Eliminates the heredoc `for pnj in p: if pnj['nom']==… : print …` that the GM
 recopies to reread a sheet. Searches by name (case-insensitive equality, then
@@ -351,21 +351,21 @@ unique substring), displays **all** fields from `npcs.json`, including
 **GM secret fields** (`hypotheses_mj`, `notes_privees`, `derniere_interaction`).
 
 Distinct from `build_brief.py`: the latter produces a *brief for NPC agents*
-and deliberately **omits** secret fields (not to expose them). `voir_pnj.py` is the
+and deliberately **omits** secret fields (not to expose them). `show_npc.py` is the
 **complete GM view**. Never writes (read-only).
 
 **Signature**
 ```
-python3 voir_pnj.py <campaign> <name> [--json] [--max N]
-python3 voir_pnj.py <campaign> --list
-python3 voir_pnj.py <npcs.json> <name>
+python3 show_npc.py <campaign> <name> [--json] [--max N]
+python3 show_npc.py <campaign> --list
+python3 show_npc.py <npcs.json> <name>
 ```
 **Exit codes**: `0` found / `--list` · `1` not found or name ambiguous
 (≥ 2 substrings) · `2` usage (`npcs.json` not found, name missing).
 
 ```
-python3 $SCRIPTS/voir_pnj.py $CAMP Firmin
-python3 $SCRIPTS/voir_pnj.py $CAMP --list
+python3 $SCRIPTS/show_npc.py $CAMP Firmin
+python3 $SCRIPTS/show_npc.py $CAMP --list
 ```
 
 ---
@@ -441,6 +441,6 @@ python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
 | `close_session.py` | pipeline green | blocking step missing | usage |
 | `validate_schema.py` | compliant with schemas | ≥ 1 schema gap | usage |
 | `add_action.py` | action(s) added | invalid data | session not found/usage |
-| `voir_pnj.py` | NPC found / `--list` | not found or ambiguous | npcs.json not found/usage |
+| `show_npc.py` | NPC found / `--list` | not found or ambiguous | npcs.json not found/usage |
 | `prefs.py` | read/write/dry-run OK | invalid data / write failure | sheet not found/usage |
 | `emotions.py` | OK (`summary` ALWAYS 0 — fail-open) | not found / ambiguous / unknown event | campaign not found / bad pair syntax |

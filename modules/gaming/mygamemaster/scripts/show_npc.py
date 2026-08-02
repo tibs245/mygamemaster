@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-voir_pnj.py — READ-ONLY consultation of an NPC from npcs.json (GM side).
+show_npc.py — READ-ONLY consultation of an NPC from npcs.json (GM side).
 
 Replaces the recurring heredoc `python3 << EOF … for pnj in p: if nom==… print …`
 that the GM copies to re-read a sheet. Searches by name (exact case-insensitive,
 then substring), displays ALL fields of the sheet, including
-**GM secret fields** (`hypotheses_mj`, `notes_privees`, `derniere_interaction`).
+**GM secret fields** (`gm_hypotheses`, `notes_privees`, `derniere_interaction`).
 
 NOT to be confused with `build_brief.py`: that one produces a *brief intended for
 NPC agents* and **deliberately omits** secret fields (to avoid leaking them
-to the agent). `voir_pnj.py` is the opposite: the COMPLETE view for the GM's eyes.
+to the agent). `show_npc.py` is the opposite: the COMPLETE view for the GM's eyes.
 Never writes (read-only, like check_session.py).
 
 Target: campaign (folder) OR direct path to npcs.json.
 
 Usage:
-  python3 voir_pnj.py <campagne> <nom>            # full sheet, human-readable
-  python3 voir_pnj.py <campagne> <nom> --json     # raw NPC object (machine)
-  python3 voir_pnj.py <campagne> --list           # list NPCs (+ location)
-  python3 voir_pnj.py <campagne> <nom> --max 1500 # truncate long fields
-  python3 voir_pnj.py <npcs.json> <nom>            # direct path
+  python3 show_npc.py <campaign> <name>            # full sheet, human-readable
+  python3 show_npc.py <campaign> <name> --json     # raw NPC object (machine)
+  python3 show_npc.py <campaign> --list           # list NPCs (+ location)
+  python3 show_npc.py <campaign> <name> --max 1500 # truncate long fields
+  python3 show_npc.py <npcs.json> <name>            # direct path
 
 Exit codes:
   0  NPC found and displayed (or --list OK)
@@ -68,7 +68,7 @@ def _err(msg: str) -> None:
 
 
 def resoudre_pnj_json(campagne: str) -> Path:
-    """Path to npcs.json: direct .json path, or <campagne>/npcs.json."""
+    """Path to npcs.json: direct .json path, or <campaign>/npcs.json."""
     base = _resoudre(campagne)
     if base.suffix == ".json":
         return base
@@ -117,7 +117,7 @@ def cles_ordonnees(fiche: dict) -> list[str]:
 
 def rendre(fiche: dict, maxlen: int) -> str:
     """Human-readable view: `**key**: value`; objects/lists as indented JSON."""
-    lignes = [f"=== {fiche.get('nom', 'UNKNOWN NPC')} ==="]
+    lignes = [f"=== {fiche.get('name') or fiche.get('nom') or 'UNKNOWN NPC'} ==="]
     for k in cles_ordonnees(fiche):
         if k == "name":
             continue
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Available NPCs ({len(pnjs)}):")
         for p in sorted(pnjs, key=lambda x: str(x.get("name", ""))):
             loc = p.get("localisation_actuelle", "?")
-            print(f"  • {str(p.get('nom', '?')):24s} [{loc}]")
+            print(f"  • {str(p.get('name') or p.get('nom') or '?'):24s} [{loc}]")
         return 0
 
     if not args.name:

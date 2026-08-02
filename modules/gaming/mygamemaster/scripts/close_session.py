@@ -14,7 +14,7 @@ Chained steps (reuses neighbouring scripts via subprocess):
   4. clock.py --dry-run      <campaign>            → ALERT if deadline elapsed
 
 ~10-point pipeline check (read-only, complements check_session):
-  P1  session locations propagated into universe.regions[].lieux
+  P1  session locations propagated into universe.regions[].locations
   P2  encountered NPCs filed in npcs.json
   P3  each faction has objectif_court_terme + objectif_long_terme
   P4  each faction present in faction_actions_horloge

@@ -239,7 +239,7 @@ The `/opt/modules/gaming/mygamemaster/scripts/` folder provides machine guards (
 |--------|------|
 | `roll.py` | Real dice + natural die rule |
 | `add_action.py` | Adds action(s) to session log (`sessions/NNN.json > actions`) — load, append, **atomic** write, revalidation. Replaces `json.load → append → json.dump` heredoc. Data via stdin / `--action` / `--file`. |
-| `voir_pnj.py` | Queries (**read-only**) NPC sheet from `npcs.json` by name — **complete** GM view (includes `gm_hypotheses` / `derniere_interaction`, which `build_brief.py` hides agent-side). `--list`, `--json`, `--max N`. Replaces `for npc in p: if nom==…` heredoc. |
+| `show_npc.py` | Queries (**read-only**) NPC sheet from `npcs.json` by name — **complete** GM view (includes `gm_hypotheses` / `derniere_interaction`, which `build_brief.py` hides agent-side). `--list`, `--json`, `--max N`. Replaces `for npc in p: if nom==…` heredoc. |
 | `validate_json.py` | JSON syntax for entire campaign |
 | `validator-distances.py` | Spatial coherence of routes |
 | `check_session.py` | Checklist gaps for a session (read-only) |

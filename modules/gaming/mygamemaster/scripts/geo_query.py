@@ -1093,7 +1093,8 @@ def creer_lieu(campagne: Path, nom: str, depuis: str, dir: str,
     # Reciprocal edge depuis <-> nouvel_id.
     arete_aller = {
         "vers": nouvel_id, "dir": direction, "distance_m": dm,
-        "temps_ut": ut_estime, "voie": f"{nom} (declared from {idx[depuis].get('nom', depuis)})",
+        "temps_ut": ut_estime,
+        "voie": f"{nom} (declared from {idx[depuis].get('name') or idx[depuis].get('nom') or depuis})",
     }
     arete_retour = {
         "vers": depuis, "dir": _OPPOSE_DIR.get(direction, "?"),
@@ -1575,7 +1576,7 @@ def cmd_qui_est_a(args) -> int:
         print(f"📍 Present at {args.lieu_id}:")
         for p in res:
             d = f" — at {p['distance']}" if args.rayon is not None and p["distance"] else ""
-            print(f"   • {p['id']} ({p['nom']}, {p['type']}){d}")
+            print(f"   • {p['id']} ({p['name']}, {p['type']}){d}")
     return 0 if res else 1
 
 
