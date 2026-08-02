@@ -459,6 +459,30 @@ python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
 
 ---
 
+## 14. `dialogue_brief.py` — Conversation Slice (READ-ONLY, GM side)
+
+Assembles what a **conversation** needs, filtered on the stake of the exchange: the NPC's
+`voix` (idiolect), what they want here, what they hide (`connaissances_privees`), what they
+refuse (`lignes_rouges` / `peurs`), their dominant emotion, the relation, and only the
+`established_facts` relevant to the stake.
+
+Third sibling of the NPC readers, and the only one that FILTERS: `build_brief.py` serves a
+Level-2 NPC agent, `show_npc.py` dumps the complete sheet, this one serves the GM writing the
+scene — a brief that dumps everything produces a character who says everything, which is the
+defect it exists to fix (`references/dialogue-craft.md`).
+
+```bash
+python3 dialogue_brief.py <campaign> "<NPC>" --stake "what the PC wants from this exchange"
+python3 dialogue_brief.py <campaign> "<NPC>" --with "<other NPC>"   # check the mouths differ
+python3 dialogue_brief.py <campaign> "<NPC>" --json [--facts N]
+python3 dialogue_brief.py <campaign> --list                          # 🗣 = has a `voix` block
+```
+
+Fail-open on every optional block (no `voix`, no emotions, no private knowledge → the section
+is simply absent; a missing `voix` prints a reminder to write and persist one).
+
+---
+
 ## Summary of New Exit Codes
 
 | Script | Exit 0 | Exit 1 | Exit 2 |
@@ -470,3 +494,4 @@ python3 $SCRIPTS/emotions.py decay $CAMP        # at session wrap-up
 | `show_npc.py` | NPC found / `--list` | not found or ambiguous | npcs.json not found/usage |
 | `prefs.py` | read/write/dry-run OK | invalid data / write failure | sheet not found/usage |
 | `emotions.py` | OK (`summary` ALWAYS 0 — fail-open) | not found / ambiguous / unknown event | campaign not found / bad pair syntax |
+| `dialogue_brief.py` | brief produced / `--list` | NPC not found or ambiguous | campaign or npcs.json not found |

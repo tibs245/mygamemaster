@@ -41,7 +41,7 @@ def _monde(nom: str) -> dict:
 @unittest.skipUnless(CAMPAGNES_DIR.is_dir(), "shipped campaigns not present")
 class TestFeatures(unittest.TestCase):
 
-    def test_les_six_axes_sont_declares(self):
+    def test_tous_les_axes_sont_declares(self):
         for nom in LIVREES:
             with self.subTest(campagne=nom):
                 features = _monde(nom)["meta"]["features"]
@@ -70,12 +70,18 @@ class TestFeatures(unittest.TestCase):
         self.assertIs(meta.get("hooks", {}).get("tts_auto"), False)
         self.assertIn("tts_auto", meta["features"].get("_schema", ""))
 
-    def test_le_commentaire_ne_dit_plus_cinq(self):
+    def test_le_commentaire_annonce_le_bon_nombre_d_axes(self):
+        """Derived from FEATURES rather than hardcoded: a count left at 'Six' after a
+        seventh axis shipped is how a feature stays invisible to whoever reads world.json."""
+        nombres = {5: "Five", 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine"}
+        attendu = nombres[len(FT._FEATURES)]
+        perimes = {mot for n, mot in nombres.items() if n != len(FT._FEATURES)}
         for nom in LIVREES:
             with self.subTest(campagne=nom):
                 schema = _monde(nom)["meta"]["features"].get("_schema", "")
-                self.assertNotIn("Five", schema)
-                self.assertIn("Six", schema)
+                self.assertIn(attendu, schema)
+                for mot in perimes:
+                    self.assertNotIn(mot, schema)
 
 
 @unittest.skipUnless(CAMPAGNES_DIR.is_dir(), "shipped campaigns not present")

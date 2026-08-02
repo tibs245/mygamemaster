@@ -2,7 +2,7 @@
 """
 mj_checkpoint.py — in-turn GATE (called by the GM before delivering narration).
 
-Two layers, in this order:
+Three layers, in this order:
 
   1. DETERMINISTIC AGENCY GATE (`agency_gate.py`) — local, stdlib, no model. Owns the TIER 0
      rules AGENCY-01/02/03. Its verdict does NOT depend on the LLM judge being configured,
@@ -10,17 +10,24 @@ Two layers, in this order:
      which was the single most expensive defect of the 34-session corpus.
   2. LLM JUDGE (`llm_judge.py`) — everything else (steward consistency + the other conduct
      rules). Fail-open by design, and that is acceptable ONLY because layer 1 already ran.
+  3. DIALOGUE GRADER (`dialogue_judge.py`) — quality of the NPC dialogue, when there IS
+     dialogue. Layers 1 and 2 check that the scene breaks no rule; this one checks it is
+     worth reading. On a second failure the turn switches to the dry-summary fallback rather
+     than shipping a flat conversation (references/dialogue-craft.md §5).
 
 Exit contract (the response is TEXT, the GM reads it in the terminal):
   - OK                → « ✅ CHECKPOINT OK » (exit 0) → the GM delivers.
   - INFRACTION        → explicit feedback + « rewrite then retry » (exit 1) → the GM corrects.
+  - FLAT DIALOGUE     → named rubric feedback (exit 1) → the GM rewrites the dialogue.
   - UNREADABLE DRAFT  → refusal (exit 1): a draft that cannot be read cannot be cleared.
   - BUDGET EXHAUSTED  → LOUD forced pass (exit 0), logged to the scoreboard and re-injected on
     the next turn, so the anti-loop property never becomes a silent amnesty.
+  - DIALOGUE BUDGET   → exit 0 with the instruction to deliver the SUMMARY, not the dialogue.
 
 Operator escape hatches (a live campaign must always be unblockable):
   MGM_AGENCY_GATE=off        disables layer 1 entirely (default: ON).
   MGM_AGENCY_MAX_ATTEMPTS=N  rewrite budget of layer 1 before the forced pass (default 3).
+  feature_toggle.py <camp> dialogue off   disables layer 3 (the GM then summarises directly).
 
 Usage (from the campaign cwd) :
   echo "<narration draft>" | python3 .../mj_checkpoint.py [--declared "player action"]
@@ -33,9 +40,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _lib as L  # noqa: E402
 import agency_gate as A  # noqa: E402
+import dialogue_judge as D  # noqa: E402
 import llm_judge as J  # noqa: E402
 
 AGENCY_ATTEMPTS_KEY = "agency_attempts"
+DIALOGUE_ATTEMPTS_KEY = "dialogue_attempts"
 
 
 def _agency_attempts(camp, payload, inc=False):
@@ -57,8 +66,65 @@ def _pc_names(camp):
     return out
 
 
+def _dialogue_attempts(camp, payload, inc=False):
+    n = L.snap_get(camp, payload, DIALOGUE_ATTEMPTS_KEY)
+    n = int(n) if isinstance(n, int) else 0
+    if inc:
+        n += 1
+        L.snap_set(camp, payload, DIALOGUE_ATTEMPTS_KEY, n)
+    return n
+
+
 def _trace(msg):
     sys.stderr.write("[mj-agency] %s\n" % msg)
+
+
+def _trace_dialogue(msg):
+    sys.stderr.write("[mj-dialogue] %s\n" % msg)
+
+
+def run_dialogue_gate(draft, declared, camp, payload, monde):
+    """Layer 3. Returns (exit code or None to clear the turn, note appended to the OK line).
+
+    The grader never blocks on uncertainty: not configured, no dialogue in the draft, or an
+    unreachable model → (None, note). Only an actual low score sends the scene back, and only
+    twice — the second failure switches to the dry summary instead of looping.
+    """
+    cfg = L.dialogue_config(monde)
+    if not cfg["actif"]:
+        raison = "axis off" if not cfg["axe"] else "not configured"
+        return None, " — dialogue not graded (%s)" % raison
+    if not D.has_dialogue(draft):
+        return None, ""
+    if len(draft or "") < cfg["min_chars"]:
+        return None, " — dialogue too short to grade"
+
+    verdict = D.judge(draft, declared, D.voices_context(camp, draft), cfg)
+    if "_skipped" in verdict:
+        _trace_dialogue("skipped: %s" % verdict["_skipped"])
+        return None, " — dialogue not graded (%s)" % verdict["_skipped"]
+
+    if verdict["ok"]:
+        L.snap_set(camp, payload, DIALOGUE_ATTEMPTS_KEY, 0)
+        L.dialogue_record(camp, cfg["modele"], verdict, "passed")
+        return None, " — dialogue %s/%s" % (verdict["score"], verdict["seuil"])
+
+    n = _dialogue_attempts(camp, payload, inc=True)
+    if n >= cfg["max_tentatives"]:
+        L.snap_set(camp, payload, DIALOGUE_ATTEMPTS_KEY, 0)
+        L.dialogue_record(camp, cfg["modele"], verdict, "summarised")
+        _trace_dialogue("fallback after %d attempts (%s/%s)"
+                        % (n, verdict["score"], verdict["seuil"]))
+        print("%s\n\n%s" % (D.format_feedback(verdict), D.FALLBACK))
+        return 0, ""
+
+    L.dialogue_record(camp, cfg["modele"], verdict, "rewrite")
+    _trace_dialogue("sent back (attempt %d/%d): %s/%s"
+                    % (n, cfg["max_tentatives"], verdict["score"], verdict["seuil"]))
+    print("%s\n\n➡️ Rewrite the dialogue then re-run the checkpoint (attempt %d/%d). "
+          "The next failure ships the dry summary instead."
+          % (D.format_feedback(verdict), n, cfg["max_tentatives"]))
+    return 1, ""
 
 
 def run_agency_gate(draft, declared, camp, payload, modele):
@@ -134,24 +200,33 @@ def main():
     if code is not None:
         return code
 
-    if not jcfg["actif"]:
-        print("✅ CHECKPOINT (agency gate passed, judge inactive)%s — deliver your narration."
-              % _cite(args.declared, report))
+    def clear(message):
+        """Rule layers passed → hand over to the dialogue grader before clearing.
+
+        `{note}` is substituted by replace(), not by %: the cited player declaration is
+        free text and may legitimately contain a percent sign.
+        """
+        code, note = run_dialogue_gate(draft, args.declared, camp, payload, monde)
+        if code is not None:
+            return code
+        print(message.replace("{note}", note))
         return 0
+
+    if not jcfg["actif"]:
+        return clear("✅ CHECKPOINT (agency gate passed, judge inactive)%s{note} — deliver your "
+                     "narration." % _cite(args.declared, report))
 
     verdict = J.judge(draft, args.declared, L.etat_brief(camp, monde, for_judge=True), jcfg)
     if "_skipped" in verdict:
-        print("✅ CHECKPOINT (agency gate passed, judge unavailable: %s) — deliver your narration."
-              % verdict["_skipped"])
-        return 0
+        return clear("✅ CHECKPOINT (agency gate passed, judge unavailable: %s){note} — deliver "
+                     "your narration." % verdict["_skipped"])
 
     violations = verdict.get("violations", [])
     if not violations:
         L.attempts_reset(camp, payload)
         L.scoreboard_update(camp, jcfg["modele"], True, 0, 0, [])
-        print("✅ CHECKPOINT OK — no rule violated%s. Deliver your narration."
-              % _cite(args.declared, report))
-        return 0
+        return clear("✅ CHECKPOINT OK — no rule violated%s{note}. Deliver your narration."
+                     % _cite(args.declared, report))
 
     n = L.attempts_inc(camp, payload)
     fb = J.format_feedback(violations)

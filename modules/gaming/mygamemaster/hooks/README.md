@@ -21,9 +21,10 @@ Hermes docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/hoo
 | `on_session_end.py` | `on_session_end` | timestamped snapshot of campaign |
 | `llm_judge.py` | — (lib + CLI) | **LLM judge**: soft steward + strict conduct (`MGM_JUDGE_MOCK` for testing) |
 | `agency_gate.py` | — (lib + CLI) | **deterministic AGENCY-01/02/03 gate**: local, stdlib, no model; refuses a PC action, PC dialogue or more than one PC action |
-| `mj_checkpoint.py` | — (called by GM) | **gate** per-turn: agency gate first, then LLM judge, each with a loop-prevention budget |
+| `dialogue_judge.py` | — (lib + CLI) | **dialogue grader**: quality of NPC dialogue on a 4-criteria rubric (`MGM_DIALOGUE_MOCK` for testing); fail-open |
+| `mj_checkpoint.py` | — (called by GM) | **gate** per-turn: agency gate, then LLM judge, then dialogue grader — each with a loop-prevention budget |
 | `scoreboard.py` | — (reader) | metrics by model (`python3 scoreboard.py [campaign]`) |
-| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 216 cases (including auto-TTS outcomes, persistent pause, admin judge, the agency corpus table and a HELD-OUT false-positive table) |
+| `test_hooks.py` | — | out-of-container tests (`python3 test_hooks.py`) — 239 cases (including the dialogue rubric, its budget and the summary fallback) |
 
 ## Principles
 
@@ -55,3 +56,8 @@ the marker each turn. `!reprise` ≠ `!reprendre` (which reloads session context
 **Judge decoupled from admin bypass**: the LLM judge (and reinjection of its correction) also runs
 on an admin's turns; only an EXPLICIT pause (`⏸️`/persistent mode) suspends it — like the auto
 narrative voice. The scrub / "Persisted" block, themselves, remain reserved for non-bypass.
+`hooks.dialogue` (axis `dialogue`, default **on**): grades NPC dialogue quality at the checkpoint —
+active as soon as a model is reachable (`meta.hooks.dialogue.modele`, `MGM_DIALOGUE_MODEL`, else the
+judge's). A flat scene is sent back once, then switched to a dry summary; every grading is journalled
+in `.banquier/dialogue-scores.json`. Contract and settings: `specs/hooks-runtime.md` §11, writing
+rules: `../references/dialogue-craft.md`.

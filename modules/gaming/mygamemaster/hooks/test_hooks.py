@@ -10,6 +10,7 @@ Output:  list of PASS/FAIL ; exit 0 if all pass, 1 otherwise.
 """
 import json
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -1064,6 +1065,97 @@ def main():
         check("MGM_AGENCY_GATE=off unblocks the campaign, loudly",
               c4 == 0 and "AGENCY GATE DISABLED" in out4, out4[:120])
         check("gate default is ON", AG.enabled({}) and not AG.enabled({"MGM_AGENCY_GATE": "off"}))
+
+        # ── 16. dialogue grading (layer 3) + dry-summary fallback ────────────
+        print("\n[16] dialogue_judge — rubric, budget and fallback")
+        sys.path.insert(0, HOOKS_DIR)
+        import dialogue_judge as DJ  # noqa: E402
+        import _lib as LB  # noqa: E402
+
+        check("speech dash detected as dialogue",
+              DJ.has_dialogue("— You ask a lot of questions, child."))
+        check("quoted line detected as dialogue",
+              DJ.has_dialogue('He said "the bell rings three more times" and stopped.'))
+        check("French quotes detected as dialogue", DJ.has_dialogue("Il murmure : « Pas ici. »"))
+        check("a prose em dash is NOT dialogue",
+              not DJ.has_dialogue("his eyes — pale green — moved to the door"))
+        check("empty narration is not dialogue", not DJ.has_dialogue(""))
+
+        dcfg = {"seuil": 12, "plancher": 1}
+        v_ok = DJ._normalize({"scores": {"INTENTION": 4, "SOUS_TEXTE": 4, "VOIX": 3, "ENJEU": 3}}, dcfg)
+        check("14/20 clears the threshold", v_ok["ok"] and v_ok["score"] == 14, json.dumps(v_ok))
+        v_low = DJ._normalize({"scores": {"INTENTION": 1, "SOUS_TEXTE": 2, "VOIX": 2, "ENJEU": 2}}, dcfg)
+        check("7/20 fails", not v_low["ok"] and v_low["faibles"], json.dumps(v_low))
+        v_floor = DJ._normalize({"scores": {"INTENTION": 5, "SOUS_TEXTE": 0, "VOIX": 5, "ENJEU": 5}}, dcfg)
+        check("a criterion at 0 fails despite a high total",
+              not v_floor["ok"] and v_floor["faibles"][0]["critere"] == "SOUS_TEXTE",
+              json.dumps(v_floor))
+        v_part = DJ._normalize({"scores": {"INTENTION": 4, "VOIX": 4}}, dcfg)
+        check("a partial answer cannot condemn the scene (missing criteria credited at par)",
+              v_part["ok"], json.dumps(v_part))
+        check("an unscorable answer is fail-open",
+              DJ._normalize({"scores": {}}, dcfg)["ok"]
+              and DJ._normalize("not a dict", dcfg)["ok"])
+
+        campd = build_fixture(os.path.join(root, "dialogue"))
+        write_json(os.path.join(campd, "npcs.json"), [
+            {"name": "Berthe", "established_facts": ["x"], "gm_hypotheses": [],
+             "voix": {"registre": "brusque, tutoie tout le monde", "tics": ["dit « bon »"]}},
+        ])
+        DIAL = ("Berthe pose le seau. — Bon. Tu veux quoi, au juste ? Elle ne lâche pas "
+                "la anse. — Parce que la dernière fois, on m'a promis la même chose.")
+        check("recorded voices are handed to the grader",
+              "Berthe" in DJ.voices_context(pathlib.Path(campd), DIAL))
+        check("voices_context ignores NPCs absent from the draft",
+              DJ.voices_context(pathlib.Path(campd), "Le vent tombe.") == "")
+
+        base = {"MGM_JUDGE_ACTIF": "0", "MGM_DIALOGUE_MODEL": "test/mock",
+                "MGM_JUDGE_API_KEY": "k", "MGM_AGENCY_GATE": "off"}
+        flat = dict(base, MGM_DIALOGUE_MOCK=json.dumps(
+            {"scores": {"INTENTION": 1, "SOUS_TEXTE": 1, "VOIX": 2, "ENJEU": 2},
+             "faibles": [{"critere": "INTENTION", "pourquoi": "répond tout, tout de suite",
+                          "correction": "donne-lui quelque chose à obtenir"}]}))
+        o1, c1 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=flat)
+        check("flat dialogue sent back with the failing criterion named (exit 1)",
+              c1 == 1 and "INTENTION" in o1 and "attempt 1/2" in o1, o1[:160])
+        o2, c2 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=flat)
+        check("second failure ships the DRY SUMMARY, not the dialogue (exit 0)",
+              c2 == 0 and "DRY SUMMARY" in o2 and "Reported speech only" in o2, o2[:160])
+        check("the player is never told a scene was rejected",
+              "Never tell the player" in o2)
+        o3, c3 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=flat)
+        check("budget reset after the fallback (attempt counter restarts)",
+              c3 == 1 and "attempt 1/2" in o3, o3[-120:])
+
+        good = dict(base, MGM_DIALOGUE_MOCK=json.dumps(
+            {"scores": {"INTENTION": 4, "SOUS_TEXTE": 4, "VOIX": 4, "ENJEU": 4}}))
+        o4, c4 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=good)
+        check("a good dialogue clears and reports its score",
+              c4 == 0 and "dialogue 16/12" in o4, o4[:160])
+        o5, c5 = run_cli("mj_checkpoint.py", args=["--draft", "Le vent tombe sur la lande."],
+                         cwd=campd, env=flat)
+        check("a narration without dialogue is never graded",
+              c5 == 0 and "dialogue" not in o5.lower(), o5[:160])
+
+        dj = json.load(open(os.path.join(campd, ".banquier", "dialogue-scores.json"),
+                            encoding="utf-8"))
+        check("every grading is journalled with its outcome",
+              dj["totaux"].get("summarised") == 1 and dj["totaux"].get("passed") == 1
+              and dj["totaux"].get("rewrite") == 2, json.dumps(dj.get("totaux")))
+
+        off = dict(flat)
+        off["MGM_FEATURE_DIALOGUE"] = "0"
+        o6, c6 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=off)
+        check("axis OFF disables grading, loudly (the GM summarises directly)",
+              c6 == 0 and "axis off" in o6, o6[:160])
+        broken = dict(flat)
+        broken["MGM_DIALOGUE_MOCK"] = "{not json"
+        o7, c7 = run_cli("mj_checkpoint.py", args=["--draft", DIAL], cwd=campd, env=broken)
+        check("an unreadable grader is fail-open — a good scene is never lost to an outage",
+              c7 == 0 and "not graded" in o7, o7[:160])
+        check("dialogue axis defaults to ON", LB.features({})["dialogue"])
+        check("grading needs a model: no model configured → inactive, not blocking",
+              not LB.dialogue_config({})["actif"])
 
     finally:
         shutil.rmtree(root, ignore_errors=True)
